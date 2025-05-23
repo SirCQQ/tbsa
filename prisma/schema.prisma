@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMINISTRATOR
+  OWNER
+}
+
+// Base user model for both administrators and apartment owners
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  administrator Administrator?
+  owner         Owner?
+  
+  @@map("users")
+}
+
+// Administrator model - can manage multiple buildings
+model Administrator {
+  id     String @id @default(uuid())
+  userId String @unique
+  
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buildings Building[]
+  
+  @@map("administrators")
+}
+
+// Building model - managed by one administrator
+model Building {
+  id               String   @id @default(uuid())
+  name             String
+  address          String
+  city             String
+  postalCode       String?
+  administratorId  String
+  readingDeadline  Int      @default(25) // Day of month until readings can be submitted
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relations
+  administrator Administrator @relation(fields: [administratorId], references: [id], onDelete: Cascade)
+  apartments    Apartment[]
+  
+  @@map("buildings")
+}
+
+// Apartment model - belongs to a building, owned by one owner
+model Apartment {
+  id         String   @id @default(uuid())
+  number     String   // Apartment number (e.g., "12", "A3", etc.)
+  floor      Int?
+  rooms      Int?
+  buildingId String
+  ownerId    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relations
+  building      Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  owner         Owner?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  waterReadings WaterReading[]
+  
+  @@unique([buildingId, number]) // Unique apartment per building
+  @@map("apartments")
+}
+
+// Owner model - can own multiple apartments
+model Owner {
+  id     String @id @default(uuid())
+  userId String @unique
+  
+  // Relations
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apartments Apartment[]
+  
+  @@map("owners")
+}
+
+// Water reading model - monthly water consumption readings
+model WaterReading {
+  id           String   @id @default(uuid())
+  apartmentId  String
+  day          Int      // 1-31
+  month        Int      // 1-12
+  year         Int
+  reading      Float    // Meter reading value
+  consumption  Float?   // Calculated automatically (current reading - previous reading)
+  submittedAt  DateTime @default(now())
+  submittedBy  String   // User ID who submitted the reading
+  isValidated  Boolean  @default(false) // Validated by administrator
+  validatedAt  DateTime?
+  validatedBy  String?  // Administrator ID who validated
+  
+  // Relations
+  apartment Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  
+  @@unique([apartmentId, month, year]) // One reading per apartment per month
+  @@map("water_readings")
+}
