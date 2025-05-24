@@ -66,11 +66,3 @@ export const waterReadingSchema = z.object({
 export const updateBuildingSchema = buildingSchema.partial();
 export const updateApartmentSchema = apartmentSchema.partial();
 export const updateUserSchema = userSchema.omit({ password: true }).partial();
-
-// Response types
-export type User = z.infer<typeof userSchema>;
-export type Login = z.infer<typeof loginSchema>;
-export type Register = z.infer<typeof registerSchema>;
-export type Building = z.infer<typeof buildingSchema>;
-export type Apartment = z.infer<typeof apartmentSchema>;
-export type WaterReading = z.infer<typeof waterReadingSchema>;
