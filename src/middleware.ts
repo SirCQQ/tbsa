@@ -7,11 +7,11 @@ const secret = new TextEncoder().encode(
 
 // Define protected routes and their required roles
 const protectedRoutes = {
-  "/api/buildings": ["ADMINISTRATOR"],
-  "/api/apartments": ["ADMINISTRATOR", "OWNER"],
-  "/api/water-readings": ["ADMINISTRATOR", "OWNER"],
-  "/dashboard": ["ADMINISTRATOR", "OWNER"],
-  "/admin": ["ADMINISTRATOR"],
+  "/api/buildings": ["ADMINISTRATOR"] as const,
+  "/api/apartments": ["ADMINISTRATOR", "OWNER"] as const,
+  "/api/water-readings": ["ADMINISTRATOR", "OWNER"] as const,
+  "/dashboard": ["ADMINISTRATOR", "OWNER"] as const,
+  "/admin": ["ADMINISTRATOR"] as const,
 } as const;
 
 // Public routes that don't require authentication
@@ -57,7 +57,7 @@ export async function middleware(request: NextRequest) {
     const requiredRoles =
       protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
 
-    if (!requiredRoles.includes(userRole as any)) {
+    if (!requiredRoles.some((role) => role === userRole)) {
       return new NextResponse(
         JSON.stringify({ error: "Insufficient permissions" }),
         {

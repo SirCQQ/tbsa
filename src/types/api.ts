@@ -1,9 +1,9 @@
-export type ApiResponse<T = any> = {
+export type ApiResponse<T = unknown> = {
   success: boolean;
   message: string;
   data?: T;
   error?: string;
-  details?: any[];
+  details?: unknown[];
 };
 
 export type ApiError = {

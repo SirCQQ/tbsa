@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     // Create response
     const response = NextResponse.json(
@@ -27,6 +27,6 @@ export async function POST(req: NextRequest) {
 }
 
 // Allow GET requests for logout as well (for convenience)
-export async function GET(req: NextRequest) {
-  return POST(req);
+export async function GET() {
+  return POST();
 }
