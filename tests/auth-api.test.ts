@@ -1,5 +1,5 @@
 import { hashPassword } from "../src/lib/auth";
-
+import { TextEncoder } from "util";
 // Mock jose library
 jest.mock("jose", () => ({
   SignJWT: jest.fn().mockImplementation(() => ({

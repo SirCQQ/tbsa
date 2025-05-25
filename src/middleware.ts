@@ -46,54 +46,67 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get("auth-token")?.value;
 
     if (!token) {
-      return redirectToLogin(request);
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
     }
 
     // Verify JWT token
     const { payload } = await jwtVerify(token, secret);
     const userRole = payload.role as string;
+    const userId = payload.userId as string;
+    const email = payload.email as string;
+    const administratorId = payload.administratorId as string | undefined;
+    const ownerId = payload.ownerId as string | undefined;
 
     // Check if user has required role for this route
     const requiredRoles =
       protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
-
     if (!requiredRoles.some((role) => role === userRole)) {
-      return new NextResponse(
-        JSON.stringify({ error: "Insufficient permissions" }),
-        {
-          status: 403,
-          headers: { "content-type": "application/json" },
-        }
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 }
       );
     }
 
-    // Add user info to headers for API routes
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-user-id", payload.userId as string);
-    requestHeaders.set("x-user-role", userRole);
-    requestHeaders.set("x-user-email", payload.email as string);
-
-    if (payload.administratorId) {
-      requestHeaders.set(
-        "x-administrator-id",
-        payload.administratorId as string
-      );
+    // Additional tenant validation for specific routes
+    if (pathname.startsWith("/api/buildings")) {
+      // Only administrators can access buildings
+      if (userRole !== "ADMINISTRATOR" || !administratorId) {
+        return NextResponse.json(
+          { error: "Only administrators can access buildings" },
+          { status: 403 }
+        );
+      }
     }
 
-    if (payload.ownerId) {
-      requestHeaders.set("x-owner-id", payload.ownerId as string);
+    // Create response with tenant context headers
+    const response = NextResponse.next();
+
+    // Add tenant context headers for API routes to use
+    response.headers.set("x-user-id", userId);
+    response.headers.set("x-user-role", userRole);
+    response.headers.set("x-user-email", email);
+
+    if (administratorId) {
+      response.headers.set("x-administrator-id", administratorId);
     }
 
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    if (ownerId) {
+      response.headers.set("x-owner-id", ownerId);
+    }
+
+    return response;
   } catch (error) {
     console.error("Middleware authentication error:", error);
 
-    // Clear invalid cookie and redirect to login
-    const response = redirectToLogin(request);
+    // Clear invalid token
+    const response = NextResponse.json(
+      { error: "Invalid authentication token" },
+      { status: 401 }
+    );
+
     response.cookies.set("auth-token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -103,24 +116,6 @@ export async function middleware(request: NextRequest) {
 
     return response;
   }
-}
-
-function redirectToLogin(request: NextRequest) {
-  // For API routes, return 401
-  if (request.nextUrl.pathname.startsWith("/api/")) {
-    return new NextResponse(
-      JSON.stringify({ error: "Authentication required" }),
-      {
-        status: 401,
-        headers: { "content-type": "application/json" },
-      }
-    );
-  }
-
-  // For pages, redirect to login
-  const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {

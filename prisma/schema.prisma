@@ -114,6 +114,8 @@ model WaterReading {
   isValidated  Boolean  @default(false) // Validated by administrator
   validatedAt  DateTime?
   validatedBy  String?  // Administrator ID who validated
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime? @updatedAt
   
   // Relations
   apartment Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)

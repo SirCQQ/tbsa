@@ -1,0 +1,77 @@
+{
+  "meta": {
+    "generatedAt": "2025-05-25T16:03:46.127Z",
+    "tasksAnalyzed": 8,
+    "totalTasks": 10,
+    "analysisCount": 8,
+    "thresholdScore": 3,
+    "projectName": "Taskmaster",
+    "usedResearch": true
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Implement Authentication Middleware",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the authentication middleware implementation into steps for token verification, role-based access control, error handling, Next.js integration, and secure session management.",
+      "reasoning": "This task involves complex security mechanisms, integration with Next.js, and handling various authentication scenarios, warranting a high complexity score and multiple subtasks."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Implement Buildings CRUD API Endpoints",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the Buildings CRUD API implementation into separate tasks for each operation (Create, Read, Update, Delete), including validation, error handling, and relationship management.",
+      "reasoning": "While CRUD operations are standard, the complexity comes from proper validation, relationship handling, and ensuring secure access. The task requires multiple endpoints and careful data management."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Implement Apartments CRUD API Endpoints",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the Apartments CRUD API implementation into tasks for each operation, focusing on validation, relationship handling with buildings and owners, and proper error management.",
+      "reasoning": "Similar to the Buildings API, this task involves standard CRUD operations but with added complexity due to relationships and validation requirements. It closely mirrors the structure of the Buildings API task."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Implement Water Readings CRUD API with Consumption Calculation",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Divide the Water Readings API implementation into tasks for CRUD operations, consumption calculation logic, validation rules, deadline enforcement, business logic integration, and error handling/logging.",
+      "reasoning": "This task is highly complex due to the additional business logic for consumption calculation, deadline enforcement, and the need for accurate data validation. It requires careful integration of multiple components and robust error handling."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Implement Building Management Interface",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the Building Management Interface implementation into tasks for creating the building list view, add building form, edit building functionality, and delete building feature.",
+      "reasoning": "This task involves frontend development with moderate complexity. It requires creating multiple UI components and integrating them with the backend API, but the operations are relatively straightforward."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Implement Reading Validation Interface",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the Reading Validation Interface implementation into tasks for creating the pending readings list, designing the validation form, developing approval/rejection logic, implementing state management, and creating validation history tracking.",
+      "reasoning": "This task involves complex UI interactions, state management, and integration with backend validation logic. The need for an audit trail and handling various validation scenarios increases its complexity."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Implement Reading Submission Interface",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the Reading Submission Interface implementation into tasks for creating the form structure, implementing real-time validation logic, creating a consumption preview calculator, developing submission handling logic, and integrating all components with testing.",
+      "reasoning": "This task requires creating an interactive form with real-time calculations and validations. While not as complex as some other tasks, it still involves significant frontend logic and user interaction handling."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Implement Reading History and Analytics Interface",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the Reading History and Analytics Interface implementation into tasks for data fetching, developing interactive charts, implementing a sortable and filterable history table, and adding export functionality.",
+      "reasoning": "This task involves complex data visualization, interactive components, and data processing. The need for various chart types, data manipulation for analytics, and export functionality contributes to its higher complexity."
+    }
+  ]
+}

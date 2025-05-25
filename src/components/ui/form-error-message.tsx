@@ -36,17 +36,23 @@ const FormErrorMessage: React.FC<FormErrorMessageProps> = ({
 
   const renderFunction = render || defaultRender;
 
-  // If we have a custom message, display it directly
-  if (message) {
+  // Check if we have a valid custom message (not empty or whitespace only)
+  if (message && message.trim().length > 0) {
     return renderFunction({ message });
   }
 
-  // If we have form errors and a field name, use ErrorMessage from react-hook-form
-  if (name && errors) {
-    return <ErrorMessage errors={errors} name={name} render={renderFunction} />;
+  // Check if we have valid form errors and a field name
+  if (name && errors && typeof errors === "object") {
+    // Check if the specific field has an error
+    const fieldError = errors[name];
+    if (fieldError && fieldError.message) {
+      return (
+        <ErrorMessage errors={errors} name={name} render={renderFunction} />
+      );
+    }
   }
 
-  // No error to display
+  // No valid error to display
   return null;
 };
 

@@ -1,0 +1,287 @@
+<context>
+# Overview  
+TBSA (Thermal Building System Administration) este o aplicație web modernă pentru gestionarea consumului de apă în cadrul asociațiilor de proprietari din România. Sistemul facilitează colectarea, validarea și administrarea citirilor lunare de apă, oferind o soluție digitală completă pentru gestionarea eficientă a utilităților în clădirile rezidențiale.
+
+Aplicația rezolvă problema gestionării manuale și ineficiente a citirilor de apă, eliminând formularele pe hârtie și oferind transparență completă în procesul de colectare și validare a datelor de consum.
+
+# Core Features  
+## Sistem de Autentificare și Roluri
+- **Autentificare securizată** cu bcrypt hashing pentru parole
+- **Două tipuri de utilizatori**: ADMINISTRATOR și OWNER (proprietar)
+- **Gestionarea sesiunilor** și protejarea rutelor sensibile
+- **Validări robuste** cu Zod pentru toate input-urile
+
+## Pentru Administratori
+- **Gestionarea multiplelor clădiri** - administrează mai multe asociații de proprietari dintr-un singur cont
+- **Setarea termenelor limită** - configurează deadline-uri flexibile pentru submiterea citirilor lunare (default: ziua 25)
+- **Validarea citirilor** - verifică și aprobă citirile trimise de proprietari cu tracking temporal
+- **Rapoarte și statistici** - vizualizează consumption trends și genereză rapoarte detaliate
+- **Managementul utilizatorilor** - administrează conturile proprietarilor și apartamentele
+
+## Pentru Proprietari
+- **Trimiterea citirilor** - submitere rapidă și intuitivă a citirilor lunare de apă
+- **Istoric complet** - vizualizează toate citirile anterioare cu detalii de consum calculat automat
+- **Notificări** - primește reminder-e pentru termenele limită de submitere
+- **Management apartamente** - gestionează mai multe apartamente deținute
+- **Tracking status** - monitorizează statusul validării citirilor de către administrator
+
+# User Experience  
+## User Personas
+### Administrator de Asociație
+- **Profil**: Persoană responsabilă cu gestionarea unei sau mai multor clădiri rezidențiale
+- **Nevoi**: Eficiență în colectarea datelor, validare rapidă, rapoarte clare
+- **Pain Points**: Gestionarea manuală a citirilor, urmărirea deadline-urilor, generarea rapoartelor
+
+### Proprietar/Chiriaș
+- **Profil**: Persoană care locuiește într-un apartament și trebuie să raporteze consumul lunar
+- **Nevoi**: Proces simplu de raportare, vizibilitate asupra istoricului, notificări la timp
+- **Pain Points**: Uitarea deadline-urilor, lipsa transparenței, procese birocratice
+
+## Key User Flows
+### Flow Administrator
+1. **Login** → Dashboard cu overview clădiri și citiri pending
+2. **Gestionare clădiri** → Adăugare/editare clădiri și apartamente
+3. **Validare citiri** → Review și aprobare citiri cu posibilitate de respingere
+4. **Rapoarte** → Generare statistici și export PDF pentru rapoarte lunare
+
+### Flow Proprietar
+1. **Login** → Dashboard cu apartamentele deținute și status citiri
+2. **Submitere citire** → Form simplu cu validare și confirmare
+3. **Istoric** → Vizualizare citiri anterioare cu grafice de consum
+4. **Notificări** → Alerte pentru deadline-uri și status updates
+
+## UI/UX Considerations
+- **Design modern** cu Shadcn/ui components și Tailwind CSS
+- **Dark/Light theme toggle** pentru confortul utilizatorilor
+- **Responsive design** optimizat pentru desktop și mobile
+- **Interfață în română** cu terminologie specifică domeniului
+- **Feedback vizual** pentru toate acțiunile utilizatorului
+</context>
+<PRD>
+# Technical Architecture  
+## System Components
+### Frontend
+- **Next.js 15** cu App Router pentru routing modern și SSR
+- **TypeScript** pentru type safety complet
+- **Shadcn/ui + Tailwind CSS** pentru componente UI consistente
+- **React Hook Form + Zod** pentru gestionarea formularelor și validări
+
+### Backend
+- **Next.js API Routes** pentru endpoints RESTful
+- **Prisma ORM** pentru interacțiunea cu baza de date
+- **PostgreSQL** (hosted pe NeonDB) pentru persistența datelor
+- **bcryptjs** pentru hashing-ul parolelor
+
+### Testing & Quality
+- **Jest** cu React Testing Library pentru unit și integration testing
+- **100% code coverage target** pentru toate modulele critice
+- **TypeScript strict mode** pentru eliminarea erorilor la compile time
+
+## Data Models
+### Users
+- **id, email, password, firstName, lastName, phone, role, timestamps**
+- **Relații**: 1:1 cu Administrator sau Owner
+
+### Buildings  
+- **id, name, address, city, postalCode, readingDeadline, administratorId, timestamps**
+- **Relații**: N:1 cu Administrator, 1:N cu Apartments
+
+### Apartments
+- **id, number, floor, rooms, buildingId, ownerId, timestamps**
+- **Relații**: N:1 cu Building, N:1 cu Owner, 1:N cu WaterReadings
+
+### WaterReadings
+- **id, apartmentId, day, month, year, reading, consumption, submittedBy, isValidated, validatedBy, timestamps**
+- **Relații**: N:1 cu Apartment
+- **Constraints**: Unique per apartment per month
+
+## APIs and Integrations
+### Authentication Endpoints
+- **POST /api/auth/login** - Autentificare utilizatori
+- **POST /api/auth/register** - Înregistrare utilizatori noi
+- **POST /api/auth/logout** - Delogare și invalidare sesiune
+- **GET /api/auth/me** - Obținere informații utilizator curent
+
+### CRUD Endpoints (To Be Implemented)
+- **Buildings**: GET, POST, PUT, DELETE /api/buildings
+- **Apartments**: GET, POST, PUT, DELETE /api/apartments  
+- **Water Readings**: GET, POST, PUT, DELETE /api/water-readings
+- **Users**: GET, PUT /api/users (admin only)
+
+### Infrastructure Requirements
+- **Database**: PostgreSQL cu conexiuni pooled
+- **Hosting**: Vercel pentru frontend și API
+- **Environment Variables**: Configurare pentru development/production
+- **Security**: CORS, rate limiting, input sanitization
+
+# Development Roadmap  
+## Phase 1: Foundation & Authentication (COMPLETED)
+### ✅ Infrastructure Setup
+- Prisma schema cu toate modelele definite
+- Seed data pentru development și testing
+- Jest testing infrastructure cu 100+ teste
+- Shadcn/ui components (Button, Input, Card, Badge, FormInput, FormTextarea, FormErrorMessage)
+
+### ✅ Authentication System
+- Pagini login și register cu React Hook Form
+- Validări Zod pentru toate input-urile
+- Utilități bcrypt pentru securitatea parolelor
+- Theme toggle funcțional (dark/light mode)
+
+## Phase 2: API Layer & Core Functionality (CURRENT PRIORITY)
+### 🔄 API Endpoints Implementation
+- Middleware de autentificare pentru protejarea rutelor
+- Buildings CRUD endpoints cu validări complete
+- Apartments CRUD endpoints cu relații corecte
+- Water Readings CRUD endpoints cu logică de calcul consum
+
+### 🔄 Business Logic
+- Calculul automat al consumului (citire curentă - citire anterioară)
+- Validarea deadline-urilor pentru submiterea citirilor
+- Logica de aprobare/respingere citiri de către administratori
+
+## Phase 3: Admin Interface (NEXT)
+### 📋 Dashboard Administrator
+- Overview cu statistici generale (clădiri, apartamente, citiri pending)
+- Grafice și metrici pentru consumul lunar
+- Alerte pentru citiri care se apropie de deadline
+
+### 🏢 Buildings Management
+- Interfață pentru adăugarea și editarea clădirilor
+- Gestionarea apartamentelor per clădire
+- Configurarea deadline-urilor personalizate
+
+### ✅ Readings Validation
+- Lista citirilor pending cu detalii complete
+- Interfață pentru aprobare/respingere cu comentarii
+- Istoric validări cu audit trail
+
+## Phase 4: Owner Interface
+### 🏠 Owner Dashboard
+- Overview apartamente deținute cu status citiri
+- Indicatori vizuali pentru deadline-uri apropiate
+- Istoric rapid al ultimelor citiri
+
+### 📊 Reading Submission
+- Form intuitiv pentru submiterea citirilor
+- Validări în timp real și preview consum estimat
+- Confirmări și feedback pentru submiteri reușite
+
+### 📈 History & Analytics
+- Istoric complet citiri cu grafice de consum
+- Comparații month-over-month și year-over-year
+- Export date personale în format CSV/PDF
+
+## Phase 5: Advanced Features
+### 🔔 Notification System
+- Email notifications pentru deadline-uri apropiate
+- In-app notifications pentru status updates
+- Configurări personalizate de notificări
+
+### 📊 Reports & Analytics
+- Rapoarte lunare automate pentru administratori
+- Statistici de consum per clădire și apartament
+- Export PDF cu branding personalizat
+
+### 📱 Mobile Optimization
+- Progressive Web App (PWA) capabilities
+- Optimizări pentru touch interfaces
+- Offline support pentru citirea datelor
+
+# Logical Dependency Chain
+## Foundation First (Phase 1) ✅
+- **Database schema** trebuie definit primul pentru toate relațiile
+- **Authentication system** este prerequisit pentru toate features
+- **UI components** sunt necesare pentru toate interfețele
+
+## API Layer (Phase 2) 🔄
+- **Authentication middleware** trebuie implementat înaintea tuturor endpoint-urilor protejate
+- **Buildings endpoints** trebuie implementate înaintea Apartments (relație parent-child)
+- **Apartments endpoints** trebuie implementate înaintea Water Readings
+- **Water Readings endpoints** cu logică de business pentru calcule
+
+## User Interfaces (Phases 3-4)
+- **Admin interface** poate fi dezvoltată în paralel cu Owner interface
+- **Dashboard-urile** trebuie implementate înaintea features specifice
+- **CRUD interfaces** depind de API endpoints corespunzătoare
+
+## Advanced Features (Phase 5)
+- **Notification system** depinde de toate interfețele existente
+- **Reports** depind de datele complete din sistem
+- **Mobile optimization** este ultimul pas după funcționalitatea completă
+
+# Risks and Mitigations  
+## Technical Challenges
+### Risk: Complexitatea calculelor de consum
+- **Mitigation**: Implementare logică de business robustă cu teste extensive
+- **Fallback**: Manual override pentru cazuri speciale
+
+### Risk: Performance cu volume mari de date
+- **Mitigation**: Indexing corespunzător în PostgreSQL și paginare
+- **Monitoring**: Implementare metrici de performance
+
+## MVP Definition
+### Core MVP Features
+1. **Autentificare funcțională** pentru ambele tipuri de utilizatori ✅
+2. **Submiterea citirilor** de către proprietari
+3. **Validarea citirilor** de către administratori  
+4. **Dashboard-uri de bază** pentru ambele roluri
+
+### MVP Success Criteria
+- Un administrator poate gestiona o clădire cu 10+ apartamente
+- Proprietarii pot submite citiri și vedea istoric
+- Sistemul calculează automat consumul
+- Toate operațiunile sunt securizate și validate
+
+## Resource Constraints
+### Development Time
+- **Prioritizare features** pe baza feedback-ului utilizatorilor
+- **Iterative development** cu releases frecvente
+- **Testing automation** pentru reducerea timpului de QA
+
+### Infrastructure Costs
+- **Optimizarea query-urilor** pentru reducerea costurilor database
+- **Caching strategies** pentru reducerea load-ului
+- **Monitoring și alerting** pentru prevenirea problemelor
+
+# Appendix  
+## Research Findings
+### Market Analysis
+- Majoritatea asociațiilor de proprietari folosesc încă procese manuale
+- Cerere mare pentru digitalizare în sectorul rezidențial românesc
+- Competitori limitați cu soluții complete și moderne
+
+### Technical Specifications
+- **Browser Support**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Mobile Support**: iOS 14+, Android 10+
+- **Database**: PostgreSQL 13+ cu conexiuni SSL
+- **Hosting**: Vercel Pro plan pentru scalabilitate
+
+## Implementation Status
+### ✅ Completed
+- Prisma schema cu toate relațiile
+- Seed data pentru development
+- Jest testing infrastructure (100+ teste)
+- UI components complete (FormInput, FormTextarea, FormErrorMessage, etc.)
+- Pagini login/register cu React Hook Form
+- Validări Zod complete
+- Theme toggle funcțional
+
+### 🔄 In Progress  
+- API endpoints pentru operațiuni CRUD
+- Middleware de autentificare
+- Business logic pentru calculele de consum
+
+### 📋 Planned
+- Dashboard-uri pentru admin și proprietari
+- Interfețe pentru gestionarea datelor
+- Sistem de notificări
+- Rapoarte și analytics
+- Mobile optimization
+
+## Success Metrics
+- **User Adoption**: 80% din proprietari folosesc sistemul lunar
+- **Data Accuracy**: 95% citiri validate fără erori
+- **Time Savings**: 70% reducere timp pentru administratori
+- **User Satisfaction**: 4.5+ rating din 5 în feedback surveys
+</PRD> 
