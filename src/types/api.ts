@@ -4,6 +4,7 @@ export type ApiResponse<T = unknown> = {
   data?: T;
   error?: string;
   details?: unknown[];
+  code?: string;
 };
 
 export type ApiError = {
@@ -11,6 +12,34 @@ export type ApiError = {
   status: number;
   code?: string;
 };
+
+// Enum for authentication error codes
+export enum AuthErrorCode {
+  MISSING_TOKEN = "AUTH_001",
+  INVALID_TOKEN = "AUTH_002",
+  EXPIRED_TOKEN = "AUTH_003",
+  INSUFFICIENT_PERMISSIONS = "AUTH_004",
+  INVALID_CREDENTIALS = "AUTH_005",
+  USER_NOT_FOUND = "AUTH_006",
+  VALIDATION_FAILED = "AUTH_007",
+  TENANT_ACCESS_DENIED = "AUTH_008",
+  RATE_LIMIT_EXCEEDED = "AUTH_009",
+  INTERNAL_ERROR = "AUTH_010",
+}
+
+// Enum for authentication error keys (for function parameters)
+export enum AuthErrorKey {
+  MISSING_TOKEN = "MISSING_TOKEN",
+  INVALID_TOKEN = "INVALID_TOKEN",
+  EXPIRED_TOKEN = "EXPIRED_TOKEN",
+  INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS",
+  INVALID_CREDENTIALS = "INVALID_CREDENTIALS",
+  USER_NOT_FOUND = "USER_NOT_FOUND",
+  VALIDATION_FAILED = "VALIDATION_FAILED",
+  TENANT_ACCESS_DENIED = "TENANT_ACCESS_DENIED",
+  RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+}
 
 export type PaginationParams = {
   page?: number;

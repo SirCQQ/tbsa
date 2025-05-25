@@ -1,14 +1,15 @@
-import { ApiResponse } from "../types/api";
+import { SignJWT, jwtVerify } from "jose";
+import { hashPassword, verifyPassword } from "../lib/auth";
+import { createServiceError } from "../lib/auth-errors";
+import { prisma } from "../lib/prisma";
+import { loginSchema, registerSchema } from "../lib/validations";
+import { ApiResponse, AuthErrorKey } from "../types/api";
 import {
+  JWTPayload,
   LoginRequest,
   RegisterRequest,
   SafeUser,
-  JWTPayload,
 } from "../types/auth";
-import { loginSchema, registerSchema } from "../lib/validations";
-import { hashPassword, verifyPassword } from "../lib/auth";
-import { prisma } from "../lib/prisma";
-import { SignJWT, jwtVerify } from "jose";
 
 // Create secret key for JWT
 const secret = new TextEncoder().encode(
@@ -24,12 +25,11 @@ export class AuthService {
       // Validate input data
       const validationResult = registerSchema.safeParse(data);
       if (!validationResult.success) {
-        return {
-          success: false,
-          message: "Validation failed",
-          error: "Invalid input data",
-          details: validationResult.error.errors,
-        };
+        return createServiceError(
+          AuthErrorKey.VALIDATION_FAILED,
+          "Invalid input data",
+          validationResult.error.errors
+        );
       }
 
       const { firstName, lastName, email, password, phone, role } =
@@ -41,11 +41,10 @@ export class AuthService {
       });
 
       if (existingUser) {
-        return {
-          success: false,
-          message: "Registration failed",
-          error: "User with this email already exists",
-        };
+        return createServiceError(
+          AuthErrorKey.VALIDATION_FAILED,
+          "User with this email already exists"
+        );
       }
 
       // Hash password
@@ -95,11 +94,7 @@ export class AuthService {
       };
     } catch (error) {
       console.error("Registration error:", error);
-      return {
-        success: false,
-        message: "Registration failed",
-        error: "Internal server error",
-      };
+      return createServiceError(AuthErrorKey.INTERNAL_ERROR);
     }
   }
 
@@ -113,12 +108,11 @@ export class AuthService {
       // Validate input data
       const validationResult = loginSchema.safeParse(data);
       if (!validationResult.success) {
-        return {
-          success: false,
-          message: "Validation failed",
-          error: "Invalid input data",
-          details: validationResult.error.errors,
-        };
+        return createServiceError(
+          AuthErrorKey.VALIDATION_FAILED,
+          "Invalid input data",
+          validationResult.error.errors
+        );
       }
 
       const { email, password } = validationResult.data;
@@ -147,21 +141,13 @@ export class AuthService {
       });
 
       if (!user) {
-        return {
-          success: false,
-          message: "Login failed",
-          error: "Invalid email or password",
-        };
+        return createServiceError(AuthErrorKey.INVALID_CREDENTIALS);
       }
 
       // Verify password
       const isValidPassword = await verifyPassword(password, user.password);
       if (!isValidPassword) {
-        return {
-          success: false,
-          message: "Login failed",
-          error: "Invalid email or password",
-        };
+        return createServiceError(AuthErrorKey.INVALID_CREDENTIALS);
       }
 
       // Create JWT token
@@ -193,11 +179,7 @@ export class AuthService {
       };
     } catch (error) {
       console.error("Login error:", error);
-      return {
-        success: false,
-        message: "Login failed",
-        error: "Internal server error",
-      };
+      return createServiceError(AuthErrorKey.INTERNAL_ERROR);
     }
   }
 
@@ -234,11 +216,7 @@ export class AuthService {
       });
 
       if (!user) {
-        return {
-          success: false,
-          message: "User not found",
-          error: "User does not exist",
-        };
+        return createServiceError(AuthErrorKey.USER_NOT_FOUND);
       }
 
       // Prepare safe user data
@@ -261,11 +239,7 @@ export class AuthService {
       };
     } catch (error) {
       console.error("Token verification error:", error);
-      return {
-        success: false,
-        message: "Authentication failed",
-        error: "Invalid or expired token",
-      };
+      return createServiceError(AuthErrorKey.INVALID_TOKEN);
     }
   }
 

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import {
+  createAuthError,
+  getJWTErrorType,
+  auditAuthEvent,
+} from "@/lib/auth-errors";
+import { AuthErrorKey } from "@/types/api";
 
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-key"
@@ -24,8 +30,28 @@ const publicRoutes = [
   "/register",
 ];
 
+/**
+ * Extract client IP address from request headers
+ */
+function getClientIP(request: NextRequest): string | undefined {
+  // Try various headers that might contain the real IP
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+
+  return (
+    request.headers.get("x-real-ip") ||
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-client-ip") ||
+    undefined
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const clientIP = getClientIP(request);
+  const userAgent = request.headers.get("user-agent") || undefined;
 
   // Allow public routes
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
@@ -46,10 +72,15 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get("auth-token")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
+      auditAuthEvent(
+        "token_invalid",
+        undefined,
+        undefined,
+        clientIP,
+        userAgent,
+        { reason: "missing_token", path: pathname }
       );
+      return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
     // Verify JWT token
@@ -64,19 +95,35 @@ export async function middleware(request: NextRequest) {
     const requiredRoles =
       protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
     if (!requiredRoles.some((role) => role === userRole)) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
+      auditAuthEvent("permission_denied", userId, email, clientIP, userAgent, {
+        reason: "insufficient_role",
+        userRole,
+        requiredRoles,
+        path: pathname,
+      });
+      return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 
     // Additional tenant validation for specific routes
     if (pathname.startsWith("/api/buildings")) {
       // Only administrators can access buildings
       if (userRole !== "ADMINISTRATOR" || !administratorId) {
-        return NextResponse.json(
-          { error: "Only administrators can access buildings" },
-          { status: 403 }
+        auditAuthEvent(
+          "permission_denied",
+          userId,
+          email,
+          clientIP,
+          userAgent,
+          {
+            reason: "tenant_access_denied",
+            userRole,
+            administratorId,
+            path: pathname,
+          }
+        );
+        return createAuthError(
+          AuthErrorKey.TENANT_ACCESS_DENIED,
+          "Only administrators can access buildings"
         );
       }
     }
@@ -99,22 +146,15 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Middleware authentication error:", error);
+    const errorType = getJWTErrorType(error);
 
-    // Clear invalid token
-    const response = NextResponse.json(
-      { error: "Invalid authentication token" },
-      { status: 401 }
-    );
-
-    response.cookies.set("auth-token", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 0,
+    auditAuthEvent("token_invalid", undefined, undefined, clientIP, userAgent, {
+      reason: errorType.toLowerCase(),
+      path: pathname,
+      error: error instanceof Error ? error.message : String(error),
     });
 
-    return response;
+    return createAuthError(errorType);
   }
 }
 

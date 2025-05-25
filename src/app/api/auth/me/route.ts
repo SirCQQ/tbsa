@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { createAuthError, getJWTErrorType } from "@/lib/auth-errors";
 import { prisma } from "@/lib/prisma";
+import { AuthErrorKey } from "@/types/api";
 import { jwtVerify } from "jose";
+import { NextRequest, NextResponse } from "next/server";
 
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-key"
@@ -12,7 +14,7 @@ export async function GET(req: NextRequest) {
     const token = req.cookies.get("auth-token")?.value;
 
     if (!token) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
     // Verify JWT token
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return createAuthError(AuthErrorKey.USER_NOT_FOUND);
     }
 
     // Prepare user data for response (exclude password)
@@ -62,20 +64,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ user: userData }, { status: 200 });
   } catch (error) {
     console.error("Session verification error:", error);
-
-    // If JWT is invalid, clear the cookie
-    const response = NextResponse.json(
-      { error: "Invalid session" },
-      { status: 401 }
-    );
-
-    response.cookies.set("auth-token", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 0,
-    });
-
-    return response;
+    const errorType = getJWTErrorType(error);
+    return createAuthError(errorType);
   }
 }
