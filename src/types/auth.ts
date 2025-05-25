@@ -64,6 +64,8 @@ export type JWTPayload = {
   role: UserRole;
   administratorId?: string;
   ownerId?: string;
+  sessionId?: string;
+  fingerprint?: string;
 };
 
 // Session types
@@ -71,6 +73,33 @@ export type Session = {
   user: SafeUser;
   token: string;
   expiresAt: Date;
+};
+
+// Enhanced session types for security
+export type SessionFingerprint = {
+  userAgent: string;
+  ipAddress: string;
+  acceptLanguage?: string;
+  acceptEncoding?: string;
+};
+
+export type RefreshTokenPayload = {
+  userId: string;
+  sessionId: string;
+  fingerprint: string;
+  iat?: number; // Issued at timestamp
+};
+
+export type SessionInfo = {
+  id: string;
+  userId: string;
+  fingerprint: SessionFingerprint;
+  createdAt: Date;
+  lastAccessedAt: Date;
+  expiresAt: Date;
+  isActive: boolean;
+  ipAddress: string;
+  userAgent: string;
 };
 
 // Utility types
@@ -82,4 +111,5 @@ export type AuthState = {
   isAuthenticated: boolean;
   user: SafeUser | null;
   isLoading: boolean;
+  error?: string | null;
 };

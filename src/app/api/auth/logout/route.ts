@@ -16,6 +16,14 @@ export async function POST() {
       maxAge: 0, // Immediately expire the cookie
     });
 
+    // Clear the refresh token cookie
+    response.cookies.set("refresh-token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 0, // Immediately expire the cookie
+    });
+
     return response;
   } catch (error) {
     console.error("Logout error:", error);

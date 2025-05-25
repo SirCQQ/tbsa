@@ -1,7 +1,7 @@
 import { createAuthError, auditAuthEvent } from "@/lib/auth-errors";
-import { AuthService } from "@/services/auth.service";
+import { SessionService } from "@/services/session.service";
 import { AuthErrorKey } from "@/types/api";
-import { LoginRequest, SessionFingerprint } from "@/types/auth";
+import { SessionFingerprint } from "@/types/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -24,28 +24,48 @@ function getClientIP(request: NextRequest): string | undefined {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: LoginRequest = await req.json();
     const clientIP = getClientIP(req);
     const userAgent = req.headers.get("user-agent") || "";
     const acceptLanguage = req.headers.get("accept-language") || "";
     const acceptEncoding = req.headers.get("accept-encoding") || "";
 
-    // Create session fingerprint for enhanced security
-    const fingerprint: SessionFingerprint = {
+    // Get refresh token from cookie
+    const refreshToken = req.cookies.get("refresh-token")?.value;
+
+    if (!refreshToken) {
+      auditAuthEvent(
+        "token_invalid",
+        undefined,
+        undefined,
+        clientIP,
+        userAgent,
+        { reason: "missing_refresh_token" }
+      );
+      return createAuthError(
+        AuthErrorKey.MISSING_TOKEN,
+        "Refresh token required"
+      );
+    }
+
+    // Create current session fingerprint
+    const currentFingerprint: SessionFingerprint = {
       userAgent,
       ipAddress: clientIP || "",
       acceptLanguage,
       acceptEncoding,
     };
 
-    const result = await AuthService.login(body, fingerprint);
+    // Refresh the access token
+    const result = await SessionService.refreshAccessToken(
+      refreshToken,
+      currentFingerprint
+    );
 
     if (!result.success) {
-      // Audit failed login attempt
       auditAuthEvent(
-        "login_failed",
+        "token_invalid",
         undefined,
-        body.email,
+        undefined,
         clientIP,
         userAgent,
         {
@@ -59,7 +79,6 @@ export async function POST(req: NextRequest) {
           error: result.error,
           message: result.message,
           code: result.code,
-          details: result.details,
         },
         { status: 401 }
       );
@@ -69,37 +88,37 @@ export async function POST(req: NextRequest) {
       return createAuthError(AuthErrorKey.INTERNAL_ERROR);
     }
 
-    // Audit successful login
+    // Audit successful token refresh (using login_success as closest match)
     auditAuthEvent(
       "login_success",
-      result.data.user.id,
-      result.data.user.email,
+      undefined, // We don't have userId easily accessible here
+      undefined,
       clientIP,
       userAgent,
       {
-        role: result.data.user.role,
-        hasRefreshToken: !!result.data.refreshToken,
+        event_type: "token_refresh",
+        hasNewRefreshToken: !!result.data.refreshToken,
       }
     );
 
-    // Create response with user data
+    // Create response
     const response = NextResponse.json(
       {
-        message: result.message,
-        user: result.data.user,
+        message: "Token refreshed successfully",
+        accessToken: result.data.accessToken,
       },
       { status: 200 }
     );
 
-    // Set HTTP-only cookie with JWT (shorter expiration for enhanced security)
-    response.cookies.set("auth-token", result.data.token, {
+    // Set new access token cookie
+    response.cookies.set("auth-token", result.data.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 15 * 60, // 15 minutes for enhanced security
+      maxAge: 15 * 60, // 15 minutes
     });
 
-    // Set refresh token cookie if available
+    // Set new refresh token if provided (token rotation)
     if (result.data.refreshToken) {
       response.cookies.set("refresh-token", result.data.refreshToken, {
         httpOnly: true,
@@ -111,7 +130,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Login API error:", error);
+    console.error("Token refresh API error:", error);
     return createAuthError(AuthErrorKey.INTERNAL_ERROR);
   }
 }

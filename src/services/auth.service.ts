@@ -9,9 +9,11 @@ import {
   LoginRequest,
   RegisterRequest,
   SafeUser,
+  SessionFingerprint,
 } from "../types/auth";
+import { SessionService } from "./session.service";
 
-// Create secret key for JWT
+// Create secret key for JWT (keeping for backward compatibility)
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-key"
 );
@@ -50,47 +52,68 @@ export class AuthService {
       // Hash password
       const hashedPassword = await hashPassword(password);
 
-      // Create user with transaction
-      const result = await prisma.$transaction(async (tx) => {
-        // Create user
-        const user = await tx.user.create({
-          data: {
-            firstName,
-            lastName,
-            email,
-            password: hashedPassword,
-            phone,
-            role,
+      // Create user
+      const user = await prisma.user.create({
+        data: {
+          firstName,
+          lastName,
+          email,
+          password: hashedPassword,
+          phone,
+          role,
+        },
+        include: {
+          administrator: true,
+          owner: {
+            include: {
+              apartments: {
+                include: {
+                  building: {
+                    select: {
+                      id: true,
+                      name: true,
+                      readingDeadline: true,
+                    },
+                  },
+                },
+              },
+            },
           },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            role: true,
-            createdAt: true,
+        },
+      });
+
+      // Create role-specific records
+      if (role === "ADMINISTRATOR") {
+        await prisma.administrator.create({
+          data: {
+            userId: user.id,
           },
         });
+      } else if (role === "OWNER") {
+        await prisma.owner.create({
+          data: {
+            userId: user.id,
+          },
+        });
+      }
 
-        // Create role-specific record
-        if (role === "ADMINISTRATOR") {
-          await tx.administrator.create({
-            data: { userId: user.id },
-          });
-        } else if (role === "OWNER") {
-          await tx.owner.create({
-            data: { userId: user.id },
-          });
-        }
-
-        return user;
-      });
+      // Prepare safe user data
+      const safeUser: SafeUser = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        createdAt: user.createdAt,
+        administrator: user.administrator,
+        owner: user.owner,
+      };
 
       return {
         success: true,
         message: "User registered successfully",
-        data: result as SafeUser,
+        data: safeUser,
       };
     } catch (error) {
       console.error("Registration error:", error);
@@ -99,11 +122,14 @@ export class AuthService {
   }
 
   /**
-   * Login user with email and password
+   * Login user with enhanced session management
    */
   static async login(
-    data: LoginRequest
-  ): Promise<ApiResponse<{ user: SafeUser; token: string }>> {
+    data: LoginRequest,
+    fingerprint?: SessionFingerprint
+  ): Promise<
+    ApiResponse<{ user: SafeUser; token: string; refreshToken?: string }>
+  > {
     try {
       // Validate input data
       const validationResult = loginSchema.safeParse(data);
@@ -145,21 +171,12 @@ export class AuthService {
       }
 
       // Verify password
-      const isValidPassword = await verifyPassword(password, user.password);
-      if (!isValidPassword) {
+      const isPasswordValid = await verifyPassword(password, user.password);
+      if (!isPasswordValid) {
         return createServiceError(AuthErrorKey.INVALID_CREDENTIALS);
       }
 
-      // Create JWT token
-      const token = await this.createToken({
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        administratorId: user.administrator?.id,
-        ownerId: user.owner?.id,
-      });
-
-      // Prepare safe user data (exclude password)
+      // Prepare safe user data
       const safeUser: SafeUser = {
         id: user.id,
         firstName: user.firstName,
@@ -172,10 +189,62 @@ export class AuthService {
         owner: user.owner,
       };
 
+      // If fingerprint is provided, use enhanced session management
+      if (fingerprint) {
+        const sessionResult = await SessionService.createSession(
+          user.id,
+          fingerprint
+        );
+
+        if (!sessionResult.success || !sessionResult.data) {
+          return createServiceError(AuthErrorKey.INTERNAL_ERROR);
+        }
+
+        // Update the access token with user data
+        const payload: JWTPayload = {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          administratorId: user.administrator?.id,
+          ownerId: user.owner?.id,
+          sessionId: sessionResult.data.sessionId,
+          fingerprint: SessionService.createFingerprint(fingerprint),
+        };
+
+        const enhancedToken = await SessionService.createEnhancedToken(
+          payload,
+          fingerprint
+        );
+
+        return {
+          success: true,
+          message: "Login successful",
+          data: {
+            user: safeUser,
+            token: enhancedToken,
+            refreshToken: sessionResult.data.refreshToken,
+          },
+        };
+      }
+
+      // Fallback to legacy token creation for backward compatibility
+      const payload: JWTPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        administratorId: user.administrator?.id,
+        ownerId: user.owner?.id,
+      };
+
+      const token = await this.createToken(payload);
+
       return {
         success: true,
         message: "Login successful",
-        data: { user: safeUser, token },
+        data: {
+          user: safeUser,
+          token,
+        },
       };
     } catch (error) {
       console.error("Login error:", error);
@@ -244,7 +313,7 @@ export class AuthService {
   }
 
   /**
-   * Create JWT token
+   * Create JWT token (legacy method for backward compatibility)
    */
   static async createToken(payload: JWTPayload): Promise<string> {
     return await new SignJWT(payload)
@@ -255,7 +324,7 @@ export class AuthService {
   }
 
   /**
-   * Verify JWT token
+   * Verify JWT token (legacy method for backward compatibility)
    */
   static async verifyToken(token: string): Promise<JWTPayload | null> {
     try {

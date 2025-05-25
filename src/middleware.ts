@@ -6,6 +6,8 @@ import {
   auditAuthEvent,
 } from "@/lib/auth-errors";
 import { AuthErrorKey } from "@/types/api";
+import { SessionService } from "@/services/session.service";
+import { SessionFingerprint } from "@/types/auth";
 
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-key"
@@ -25,6 +27,7 @@ const publicRoutes = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",
+  "/api/auth/refresh",
   "/",
   "/login",
   "/register",
@@ -51,7 +54,7 @@ function getClientIP(request: NextRequest): string | undefined {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const clientIP = getClientIP(request);
-  const userAgent = request.headers.get("user-agent") || undefined;
+  const userAgent = request.headers.get("user-agent") || "";
 
   // Allow public routes
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
@@ -83,8 +86,51 @@ export async function middleware(request: NextRequest) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Verify JWT token
-    const { payload } = await jwtVerify(token, secret);
+    // Create current session fingerprint
+    const currentFingerprint: SessionFingerprint = {
+      userAgent,
+      ipAddress: clientIP || "",
+      acceptLanguage: request.headers.get("accept-language") || "",
+      acceptEncoding: request.headers.get("accept-encoding") || "",
+    };
+
+    // Try enhanced verification first
+    const enhancedResult = await SessionService.verifyAccessToken(
+      token,
+      currentFingerprint
+    );
+
+    let payload;
+    if (enhancedResult.success && enhancedResult.data) {
+      // Enhanced verification successful
+      payload = enhancedResult.data;
+    } else {
+      // Fallback to legacy verification for backward compatibility
+      try {
+        const { payload: legacyPayload } = await jwtVerify(token, secret);
+        payload = legacyPayload;
+      } catch (legacyError) {
+        auditAuthEvent(
+          "token_invalid",
+          undefined,
+          undefined,
+          clientIP,
+          userAgent,
+          {
+            reason: "token_verification_failed",
+            path: pathname,
+            enhancedError: enhancedResult.error,
+            legacyError:
+              legacyError instanceof Error
+                ? legacyError.message
+                : String(legacyError),
+          }
+        );
+        const errorType = getJWTErrorType(legacyError);
+        return createAuthError(errorType);
+      }
+    }
+
     const userRole = payload.role as string;
     const userId = payload.userId as string;
     const email = payload.email as string;
@@ -128,13 +174,11 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Create response with tenant context headers
+    // Add user context to headers for API routes
     const response = NextResponse.next();
-
-    // Add tenant context headers for API routes to use
     response.headers.set("x-user-id", userId);
-    response.headers.set("x-user-role", userRole);
     response.headers.set("x-user-email", email);
+    response.headers.set("x-user-role", userRole);
 
     if (administratorId) {
       response.headers.set("x-administrator-id", administratorId);
@@ -146,15 +190,13 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch (error) {
-    const errorType = getJWTErrorType(error);
-
+    console.error("Middleware error:", error);
     auditAuthEvent("token_invalid", undefined, undefined, clientIP, userAgent, {
-      reason: errorType.toLowerCase(),
-      path: pathname,
+      reason: "middleware_error",
       error: error instanceof Error ? error.message : String(error),
+      path: pathname,
     });
-
-    return createAuthError(errorType);
+    return createAuthError(AuthErrorKey.INTERNAL_ERROR);
   }
 }
 
