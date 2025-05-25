@@ -3,8 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ControlledInput } from "@/components/ui/controlled-input";
-import { ControlledTextarea } from "@/components/ui/controlled-textarea";
+
 import { Mail, Phone, MapPin, Clock, Send, MessageSquare } from "lucide-react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,6 +12,7 @@ import {
   type ContactFormValidation,
 } from "@/types/validations";
 import { useState } from "react";
+import { ControlledInput, ControlledTextarea } from "../form";
 
 export function ContactSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -1,10 +1,10 @@
 import * as React from "react";
-import { Input } from "./input";
+import { Textarea } from "../inputs/textarea";
 import { FormErrorMessage } from "./form-error-message";
 import { type FieldErrors, type FieldValues } from "react-hook-form";
 import { cn } from "@/lib/utils";
 
-interface FormInputProps extends React.ComponentProps<"input"> {
+interface FormTextareaProps extends React.ComponentProps<"textarea"> {
   label?: string;
   error?: string;
   required?: boolean;
@@ -20,7 +20,7 @@ interface FormInputProps extends React.ComponentProps<"input"> {
   hasError?: boolean;
 }
 
-const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
+const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   (
     {
       label,
@@ -40,7 +40,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
   ) => {
     // Generate a unique id if not provided - use React.useId() unconditionally
     const generatedId = React.useId();
-    const inputId = id || generatedId;
+    const textareaId = id || generatedId;
 
     // Determine if we have an error (either explicit prop, custom error, or from form state)
     const hasErrorState =
@@ -52,7 +52,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
       <div className={cn("space-y-2", containerClassName)}>
         {label && (
           <label
-            htmlFor={inputId}
+            htmlFor={textareaId}
             className={cn(
               "block text-sm font-medium text-gray-700 dark:text-gray-300",
               hasErrorState && "text-red-700 dark:text-red-400",
@@ -68,9 +68,9 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           </label>
         )}
 
-        <Input
+        <Textarea
           ref={ref}
-          id={inputId}
+          id={textareaId}
           name={name}
           className={cn(
             hasErrorState &&
@@ -80,9 +80,9 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           aria-invalid={hasErrorState ? "true" : "false"}
           aria-describedby={
             hasErrorState
-              ? `${inputId}-error`
+              ? `${textareaId}-error`
               : helperText
-              ? `${inputId}-helper`
+              ? `${textareaId}-helper`
               : undefined
           }
           {...props}
@@ -91,7 +91,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
         {/* Error message - prioritize custom error over form errors */}
         {hasErrorState && (
           <FormErrorMessage
-            id={`${inputId}-error`}
+            id={`${textareaId}-error`}
             message={error}
             name={!error ? name : undefined}
             errors={!error ? errors : undefined}
@@ -100,7 +100,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
 
         {helperText && !hasErrorState && (
           <p
-            id={`${inputId}-helper`}
+            id={`${textareaId}-helper`}
             className="text-sm text-gray-500 dark:text-gray-400"
           >
             {helperText}
@@ -111,6 +111,6 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
   }
 );
 
-FormInput.displayName = "FormInput";
+FormTextarea.displayName = "FormTextarea";
 
-export { FormInput, type FormInputProps };
+export { FormTextarea, type FormTextareaProps };

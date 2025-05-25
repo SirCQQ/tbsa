@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ControlledInput } from "@/components/ui/controlled-input";
+import { ControlledInput } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
 import { loginSchema } from "@/lib/validations";
 import { useAuth } from "@/contexts/auth-context";
