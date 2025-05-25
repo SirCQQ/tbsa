@@ -208,7 +208,7 @@ export class AuthService {
           administratorId: user.administrator?.id,
           ownerId: user.owner?.id,
           sessionId: sessionResult.data.sessionId,
-          fingerprint: SessionService.createFingerprint(fingerprint),
+          fingerprint: await SessionService.createFingerprint(fingerprint),
         };
 
         const enhancedToken = await SessionService.createEnhancedToken(

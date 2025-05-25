@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { AuthClient } from "@/lib/auth-client";
+import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { SafeUser } from "@/types/auth";
 
 type AuthState = {
@@ -32,6 +33,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error: null,
   });
 
+  const {
+    showLoginSuccess,
+    showLogoutSuccess,
+    showAuthError,
+    showRoleBasedWelcome,
+    showSessionExpired,
+    showLoadingFeedback,
+  } = useAuthFeedback();
+
   // Load user on mount
   useEffect(() => {
     loadUser();
@@ -42,6 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       const { user, error } = await AuthClient.getCurrentUser();
+
+      if (error && error.includes("expired")) {
+        showSessionExpired();
+      }
 
       setState((prev) => ({
         ...prev,
@@ -64,10 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      const loadingToast = showLoadingFeedback("Se conectează...");
 
       const result = await AuthClient.login({ email, password });
 
+      loadingToast.dismiss();
+
       if (result.error) {
+        showAuthError(result.error, "Eroare la conectare");
         setState((prev) => ({
           ...prev,
           isLoading: false,
@@ -78,10 +96,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Reload user data after successful login
       await loadUser();
+
+      // Show success feedback
+      if (state.user) {
+        showLoginSuccess(state.user);
+        showRoleBasedWelcome(state.user);
+      }
+
       return { success: true };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Login failed";
+      showAuthError(errorMessage, "Eroare la conectare");
       setState((prev) => ({
         ...prev,
         isLoading: false,
@@ -94,8 +120,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      const loadingToast = showLoadingFeedback("Se deconectează...");
 
       await AuthClient.logout();
+
+      loadingToast.dismiss();
+      showLogoutSuccess();
 
       setState({
         user: null,
@@ -105,6 +135,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (error) {
       // Even if logout fails on server, clear local state
+      showAuthError(
+        error instanceof Error ? error.message : "Logout failed",
+        "Eroare la deconectare"
+      );
       setState({
         user: null,
         isAuthenticated: false,

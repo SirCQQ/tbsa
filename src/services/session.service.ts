@@ -6,9 +6,7 @@ import {
   JWTPayload,
   RefreshTokenPayload,
   SessionFingerprint,
-  SessionInfo,
 } from "../types/auth";
-import { createHash, randomBytes } from "crypto";
 
 // Create secret keys for JWT
 const accessSecret = new TextEncoder().encode(
@@ -20,14 +18,14 @@ const refreshSecret = new TextEncoder().encode(
 
 export class SessionService {
   /**
-   * Create session fingerprint from request headers
+   * Create session fingerprint from request headers using Web Crypto API
    */
-  static createFingerprint(headers: {
+  static async createFingerprint(headers: {
     userAgent?: string;
     ipAddress?: string;
     acceptLanguage?: string;
     acceptEncoding?: string;
-  }): string {
+  }): Promise<string> {
     const fingerprintData = [
       headers.userAgent || "",
       headers.ipAddress || "",
@@ -35,7 +33,23 @@ export class SessionService {
       headers.acceptEncoding || "",
     ].join("|");
 
-    return createHash("sha256").update(fingerprintData).digest("hex");
+    // Use Web Crypto API instead of Node.js crypto
+    const encoder = new TextEncoder();
+    const data = encoder.encode(fingerprintData);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  /**
+   * Generate random bytes using Web Crypto API
+   */
+  static generateRandomBytes(length: number): string {
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+      ""
+    );
   }
 
   /**
@@ -52,9 +66,9 @@ export class SessionService {
     }>
   > {
     try {
-      // Generate unique session ID
-      const sessionId = randomBytes(32).toString("hex");
-      const fingerprintHash = this.createFingerprint(fingerprint);
+      // Generate unique session ID using Web Crypto API
+      const sessionId = this.generateRandomBytes(32);
+      const fingerprintHash = await this.createFingerprint(fingerprint);
 
       // Create session record in database (if you want to track sessions)
       // For now, we'll use in-memory/JWT-based sessions
@@ -115,7 +129,9 @@ export class SessionService {
       const refreshPayload = payload as RefreshTokenPayload;
 
       // Verify fingerprint matches
-      const currentFingerprintHash = this.createFingerprint(currentFingerprint);
+      const currentFingerprintHash = await this.createFingerprint(
+        currentFingerprint
+      );
       if (refreshPayload.fingerprint !== currentFingerprintHash) {
         return createServiceError(
           AuthErrorKey.INVALID_TOKEN,
@@ -199,8 +215,9 @@ export class SessionService {
 
       // Verify fingerprint if present
       if (jwtPayload.fingerprint) {
-        const currentFingerprintHash =
-          this.createFingerprint(currentFingerprint);
+        const currentFingerprintHash = await this.createFingerprint(
+          currentFingerprint
+        );
         if (jwtPayload.fingerprint !== currentFingerprintHash) {
           return createServiceError(
             AuthErrorKey.INVALID_TOKEN,
@@ -244,11 +261,11 @@ export class SessionService {
   /**
    * Validate session fingerprint for security
    */
-  static validateFingerprint(
+  static async validateFingerprint(
     storedFingerprint: string,
     currentFingerprint: SessionFingerprint
-  ): boolean {
-    const currentHash = this.createFingerprint(currentFingerprint);
+  ): Promise<boolean> {
+    const currentHash = await this.createFingerprint(currentFingerprint);
     return storedFingerprint === currentHash;
   }
 
@@ -261,8 +278,8 @@ export class SessionService {
   ): Promise<string> {
     const enhancedPayload = {
       ...payload,
-      fingerprint: this.createFingerprint(fingerprint),
-      sessionId: payload.sessionId || randomBytes(16).toString("hex"),
+      fingerprint: await this.createFingerprint(fingerprint),
+      sessionId: payload.sessionId || this.generateRandomBytes(16),
     };
 
     return await new SignJWT(enhancedPayload)

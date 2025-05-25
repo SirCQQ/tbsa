@@ -16,16 +16,16 @@ import { Button } from "@/components/ui/button";
 import { ControlledInput } from "@/components/ui/controlled-input";
 import { Badge } from "@/components/ui/badge";
 import { loginSchema } from "@/lib/validations";
+import { useAuth } from "@/contexts/auth-context";
 import type { LoginRequest } from "@/types/auth";
 import { AlertCircle, Eye, EyeOff, Building2 } from "lucide-react";
 
 type LoginFormData = LoginRequest;
 
 export default function LoginPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { login, isLoading, error, clearError } = useAuth();
 
   const methods = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -38,34 +38,15 @@ export default function LoginPage() {
   const { handleSubmit } = methods;
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
+    clearError();
 
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+    const result = await login(data.email, data.password);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setSubmitError(result.error || "Login failed");
-        return;
-      }
-
+    if (result.success) {
       // Redirect to dashboard or home page on successful login
-      router.push("/");
-      router.refresh();
-    } catch (error) {
-      console.error("Login error:", error);
-      setSubmitError("Network error. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      router.push("/dashboard");
     }
+    // Error handling is done automatically by the auth context with visual feedback
   };
 
   return (
@@ -108,7 +89,7 @@ export default function LoginPage() {
                   label="Email"
                   placeholder="exemplu@email.com"
                   required
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                 />
 
                 {/* Password Field */}
@@ -119,13 +100,13 @@ export default function LoginPage() {
                     label="Parolă"
                     placeholder="Introdu parola"
                     required
-                    disabled={isSubmitting}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    disabled={isSubmitting}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -135,23 +116,19 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                {/* Error Message */}
-                {submitError && (
+                {/* Error Message - Only show if not using toast notifications */}
+                {error && (
                   <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                     <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
                     <p className="text-sm text-red-600 dark:text-red-400">
-                      {submitError}
+                      {error}
                     </p>
                   </div>
                 )}
 
                 {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Se conectează..." : "Conectează-te"}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Se conectează..." : "Conectează-te"}
                 </Button>
 
                 {/* Forgot Password Link */}
