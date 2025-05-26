@@ -52,8 +52,8 @@ export function Header() {
         <div className="hidden md:flex items-center space-x-4">
           <ThemeToggle />
 
-          {isAuthenticated && user ? (
-            <UserNav user={user} onLogout={handleLogout} />
+          {isAuthenticated ? (
+            <UserNav onLogout={handleLogout} />
           ) : (
             <>
               <Button variant="ghost" asChild>
@@ -104,7 +104,9 @@ export function Header() {
               {isAuthenticated && user ? (
                 <div className="flex flex-col space-y-2 pt-4 border-t">
                   <div className="text-sm font-medium">
-                    {user.firstName} {user.lastName}
+                    {user.firstName && user.lastName
+                      ? `${user.firstName} ${user.lastName}`
+                      : user.firstName || user.lastName || user.email}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {user.email} •{" "}

@@ -61,7 +61,8 @@ export async function GET(req: NextRequest) {
       owner: user.owner,
     };
 
-    return NextResponse.json({ user: userData }, { status: 200 });
+    // Return user data directly (not wrapped in user object)
+    return NextResponse.json(userData, { status: 200 });
   } catch (error) {
     console.error("Session verification error:", error);
     const errorType = getJWTErrorType(error);

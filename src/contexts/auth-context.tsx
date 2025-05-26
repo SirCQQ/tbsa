@@ -1,173 +1,103 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
-import { AuthClient } from "@/lib/auth-client";
+import React, { createContext, useContext } from "react";
+import { useSession, useLogin, useLogout } from "@/hooks/use-auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { SafeUser } from "@/types/auth";
+import type { UserRole } from "@prisma/client/wasm";
 
-type AuthState = {
+type AuthContextType = {
   user: SafeUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
-};
-
-type AuthContextType = AuthState & {
   login: (
     email: string,
     password: string
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  hasRole: (role: "ADMINISTRATOR" | "OWNER") => boolean;
+  hasRole: (role: UserRole) => boolean;
   clearError: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-    error: null,
-  });
+  const { data: sessionData, isLoading, error, refetch } = useSession();
+  const loginMutation = useLogin();
+  const logoutMutation = useLogout();
 
   const {
     showLoginSuccess,
     showLogoutSuccess,
     showAuthError,
     showRoleBasedWelcome,
-    showSessionExpired,
     showLoadingFeedback,
   } = useAuthFeedback();
 
-  const loadUser = useCallback(async () => {
-    try {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
-
-      const { user, error } = await AuthClient.getCurrentUser();
-
-      if (error && error.includes("expired")) {
-        showSessionExpired();
-      }
-
-      setState((prev) => ({
-        ...prev,
-        user,
-        isAuthenticated: user !== null,
-        isLoading: false,
-        error: error || null,
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Failed to load user",
-      }));
-    }
-  }, [showSessionExpired]);
-
-  // Load user on mount
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
+  const user = sessionData?.user || null;
+  const isAuthenticated = sessionData?.isAuthenticated || false;
 
   const login = async (email: string, password: string) => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
       const loadingToast = showLoadingFeedback("Se conectează...");
 
-      const result = await AuthClient.login({ email, password });
+      const result = await loginMutation.mutateAsync({ email, password });
 
       loadingToast.dismiss();
 
-      if (result.error) {
-        showAuthError(result.error, "Eroare la conectare");
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: result.error || "Login failed",
-        }));
-        return { success: false, error: result.error };
+      if (result.user) {
+        showLoginSuccess(result.user);
+        showRoleBasedWelcome(result.user);
       }
 
-      // Reload user data after successful login
-      await loadUser();
-
-      // Show success feedback
-      if (state.user) {
-        showLoginSuccess(state.user);
-        showRoleBasedWelcome(state.user);
-      }
+      // Refetch session data
+      await refetch();
 
       return { success: true };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Login failed";
       showAuthError(errorMessage, "Eroare la conectare");
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: errorMessage,
-      }));
       return { success: false, error: errorMessage };
     }
   };
 
   const logout = async () => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
       const loadingToast = showLoadingFeedback("Se deconectează...");
 
-      await AuthClient.logout();
+      await logoutMutation.mutateAsync();
 
       loadingToast.dismiss();
       showLogoutSuccess();
-
-      setState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      });
     } catch (error) {
-      // Even if logout fails on server, clear local state
       showAuthError(
         error instanceof Error ? error.message : "Logout failed",
         "Eroare la deconectare"
       );
-      setState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Logout failed",
-      });
     }
   };
 
   const refreshUser = async () => {
-    await loadUser();
+    await refetch();
   };
 
-  const hasRole = (role: "ADMINISTRATOR" | "OWNER"): boolean => {
-    return state.user?.role === role;
+  const hasRole = (role: UserRole): boolean => {
+    return user?.role === role;
   };
 
   const clearError = () => {
-    setState((prev) => ({ ...prev, error: null }));
+    // Error clearing is handled by React Query automatically
+    // This function is kept for compatibility
   };
 
   const contextValue: AuthContextType = {
-    ...state,
+    user,
+    isLoading,
+    isAuthenticated,
+    error: error?.message || null,
     login,
     logout,
     refreshUser,
@@ -191,7 +121,7 @@ export function useAuth() {
 // Higher-order component for protected routes
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
-  requiredRole?: "ADMINISTRATOR" | "OWNER"
+  requiredRole?: UserRole
 ) {
   return function AuthenticatedComponent(props: P) {
     const { isAuthenticated, isLoading, hasRole, user } = useAuth();

@@ -22,25 +22,53 @@ import {
   Shield,
   ChevronDown,
 } from "lucide-react";
-import { SafeUser } from "@/types/auth";
-import { AuthClient } from "@/lib/auth-client";
+import { useSession, useLogout } from "@/hooks/use-auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 
 interface UserNavProps {
-  user: SafeUser;
   onLogout?: () => void;
 }
 
-export function UserNav({ user, onLogout }: UserNavProps) {
+export function UserNav({ onLogout }: UserNavProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
+  const { data: sessionData, isLoading } = useSession();
+  const logoutMutation = useLogout();
   const { showLogoutSuccess, showAuthError, showLoadingFeedback } =
     useAuthFeedback();
 
-  // Generate user initials for avatar
-  const userInitials = `${user.firstName.charAt(0)}${user.lastName.charAt(
-    0
-  )}`.toUpperCase();
+  // Early return if no user data
+  if (isLoading || !sessionData?.user) {
+    return <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />;
+  }
+
+  const user = sessionData.user;
+
+  // Generate user initials for avatar with safe fallbacks
+  const getInitials = (
+    firstName?: string | null,
+    lastName?: string | null
+  ): string => {
+    const first = firstName?.charAt(0) || "";
+    const last = lastName?.charAt(0) || "";
+
+    if (first && last) {
+      return `${first}${last}`.toUpperCase();
+    }
+
+    if (first) {
+      return first.toUpperCase();
+    }
+
+    if (last) {
+      return last.toUpperCase();
+    }
+
+    // Fallback to first letter of email if no names available
+    return user.email?.charAt(0)?.toUpperCase() || "U";
+  };
+
+  const userInitials = getInitials(user.firstName, user.lastName);
 
   // Get role display info
   const getRoleInfo = (role: string) => {
@@ -72,22 +100,36 @@ export function UserNav({ user, onLogout }: UserNavProps) {
   const roleInfo = getRoleInfo(user.role);
   const RoleIcon = roleInfo.icon;
 
+  // Safe display name with fallbacks
+  const displayName = (() => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user.firstName) {
+      return user.firstName;
+    }
+    if (user.lastName) {
+      return user.lastName;
+    }
+    return user.email || "Utilizator";
+  })();
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     const loadingToast = showLoadingFeedback("Se deconectează...");
 
     try {
-      const result = await AuthClient.logout();
-
-      if (result.error) {
-        showAuthError(result.error, "Eroare la deconectare");
-      } else {
-        showLogoutSuccess();
-        onLogout?.();
-        router.push("/");
-      }
-    } catch (_error) {
-      showAuthError("A apărut o eroare neașteptată", "Eroare la deconectare");
+      await logoutMutation.mutateAsync();
+      showLogoutSuccess();
+      onLogout?.();
+      router.push("/");
+    } catch (error) {
+      showAuthError(
+        error instanceof Error
+          ? error.message
+          : "A apărut o eroare neașteptată",
+        "Eroare la deconectare"
+      );
     } finally {
       loadingToast.dismiss();
       setIsLoggingOut(false);
@@ -125,7 +167,7 @@ export function UserNav({ user, onLogout }: UserNavProps) {
 
             <div className="hidden md:flex flex-col items-start">
               <span className="text-sm font-medium leading-none">
-                {user.firstName} {user.lastName}
+                {displayName}
               </span>
               <div className="flex items-center space-x-1 mt-1">
                 <RoleIcon className="h-3 w-3" />
@@ -151,7 +193,7 @@ export function UserNav({ user, onLogout }: UserNavProps) {
               </Avatar>
               <div className="flex flex-col">
                 <p className="text-sm font-medium leading-none">
-                  {user.firstName} {user.lastName}
+                  {displayName}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground mt-1">
                   {user.email}

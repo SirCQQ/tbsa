@@ -12,11 +12,128 @@ import {
   SessionFingerprint,
 } from "../types/auth";
 import { SessionService } from "./session.service";
+import { api } from "@/lib/axios";
+import type { User } from "@prisma/client/wasm";
 
 // Create secret key for JWT (keeping for backward compatibility)
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-key"
 );
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  message?: string;
+}
+
+export interface SessionResponse {
+  user: SafeUser | null;
+  isAuthenticated: boolean;
+}
+
+export type ChangePasswordData = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type ResetPasswordData = {
+  token: string;
+  newPassword: string;
+};
+
+export const authService = {
+  // Login user
+  async login(credentials: LoginRequest): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>("/auth/login", credentials);
+    return response.data;
+  },
+
+  // Register new user
+  async register(data: RegisterRequest): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>("/auth/register", data);
+    return response.data;
+  },
+
+  // Logout user
+  async logout(): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>("/auth/logout");
+    return response.data;
+  },
+
+  // Get current session - using /me endpoint
+  async getSession(): Promise<SessionResponse> {
+    try {
+      const response = await api.get<SafeUser>("/auth/me");
+      return {
+        user: response.data,
+        isAuthenticated: true,
+      };
+    } catch (error) {
+      // If /me fails, user is not authenticated
+      return {
+        user: null,
+        isAuthenticated: false,
+      };
+    }
+  },
+
+  // Refresh session token
+  async refreshToken(): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>("/auth/refresh");
+    return response.data;
+  },
+
+  // Get current user profile - same as getSession but returns user directly
+  async getProfile(): Promise<SafeUser> {
+    const response = await api.get<SafeUser>("/auth/me");
+    return response.data;
+  },
+
+  // Update user profile
+  async updateProfile(data: Partial<SafeUser>): Promise<SafeUser> {
+    const response = await api.patch<SafeUser>("/auth/profile", data);
+    return response.data;
+  },
+
+  // Change password
+  async changePassword(data: ChangePasswordData): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>(
+      "/auth/change-password",
+      data
+    );
+    return response.data;
+  },
+
+  // Request password reset
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>(
+      "/auth/forgot-password",
+      { email }
+    );
+    return response.data;
+  },
+
+  // Reset password with token
+  async resetPassword(data: ResetPasswordData): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>(
+      "/auth/reset-password",
+      data
+    );
+    return response.data;
+  },
+};
 
 export class AuthService {
   /**
