@@ -11,7 +11,7 @@ export function StatsGrid({ user }: StatsGridProps) {
   const isOwner = user.role === "OWNER";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 md:mb-8">
       {isAdmin && (
         <>
           <StatCard
@@ -19,12 +19,16 @@ export function StatsGrid({ user }: StatsGridProps) {
             value={12}
             description="+2 față de luna trecută"
             icon={Building2}
+            trend="up"
+            color="blue"
           />
           <StatCard
             title="Proprietari Activi"
             value={248}
             description="+12% față de luna trecută"
             icon={Users}
+            trend="up"
+            color="green"
           />
         </>
       )}
@@ -34,6 +38,8 @@ export function StatsGrid({ user }: StatsGridProps) {
         value={isOwner ? "3" : "1,247"}
         description={isOwner ? "Apartamente" : "Total citiri"}
         icon={Droplets}
+        trend="neutral"
+        color="purple"
       />
 
       <StatCard
@@ -41,6 +47,8 @@ export function StatsGrid({ user }: StatsGridProps) {
         value={25}
         description="Ianuarie 2024"
         icon={Calendar}
+        trend="neutral"
+        color="orange"
       />
     </div>
   );

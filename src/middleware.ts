@@ -9,8 +9,8 @@ import { AuthErrorKey } from "@/types/api";
 import { SessionService } from "@/services/session.service";
 import { SessionFingerprint } from "@/types/auth";
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-secret-key"
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "your-secret-key"
 );
 
 // Define protected routes and their required roles
@@ -48,6 +48,24 @@ function getClientIP(request: NextRequest): string | undefined {
     request.headers.get("x-client-ip") ||
     undefined
   );
+}
+
+interface CustomJWTPayload {
+  userId: string;
+  email: string;
+  role: "OWNER" | "ADMINISTRATOR";
+  iat: number;
+  exp: number;
+}
+
+async function verifyToken(token: string): Promise<CustomJWTPayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload as unknown as CustomJWTPayload;
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return null;
+  }
 }
 
 export async function middleware(request: NextRequest) {
@@ -106,7 +124,7 @@ export async function middleware(request: NextRequest) {
     } else {
       // Fallback to legacy verification for backward compatibility
       try {
-        const { payload: legacyPayload } = await jwtVerify(token, secret);
+        const { payload: legacyPayload } = await jwtVerify(token, JWT_SECRET);
         payload = legacyPayload;
       } catch (legacyError) {
         auditAuthEvent(
@@ -170,6 +188,14 @@ export async function middleware(request: NextRequest) {
           AuthErrorKey.TENANT_ACCESS_DENIED,
           "Only administrators can access buildings"
         );
+      }
+    }
+
+    // Check role-based access for admin routes
+    if (pathname.startsWith("/dashboard/admin")) {
+      if (userRole !== "ADMINISTRATOR") {
+        // Non-admin trying to access admin dashboard
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
 

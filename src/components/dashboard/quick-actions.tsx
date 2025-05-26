@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,14 +10,19 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Building2,
   Users,
-  Droplets,
   FileText,
   Settings,
-  Calendar,
+  Upload,
+  MessageSquare,
+  Zap,
+  CheckCircle,
+  BarChart3,
+  AlertTriangle,
 } from "lucide-react";
 import type { SafeUser } from "@/types/auth";
+import { SubmitReadingModal } from "./modals/submit-reading-modal";
+import { ValidateReadingsModal } from "./modals/validate-readings-modal";
 
 type ActionButton = {
   icon: React.ReactNode;
@@ -28,82 +36,131 @@ type QuickActionsProps = {
 };
 
 export function QuickActions({ user }: QuickActionsProps) {
+  const [isSubmitReadingOpen, setIsSubmitReadingOpen] = useState(false);
+  const [isValidateReadingsOpen, setIsValidateReadingsOpen] = useState(false);
+
   const isAdmin = user.role === "ADMINISTRATOR";
+
+  const getActionColor = (index: number) => {
+    const colors = [
+      "bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
+      "bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
+      "bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
+      "bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
+    ];
+    return colors[index % colors.length];
+  };
 
   const adminActions: ActionButton[] = [
     {
-      icon: <Building2 className="h-5 w-5" />,
-      title: "Gestionează Clădiri",
-      description: "Adaugă sau editează clădiri",
+      icon: <CheckCircle className="h-5 w-5" />,
+      title: "Validează Citiri",
+      description: "Aprobă citirile utilizatorilor",
+      onClick: () => setIsValidateReadingsOpen(true),
     },
     {
       icon: <Users className="h-5 w-5" />,
-      title: "Gestionează Proprietari",
-      description: "Administrează conturile utilizatorilor",
+      title: "Gestionează Utilizatori",
+      description: "Administrează conturile",
+      onClick: () => console.log("Gestionează Utilizatori"),
     },
     {
-      icon: <Droplets className="h-5 w-5" />,
-      title: "Validează Citiri",
-      description: "Verifică citirile în așteptare",
+      icon: <BarChart3 className="h-5 w-5" />,
+      title: "Rapoarte Generale",
+      description: "Statistici și analize",
+      onClick: () => console.log("Rapoarte Generale"),
     },
     {
-      icon: <FileText className="h-5 w-5" />,
-      title: "Generează Rapoarte",
-      description: "Creează rapoarte lunare",
+      icon: <AlertTriangle className="h-5 w-5" />,
+      title: "Alerte Sistem",
+      description: "Monitorizează probleme",
+      onClick: () => console.log("Alerte Sistem"),
     },
   ];
 
   const ownerActions: ActionButton[] = [
     {
-      icon: <Droplets className="h-5 w-5" />,
+      icon: <Upload className="h-5 w-5" />,
       title: "Trimite Citire",
       description: "Adaugă citirea lunară de apă",
+      onClick: () => setIsSubmitReadingOpen(true),
     },
     {
       icon: <FileText className="h-5 w-5" />,
-      title: "Istoric Citiri",
-      description: "Vezi citirile anterioare",
+      title: "Raport Consum",
+      description: "Vizualizează consumul lunar",
+      onClick: () => console.log("Raport Consum"),
     },
     {
-      icon: <Calendar className="h-5 w-5" />,
-      title: "Programează Reminder",
-      description: "Setează notificări pentru citiri",
+      icon: <MessageSquare className="h-5 w-5" />,
+      title: "Contact Support",
+      description: "Trimite mesaj administratorului",
+      onClick: () => console.log("Contact Support"),
     },
     {
       icon: <Settings className="h-5 w-5" />,
-      title: "Setări Cont",
-      description: "Actualizează informațiile personale",
+      title: "Setări Contor",
+      description: "Configurează preferințele",
+      onClick: () => console.log("Setări Contor"),
     },
   ];
 
   const actions = isAdmin ? adminActions : ownerActions;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Acțiuni Rapide</CardTitle>
-        <CardDescription>Funcționalități frecvent utilizate</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {actions.map((action, index) => (
-            <Button
-              key={index}
-              className="h-auto p-4 flex flex-col items-start gap-2"
-              variant="outline"
-              onClick={action.onClick}
-            >
-              {action.icon}
-              <div className="text-left">
-                <div className="font-medium">{action.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  {action.description}
+    <>
+      <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+            <Zap className="h-5 w-5 text-blue-600" />
+            Acțiuni Rapide
+          </CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
+            Funcționalități frecvent utilizate
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3">
+            {actions.map((action, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                className={`
+                  ${getActionColor(index)}
+                  text-white border-0 shadow-md
+                  h-20 sm:h-24 lg:h-28 xl:h-[85px]
+                  flex flex-col items-center justify-center gap-1 sm:gap-2
+                  transition-all duration-200 hover:scale-105 hover:shadow-lg
+                  group relative overflow-hidden
+                `}
+                onClick={action.onClick}
+              >
+                <div className="transition-transform duration-200 group-hover:scale-110">
+                  {action.icon}
                 </div>
-              </div>
-            </Button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+                <div className="text-center">
+                  <div className="text-xs sm:text-sm font-medium leading-tight whitespace-normal">
+                    {action.title}
+                  </div>
+                  <div className="text-[10px] sm:text-xs opacity-90 leading-tight whitespace-normal">
+                    {action.description}
+                  </div>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <SubmitReadingModal
+        open={isSubmitReadingOpen}
+        onOpenChange={setIsSubmitReadingOpen}
+      />
+
+      <ValidateReadingsModal
+        open={isValidateReadingsOpen}
+        onOpenChange={setIsValidateReadingsOpen}
+      />
+    </>
   );
 }

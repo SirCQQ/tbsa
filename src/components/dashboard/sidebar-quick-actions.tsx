@@ -124,13 +124,13 @@ export function SidebarQuickActions({ user }: SidebarQuickActionsProps) {
   const actions = isAdmin ? getAdminActions() : getOwnerActions();
 
   return (
-    <Card>
+    <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Plus className="h-4 w-4 text-green-500" />
+        <CardTitle className="text-sm flex items-center gap-2 text-gray-900 dark:text-white">
+          <Plus className="h-4 w-4 text-green-500 dark:text-green-400" />
           Acțiuni Rapide
         </CardTitle>
-        <CardDescription className="text-xs">
+        <CardDescription className="text-xs text-gray-600 dark:text-gray-400">
           {isAdmin ? "Administrare sistem" : "Gestionare apartament"}
         </CardDescription>
       </CardHeader>
@@ -141,26 +141,28 @@ export function SidebarQuickActions({ user }: SidebarQuickActionsProps) {
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             )}
             <Button
-              variant={action.variant || "outline"}
-              className="w-full h-auto p-3 flex items-start gap-3 text-left"
+              variant={action.variant || "ghost"}
+              className="w-full h-auto p-4 flex items-center gap-3 text-left bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 transition-all duration-200 min-h-[60px]"
               onClick={action.onClick}
             >
-              <div className="flex-shrink-0 mt-0.5">{action.icon}</div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-shrink-0 mt-0.5 text-blue-600 dark:text-blue-400">
+                {action.icon}
+              </div>
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm truncate">
+                  <span className="font-medium text-sm text-gray-900 dark:text-gray-100 break-words leading-tight flex-1">
                     {action.label}
                   </span>
                   {action.badge && (
                     <Badge
                       variant={action.badge.variant}
-                      className="text-xs px-1.5 py-0.5"
+                      className="text-xs px-1.5 py-0.5 flex-shrink-0"
                     >
                       {action.badge.text}
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-gray-600 dark:text-gray-400 break-words leading-relaxed">
                   {action.description}
                 </p>
               </div>
@@ -172,7 +174,7 @@ export function SidebarQuickActions({ user }: SidebarQuickActionsProps) {
         {mockContext.hasUnreadNotifications && (
           <div className="mt-4 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
             <div className="flex items-center gap-2">
-              <Bell className="h-3 w-3 text-blue-500" />
+              <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400" />
               <span className="text-xs text-blue-700 dark:text-blue-300">
                 Ai notificări noi
               </span>
@@ -184,7 +186,7 @@ export function SidebarQuickActions({ user }: SidebarQuickActionsProps) {
         {!isAdmin && mockContext.daysUntilDeadline <= 3 && (
           <div className="mt-4 p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
             <div className="flex items-center gap-2">
-              <Clock className="h-3 w-3 text-red-500" />
+              <Clock className="h-3 w-3 text-red-500 dark:text-red-400" />
               <span className="text-xs text-red-700 dark:text-red-300">
                 Deadline citiri în {mockContext.daysUntilDeadline} zile!
               </span>

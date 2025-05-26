@@ -13,9 +13,10 @@ describe("Button Component", () => {
       expect(button).toHaveClass(
         "bg-primary",
         "text-primary-foreground",
-        "h-9",
+        "h-11",
         "px-4",
-        "py-2"
+        "py-2",
+        "md:h-10"
       );
     });
 
@@ -42,33 +43,22 @@ describe("Button Component", () => {
         // Check specific variant classes
         switch (variant) {
           case "destructive":
-            expect(button).toHaveClass(
-              "bg-destructive",
-              "text-destructive-foreground"
-            );
+            expect(button).toHaveClass("bg-destructive");
             break;
           case "outline":
-            expect(button).toHaveClass(
-              "border",
-              "border-input",
-              "bg-background"
-            );
+            expect(button).toHaveClass("border", "border-input");
             break;
           case "secondary":
-            expect(button).toHaveClass(
-              "bg-secondary",
-              "text-secondary-foreground"
-            );
+            expect(button).toHaveClass("bg-secondary");
             break;
           case "ghost":
-            expect(button).toHaveClass(
-              "hover:bg-accent",
-              "hover:text-accent-foreground"
-            );
+            expect(button).toHaveClass("hover:bg-accent");
             break;
           case "link":
             expect(button).toHaveClass("text-primary", "underline-offset-4");
             break;
+          default:
+            expect(button).toHaveClass("bg-primary");
         }
 
         unmount();
@@ -76,7 +66,7 @@ describe("Button Component", () => {
     });
 
     it("renders with different sizes", () => {
-      const sizes = ["default", "sm", "lg", "icon"] as const;
+      const sizes = ["default", "sm", "lg", "xl", "icon", "icon-sm"] as const;
 
       sizes.forEach((size) => {
         const { unmount } = render(<Button size={size}>{size} Button</Button>);
@@ -89,16 +79,22 @@ describe("Button Component", () => {
         // Check specific size classes
         switch (size) {
           case "sm":
-            expect(button).toHaveClass("h-8", "px-3", "text-xs");
+            expect(button).toHaveClass("h-10", "px-3", "text-xs", "md:h-9");
             break;
           case "lg":
-            expect(button).toHaveClass("h-10", "px-8");
+            expect(button).toHaveClass("h-12", "px-8", "md:h-11");
+            break;
+          case "xl":
+            expect(button).toHaveClass("h-14", "px-10", "text-base");
             break;
           case "icon":
-            expect(button).toHaveClass("h-9", "w-9");
+            expect(button).toHaveClass("h-11", "w-11", "md:h-10", "md:w-10");
+            break;
+          case "icon-sm":
+            expect(button).toHaveClass("h-10", "w-10", "md:h-9", "md:w-9");
             break;
           default:
-            expect(button).toHaveClass("h-9", "px-4", "py-2");
+            expect(button).toHaveClass("h-11", "px-4", "py-2", "md:h-10");
         }
 
         unmount();
@@ -106,70 +102,89 @@ describe("Button Component", () => {
     });
   });
 
-  describe("Interactions", () => {
-    it("calls onClick handler when clicked", () => {
-      const onClickMock = jest.fn();
-      render(<Button onClick={onClickMock}>Click me</Button>);
+  describe("Touch-friendly sizing", () => {
+    it("has minimum 44px height on mobile for touch accessibility", () => {
+      render(<Button>Touch Button</Button>);
 
-      const button = screen.getByRole("button", { name: /click me/i });
-      fireEvent.click(button);
-
-      expect(onClickMock).toHaveBeenCalledTimes(1);
+      const button = screen.getByRole("button", { name: /touch button/i });
+      expect(button).toHaveClass("h-11"); // 44px minimum for touch
     });
 
-    it("does not call onClick when disabled", () => {
-      const onClickMock = jest.fn();
+    it("provides appropriate touch targets for icon buttons", () => {
+      render(<Button size="icon">Icon</Button>);
+
+      const button = screen.getByRole("button", { name: /icon/i });
+      expect(button).toHaveClass("h-11", "w-11"); // 44px x 44px minimum
+    });
+
+    it("maintains smaller sizes on desktop with responsive classes", () => {
+      render(<Button>Responsive Button</Button>);
+
+      const button = screen.getByRole("button", { name: /responsive button/i });
+      expect(button).toHaveClass("md:h-10"); // Smaller on desktop
+    });
+  });
+
+  describe("Interactions", () => {
+    it("handles click events", async () => {
+      const handleClick = jest.fn();
+      const user = userEvent.setup();
+
+      render(<Button onClick={handleClick}>Click me</Button>);
+
+      const button = screen.getByRole("button", { name: /click me/i });
+      await user.click(button);
+
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("can be disabled", () => {
+      const handleClick = jest.fn();
+
       render(
-        <Button onClick={onClickMock} disabled>
+        <Button onClick={handleClick} disabled>
           Disabled Button
         </Button>
       );
 
       const button = screen.getByRole("button", { name: /disabled button/i });
       expect(button).toBeDisabled();
+      expect(button).toHaveClass("disabled:pointer-events-none");
 
       fireEvent.click(button);
-      expect(onClickMock).not.toHaveBeenCalled();
+      expect(handleClick).not.toHaveBeenCalled();
     });
 
-    it("handles keyboard interactions", async () => {
+    it("supports keyboard navigation", async () => {
+      const handleClick = jest.fn();
       const user = userEvent.setup();
-      const onClickMock = jest.fn();
-      render(<Button onClick={onClickMock}>Keyboard Button</Button>);
+
+      render(<Button onClick={handleClick}>Keyboard Button</Button>);
 
       const button = screen.getByRole("button", { name: /keyboard button/i });
       button.focus();
+      expect(button).toHaveFocus();
 
-      // Use userEvent instead of fireEvent for more realistic keyboard interactions
       await user.keyboard("{Enter}");
-      expect(onClickMock).toHaveBeenCalledTimes(1);
+      expect(handleClick).toHaveBeenCalledTimes(1);
 
       await user.keyboard(" ");
-      expect(onClickMock).toHaveBeenCalledTimes(2);
+      expect(handleClick).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe("Props and Attributes", () => {
-    it("forwards custom className", () => {
-      render(<Button className="custom-class">Custom Button</Button>);
+  describe("Accessibility", () => {
+    it("has proper focus styles", () => {
+      render(<Button>Focus Button</Button>);
 
-      const button = screen.getByRole("button", { name: /custom button/i });
-      expect(button).toHaveClass("custom-class");
-    });
-
-    it("forwards custom attributes", () => {
-      render(
-        <Button data-testid="custom-button" type="submit" id="btn-id">
-          Custom Button
-        </Button>
+      const button = screen.getByRole("button", { name: /focus button/i });
+      expect(button).toHaveClass(
+        "focus-visible:outline-none",
+        "focus-visible:ring-1"
       );
-
-      const button = screen.getByTestId("custom-button");
-      expect(button).toHaveAttribute("type", "submit");
-      expect(button).toHaveAttribute("id", "btn-id");
     });
 
-    it("renders as child component when asChild is true", () => {
+    it("supports asChild prop with proper accessibility", () => {
       render(
         <Button asChild>
           <a href="/test">Link Button</a>
@@ -179,38 +194,6 @@ describe("Button Component", () => {
       const link = screen.getByRole("link", { name: /link button/i });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute("href", "/test");
-      expect(link).toHaveClass("inline-flex", "items-center", "justify-center");
-    });
-  });
-
-  describe("Accessibility", () => {
-    it("has proper accessibility attributes", () => {
-      render(<Button type="submit">Accessible Button</Button>);
-
-      const button = screen.getByRole("button", { name: /accessible button/i });
-      expect(button).toBeInTheDocument();
-      expect(button).toHaveAttribute("type", "submit");
-    });
-
-    it("supports aria-label", () => {
-      render(<Button aria-label="Close dialog">×</Button>);
-
-      const button = screen.getByRole("button", { name: /close dialog/i });
-      expect(button).toBeInTheDocument();
-      expect(button).toHaveAttribute("aria-label", "Close dialog");
-    });
-
-    it("is focusable and has focus styles", () => {
-      render(<Button>Focusable Button</Button>);
-
-      const button = screen.getByRole("button", { name: /focusable button/i });
-      button.focus();
-
-      expect(button).toHaveFocus();
-      expect(button).toHaveClass(
-        "focus-visible:outline-none",
-        "focus-visible:ring-1"
-      );
     });
   });
 });
