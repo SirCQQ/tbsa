@@ -241,7 +241,7 @@ export class SessionService {
    * Invalidate session (logout)
    */
   static async invalidateSession(
-    sessionId: string
+    _sessionId: string
   ): Promise<ApiResponse<void>> {
     try {
       // In a full implementation, you would mark the session as invalid in the database

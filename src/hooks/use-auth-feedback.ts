@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
-import { useToast } from "./use-toast";
-import { AuthClient } from "@/lib/auth-client";
-import { SafeUser } from "@/types/auth";
+import { useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
+import type { SafeUser } from "@/types/auth";
 
 export function useAuthFeedback() {
   const { toast } = useToast();

@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import { AuthClient } from "@/lib/auth-client";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { SafeUser } from "@/types/auth";
@@ -42,12 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     showLoadingFeedback,
   } = useAuthFeedback();
 
-  // Load user on mount
-  useEffect(() => {
-    loadUser();
-  }, []);
-
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
@@ -73,7 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error: error instanceof Error ? error.message : "Failed to load user",
       }));
     }
-  };
+  }, [showSessionExpired]);
+
+  // Load user on mount
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
 
   const login = async (email: string, password: string) => {
     try {

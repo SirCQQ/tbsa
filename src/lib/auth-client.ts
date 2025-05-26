@@ -1,5 +1,4 @@
 import type {
-  User,
   AuthResponse,
   LoginRequest,
   RegisterRequest,
@@ -175,7 +174,7 @@ export class AuthClient {
         return false;
       }
 
-      const result = await response.json();
+      const _result = await response.json();
       console.info("Token refreshed successfully");
       return true;
     } catch (error) {

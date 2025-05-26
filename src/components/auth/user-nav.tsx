@@ -86,7 +86,7 @@ export function UserNav({ user, onLogout }: UserNavProps) {
         onLogout?.();
         router.push("/");
       }
-    } catch (error) {
+    } catch (_error) {
       showAuthError("A apărut o eroare neașteptată", "Eroare la deconectare");
     } finally {
       loadingToast.dismiss();
