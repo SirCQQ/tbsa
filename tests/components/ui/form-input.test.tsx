@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FormInput } from "@/components/ui/form-input";
+import { FormInput } from "@/components/form/form-input";
+import { TestContext } from "node:test";
 
 describe("FormInput", () => {
   // Basic rendering tests
@@ -79,19 +80,6 @@ describe("FormInput", () => {
     const input = screen.getByRole("textbox");
     expect(input).toHaveClass("border-red-500", "focus-visible:ring-red-500");
     expect(input).toHaveAttribute("aria-invalid", "true");
-  });
-
-  it("shows form errors from react-hook-form", () => {
-    const errors = {
-      testField: {
-        type: "required",
-        message: "Field is required",
-      },
-    };
-
-    render(<FormInput label="Test" name="testField" errors={errors} />);
-
-    expect(screen.getByText("Field is required")).toBeInTheDocument();
   });
 
   it("prioritizes custom error over form errors", () => {

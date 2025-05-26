@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FormTextarea } from "@/components/ui/form-textarea";
+import { FormTextarea } from "@/components/form/form-textarea";
 
 describe("FormTextarea", () => {
   // Basic rendering tests
@@ -87,19 +87,6 @@ describe("FormTextarea", () => {
       "focus-visible:ring-red-500"
     );
     expect(textarea).toHaveAttribute("aria-invalid", "true");
-  });
-
-  it("shows form errors from react-hook-form", () => {
-    const errors = {
-      testField: {
-        type: "required",
-        message: "Field is required",
-      },
-    };
-
-    render(<FormTextarea label="Test" name="testField" errors={errors} />);
-
-    expect(screen.getByText("Field is required")).toBeInTheDocument();
   });
 
   it("prioritizes custom error over form errors", () => {

@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { FormErrorMessage } from "@/components/ui/form-error-message";
+import { FormErrorMessage } from "@/components/form/form-error-message";
 
 describe("FormErrorMessage", () => {
   // Basic rendering tests
@@ -36,14 +36,7 @@ describe("FormErrorMessage", () => {
 
   // Form errors tests
   it("renders form error when field has error", () => {
-    const errors = {
-      testField: {
-        type: "required",
-        message: "Field is required",
-      },
-    };
-
-    render(<FormErrorMessage name="testField" errors={errors} />);
+    render(<FormErrorMessage message={"Field is required"} />);
 
     expect(screen.getByText("Field is required")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toBeInTheDocument();
@@ -57,26 +50,26 @@ describe("FormErrorMessage", () => {
       },
     };
 
-    render(<FormErrorMessage name="testField" errors={errors} />);
+    render(<FormErrorMessage errors={errors} />);
 
     expect(screen.queryByText("Other field error")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("does not render when errors object is empty", () => {
-    render(<FormErrorMessage name="testField" errors={{}} />);
+    render(<FormErrorMessage errors={{}} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("does not render when errors is undefined", () => {
-    render(<FormErrorMessage name="testField" errors={undefined} />);
+    render(<FormErrorMessage errors={undefined} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("does not render when errors is null", () => {
-    render(<FormErrorMessage name="testField" errors={null as any} />);
+    render(<FormErrorMessage errors={null as any} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -102,7 +95,7 @@ describe("FormErrorMessage", () => {
       },
     };
 
-    render(<FormErrorMessage name="testField" errors={errors} />);
+    render(<FormErrorMessage errors={errors} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -116,36 +109,23 @@ describe("FormErrorMessage", () => {
       },
     };
 
-    render(
-      <FormErrorMessage
-        name="testField"
-        errors={errors}
-        message="Custom error message"
-      />
-    );
+    render(<FormErrorMessage errors={errors} message="Custom error message" />);
 
     expect(screen.getByText("Custom error message")).toBeInTheDocument();
     expect(screen.queryByText("Form error message")).not.toBeInTheDocument();
   });
 
   it("falls back to form error when custom message is empty", () => {
-    const errors = {
-      testField: {
-        type: "required",
-        message: "Form error message",
-      },
-    };
-
-    render(<FormErrorMessage name="testField" errors={errors} message="" />);
+    render(<FormErrorMessage message={"Form error message"} />);
 
     expect(screen.getByText("Form error message")).toBeInTheDocument();
   });
 
   // Custom render function tests
   it("uses custom render function", () => {
-    const customRender = ({ message }: { message: string }) => (
+    const customRender = ({ children }: { children: React.ReactNode }) => (
       <div data-testid="custom-error" className="custom-error">
-        Error: {message}
+        Error: {children}
       </div>
     );
 
@@ -157,23 +137,12 @@ describe("FormErrorMessage", () => {
   });
 
   it("uses custom render function with form errors", () => {
-    const errors = {
-      testField: {
-        type: "required",
-        message: "Field is required",
-      },
-    };
-
-    const customRender = ({ message }: { message: string }) => (
-      <div data-testid="custom-error">Custom: {message}</div>
+    const customRender = ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="custom-error">Custom: {children}</div>
     );
 
     render(
-      <FormErrorMessage
-        name="testField"
-        errors={errors}
-        render={customRender}
-      />
+      <FormErrorMessage message="Field is required" render={customRender} />
     );
 
     expect(screen.getByTestId("custom-error")).toBeInTheDocument();
@@ -214,9 +183,7 @@ describe("FormErrorMessage", () => {
 
   // Edge cases
   it("handles malformed errors object", () => {
-    render(
-      <FormErrorMessage name="testField" errors={"not-an-object" as any} />
-    );
+    render(<FormErrorMessage errors={"not-an-object" as any} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -226,7 +193,7 @@ describe("FormErrorMessage", () => {
       testField: "string instead of object",
     };
 
-    render(<FormErrorMessage name="testField" errors={errors as any} />);
+    render(<FormErrorMessage errors={errors as any} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });

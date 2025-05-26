@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm, FormProvider } from "react-hook-form";
-import { ControlledInput } from "@/components/ui/controlled-input";
+import { ControlledInput } from "../../../src/components/form/controlled-input";
+import { useEffect } from "react";
 
 // Test wrapper component
 type TestFormData = {
@@ -10,28 +11,29 @@ type TestFormData = {
   required: string;
 };
 
-function TestWrapper({
+const TestWrapper = ({
   children,
-  defaultValues = { testField: "", email: "", required: "" },
+  defaultValues = {},
 }: {
   children: React.ReactNode;
   defaultValues?: Partial<TestFormData>;
-}) {
+}) => {
   const methods = useForm<TestFormData>({
-    defaultValues,
+    defaultValues: {
+      testField: "",
+      email: "",
+      required: "",
+      ...defaultValues,
+    },
     mode: "onChange",
   });
 
-  return (
-    <FormProvider {...methods}>
-      <form>{children}</form>
-    </FormProvider>
-  );
-}
+  return <FormProvider {...methods}>{children}</FormProvider>;
+};
 
 describe("ControlledInput", () => {
   // Basic rendering tests
-  it("renders controlled input with label", () => {
+  it("renders input with label", () => {
     render(
       <TestWrapper>
         <ControlledInput name="testField" label="Test Label" />
@@ -44,12 +46,12 @@ describe("ControlledInput", () => {
 
   it("renders with default value", () => {
     render(
-      <TestWrapper defaultValues={{ testField: "Default value" }}>
+      <TestWrapper defaultValues={{ testField: "default value" }}>
         <ControlledInput name="testField" label="Test" />
       </TestWrapper>
     );
 
-    expect(screen.getByDisplayValue("Default value")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("default value")).toBeInTheDocument();
   });
 
   it("throws error when used without FormProvider or control prop", () => {
@@ -396,5 +398,93 @@ describe("ControlledInput", () => {
     await user.click(resetButton);
 
     expect(input).toHaveValue("reset value");
+  });
+
+  // User interaction tests
+  it("handles user input correctly", async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <ControlledInput name="testField" label="Test Input" />
+      </TestWrapper>
+    );
+
+    const input = screen.getByRole("textbox");
+    await user.type(input, "Hello World");
+
+    expect(input).toHaveValue("Hello World");
+  });
+
+  // Validation tests
+  it("displays validation errors", () => {
+    const Render = () => {
+      const methods = useForm<TestFormData>({
+        defaultValues: { testField: "", email: "", required: "" },
+      });
+
+      // Manually set an error
+      useEffect(() => {
+        methods.setError("testField", {
+          type: "manual",
+          message: "This field is required",
+        });
+      }, []);
+
+      return (
+        <FormProvider {...methods}>
+          <ControlledInput name="testField" label="Test" />
+        </FormProvider>
+      );
+    };
+
+    render(<Render />);
+
+    expect(screen.getByText("This field is required")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
+  // Accessibility tests
+  it("has proper accessibility attributes", () => {
+    render(
+      <TestWrapper>
+        <ControlledInput name="testField" label="Test Label" required />
+      </TestWrapper>
+    );
+
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("aria-required", "true");
+  });
+
+  it("associates error message with input", () => {
+    const Render = () => {
+      const methods = useForm<TestFormData>({
+        defaultValues: { testField: "", email: "", required: "" },
+      });
+
+      useEffect(() => {
+        methods.setError("testField", {
+          type: "manual",
+          message: "Error message",
+        });
+      }, []);
+      return (
+        <FormProvider {...methods}>
+          <ControlledInput
+            name="testField"
+            id="test-field"
+            label="Test"
+            aria-describedby="test-field-error"
+          />
+        </FormProvider>
+      );
+    };
+
+    render(<Render />);
+
+    const input = screen.getByRole("textbox");
+    const errorMessage = screen.getByRole("alert");
+
+    expect(input).toHaveAttribute("aria-describedby");
+    expect(errorMessage).toHaveAttribute("id");
   });
 });

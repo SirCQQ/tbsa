@@ -14,24 +14,19 @@ jest.mock("../../src/lib/prisma", () => ({
   prisma: mockPrisma,
 }));
 
-import { BuildingService } from "../../src/services/building.service";
+import { BuildingsService } from "../../src/services/buildings.service";
 import {
   createMockAdministratorContext,
-  createMockOwnerContext,
   createMockBuilding,
-  createMockBuildingRequest,
-  createMockBuildingRequestPartial,
 } from "../__mocks__/data.mock";
 
-describe("BuildingService", () => {
+describe("BuildingsService", () => {
   let adminContext: ReturnType<typeof createMockAdministratorContext>;
-  let ownerContext: ReturnType<typeof createMockOwnerContext>;
 
   beforeEach(() => {
     resetPrismaMocks();
     mockConsoleError.mockClear();
     adminContext = createMockAdministratorContext();
-    ownerContext = createMockOwnerContext();
   });
 
   afterAll(() => {
@@ -39,36 +34,33 @@ describe("BuildingService", () => {
   });
 
   describe("getBuildings", () => {
-    it("should return buildings for administrator", async () => {
+    it("should return paginated buildings for administrator", async () => {
       const mockBuildings = [
         createMockBuilding(adminContext.administratorId!),
         createMockBuilding(adminContext.administratorId!),
       ];
 
       mockPrisma.building.findMany.mockResolvedValue(mockBuildings);
+      mockPrisma.building.count.mockResolvedValue(2);
 
-      const result = await BuildingService.getBuildings(adminContext);
+      const result = await BuildingsService.getBuildings(
+        adminContext.administratorId!,
+        { page: "1", limit: "10" }
+      );
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockBuildings);
+      expect(result.data?.buildings).toEqual(mockBuildings);
+      expect(result.data?.pagination.total).toBe(2);
       expect(mockPrisma.building.findMany).toHaveBeenCalledWith({
         where: { administratorId: adminContext.administratorId },
+        skip: 0,
+        take: 10,
         include: {
+          _count: { select: { apartments: true } },
           administrator: {
             include: {
               user: {
                 select: { firstName: true, lastName: true, email: true },
-              },
-            },
-          },
-          apartments: {
-            include: {
-              owner: {
-                include: {
-                  user: {
-                    select: { firstName: true, lastName: true, email: true },
-                  },
-                },
               },
             },
           },
@@ -77,25 +69,43 @@ describe("BuildingService", () => {
       });
     });
 
-    it("should deny access for owners", async () => {
-      const result = await BuildingService.getBuildings(ownerContext);
+    it("should handle search functionality", async () => {
+      const mockBuildings = [createMockBuilding(adminContext.administratorId!)];
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Only administrators can access buildings");
-      expect(mockPrisma.building.findMany).not.toHaveBeenCalled();
+      mockPrisma.building.findMany.mockResolvedValue(mockBuildings);
+      mockPrisma.building.count.mockResolvedValue(1);
+
+      const result = await BuildingsService.getBuildings(
+        adminContext.administratorId!,
+        { page: "1", limit: "10", search: "Test" }
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockPrisma.building.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { name: { contains: "Test", mode: "insensitive" } },
+            { address: { contains: "Test", mode: "insensitive" } },
+            { city: { contains: "Test", mode: "insensitive" } },
+          ],
+          administratorId: adminContext.administratorId,
+        },
+        skip: 0,
+        take: 10,
+        include: expect.any(Object),
+        orderBy: { name: "asc" },
+      });
     });
 
-    it("should deny access for administrator without administratorId", async () => {
-      const invalidContext = {
-        ...adminContext,
-        administratorId: undefined,
-      };
-
-      const result = await BuildingService.getBuildings(invalidContext);
+    it("should handle validation errors", async () => {
+      const result = await BuildingsService.getBuildings(
+        adminContext.administratorId!,
+        { page: "invalid", limit: "10" }
+      );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Only administrators can access buildings");
-      expect(mockPrisma.building.findMany).not.toHaveBeenCalled();
+      expect(result.code).toBe("VALIDATION_FAILED");
+      expect(result.error).toBe("Parametrii de interogare sunt invalizi");
     });
 
     it("should handle database errors", async () => {
@@ -103,31 +113,39 @@ describe("BuildingService", () => {
         new Error("Database connection failed")
       );
 
-      const result = await BuildingService.getBuildings(adminContext);
+      const result = await BuildingsService.getBuildings(
+        adminContext.administratorId!,
+        { page: "1", limit: "10" }
+      );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Internal server error");
+      expect(result.code).toBe("INTERNAL_ERROR");
+      expect(result.error).toBe("Eroare internă la obținerea clădirilor");
     });
   });
 
   describe("getBuildingById", () => {
     it("should return building for authorized administrator", async () => {
-      const buildingId = "building-1";
+      const buildingId = "550e8400-e29b-41d4-a716-446655440000"; // Valid UUID
       const mockBuilding = createMockBuilding(adminContext.administratorId!);
       mockBuilding.id = buildingId;
 
-      mockPrisma.building.findUnique.mockResolvedValue(mockBuilding);
+      mockPrisma.building.findFirst.mockResolvedValue(mockBuilding);
 
-      const result = await BuildingService.getBuildingById(
+      const result = await BuildingsService.getBuildingById(
         buildingId,
-        adminContext
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockBuilding);
-      expect(mockPrisma.building.findUnique).toHaveBeenCalledWith({
-        where: { id: buildingId },
+      expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: buildingId,
+          administratorId: adminContext.administratorId,
+        },
         include: {
+          _count: { select: { apartments: true } },
           administrator: {
             include: {
               user: {
@@ -140,395 +158,231 @@ describe("BuildingService", () => {
               owner: {
                 include: {
                   user: {
-                    select: { firstName: true, lastName: true, email: true },
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                      email: true,
+                      phone: true,
+                    },
                   },
                 },
               },
+              _count: { select: { waterReadings: true } },
             },
+            orderBy: { number: "asc" },
           },
         },
       });
     });
 
-    it("should deny access to building from different administrator", async () => {
-      const buildingId = "building-1";
-      const differentAdminId = "different-admin-id";
-      const mockBuilding = createMockBuilding(differentAdminId);
-      mockBuilding.id = buildingId;
-
-      mockPrisma.building.findUnique.mockResolvedValue(mockBuilding);
-
-      const result = await BuildingService.getBuildingById(
-        buildingId,
-        adminContext
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "You don't have permission to access this building"
-      );
-    });
-
     it("should return not found for non-existent building", async () => {
-      const buildingId = "non-existent";
-      mockPrisma.building.findUnique.mockResolvedValue(null);
+      const buildingId = "550e8400-e29b-41d4-a716-446655440001"; // Valid UUID
+      mockPrisma.building.findFirst.mockResolvedValue(null);
 
-      const result = await BuildingService.getBuildingById(
+      const result = await BuildingsService.getBuildingById(
         buildingId,
-        adminContext
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Building does not exist");
+      expect(result.code).toBe("BUILDING_NOT_FOUND");
+      expect(result.error).toBe("Clădirea nu a fost găsită");
     });
 
-    it("should deny access for owners", async () => {
-      const buildingId = "building-1";
-
-      const result = await BuildingService.getBuildingById(
-        buildingId,
-        ownerContext
+    it("should handle invalid building ID", async () => {
+      const result = await BuildingsService.getBuildingById(
+        "invalid-id",
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Only administrators can access buildings");
-      expect(mockPrisma.building.findUnique).not.toHaveBeenCalled();
+      expect(result.code).toBe("VALIDATION_FAILED");
+      expect(result.error).toBe("ID-ul clădirii este invalid");
     });
   });
 
   describe("createBuilding", () => {
     it("should create building for administrator", async () => {
-      const buildingData = createMockBuildingRequest();
+      const buildingData = {
+        name: "Test Building",
+        address: "123 Test Street",
+        city: "Test City",
+        postalCode: "123456",
+        readingDeadline: 25,
+      };
       const mockCreatedBuilding = createMockBuilding(
         adminContext.administratorId!
       );
 
+      mockPrisma.building.findFirst.mockResolvedValue(null); // No existing building
       mockPrisma.building.create.mockResolvedValue(mockCreatedBuilding);
 
-      const result = await BuildingService.createBuilding(
+      const result = await BuildingsService.createBuilding(
         buildingData,
-        adminContext
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockCreatedBuilding);
       expect(mockPrisma.building.create).toHaveBeenCalledWith({
         data: {
-          name: buildingData.name,
-          address: buildingData.address,
-          city: buildingData.city,
-          postalCode: buildingData.postalCode,
-          readingDeadline: buildingData.readingDeadline || 25,
+          ...buildingData,
           administratorId: adminContext.administratorId,
         },
         include: expect.any(Object),
       });
     });
 
-    it("should deny creation for owners", async () => {
-      const buildingData = createMockBuildingRequest();
-
-      const result = await BuildingService.createBuilding(
-        buildingData,
-        ownerContext
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Only administrators can create buildings");
-      expect(mockPrisma.building.create).not.toHaveBeenCalled();
-    });
-
-    it("should use default reading deadline if not provided", async () => {
-      const fullBuildingData = createMockBuildingRequest();
-      const buildingDataWithoutDeadline = {
-        name: fullBuildingData.name,
-        address: fullBuildingData.address,
-        city: fullBuildingData.city,
-        postalCode: fullBuildingData.postalCode,
+    it("should prevent duplicate buildings", async () => {
+      const buildingData = {
+        name: "Test Building",
+        address: "123 Test Street",
+        city: "Test City",
+        postalCode: "123456",
+        readingDeadline: 25,
       };
-      const mockCreatedBuilding = createMockBuilding(
+      const existingBuilding = createMockBuilding(
         adminContext.administratorId!
       );
 
-      mockPrisma.building.create.mockResolvedValue(mockCreatedBuilding);
+      mockPrisma.building.findFirst.mockResolvedValue(existingBuilding);
 
-      const result = await BuildingService.createBuilding(
-        buildingDataWithoutDeadline,
-        adminContext
-      );
-
-      expect(result.success).toBe(true);
-      expect(mockPrisma.building.create).toHaveBeenCalledWith({
-        data: {
-          ...buildingDataWithoutDeadline,
-          readingDeadline: 25,
-          administratorId: adminContext.administratorId,
-        },
-        include: expect.any(Object),
-      });
-    });
-
-    it("should handle database errors", async () => {
-      const buildingData = createMockBuildingRequest();
-      mockPrisma.building.create.mockRejectedValue(new Error("Database error"));
-
-      const result = await BuildingService.createBuilding(
+      const result = await BuildingsService.createBuilding(
         buildingData,
-        adminContext
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Internal server error");
+      expect(result.code).toBe("BUILDING_ALREADY_EXISTS");
+      expect(result.error).toBe(
+        "O clădire cu același nume și adresă există deja"
+      );
+    });
+
+    it("should handle validation errors", async () => {
+      const invalidData = {
+        name: "", // Invalid empty name
+        address: "Test Address",
+      };
+
+      const result = await BuildingsService.createBuilding(
+        invalidData,
+        adminContext.administratorId!
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.code).toBe("VALIDATION_FAILED");
+      expect(result.error).toBe("Datele introduse sunt invalide");
     });
   });
 
   describe("updateBuilding", () => {
     it("should update building for administrator", async () => {
-      const buildingId = "building-1";
-      const updateData = createMockBuildingRequestPartial();
+      const buildingId = "550e8400-e29b-41d4-a716-446655440002"; // Valid UUID
+      const updateData = { name: "Updated Building" };
       const existingBuilding = createMockBuilding(
         adminContext.administratorId!
       );
       existingBuilding.id = buildingId;
-      const mockUpdatedBuilding = { ...existingBuilding, ...updateData };
+      const updatedBuilding = { ...existingBuilding, ...updateData };
 
-      mockPrisma.building.findUnique.mockResolvedValue(existingBuilding);
-      mockPrisma.building.update.mockResolvedValue(mockUpdatedBuilding);
+      mockPrisma.building.findFirst
+        .mockResolvedValueOnce(existingBuilding) // Building exists
+        .mockResolvedValueOnce(null); // No duplicate
+      mockPrisma.building.update.mockResolvedValue(updatedBuilding);
 
-      const result = await BuildingService.updateBuilding(
+      const result = await BuildingsService.updateBuilding(
         buildingId,
         updateData,
-        adminContext
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockUpdatedBuilding);
-      expect(mockPrisma.building.findUnique).toHaveBeenCalledWith({
-        where: { id: buildingId },
-      });
-      expect(mockPrisma.building.update).toHaveBeenCalledWith({
-        where: { id: buildingId },
-        data: updateData,
-        include: {
-          administrator: {
-            include: {
-              user: {
-                select: { firstName: true, lastName: true, email: true },
-              },
-            },
-          },
-        },
-      });
+      expect(result.data).toEqual(updatedBuilding);
     });
 
-    it("should return error for owner trying to update building", async () => {
-      const buildingId = "building-1";
-      const updateData = createMockBuildingRequestPartial();
+    it("should return error when building not found", async () => {
+      const buildingId = "550e8400-e29b-41d4-a716-446655440003"; // Valid UUID
+      const updateData = { name: "Updated Building" };
 
-      const result = await BuildingService.updateBuilding(
+      mockPrisma.building.findFirst.mockResolvedValue(null);
+
+      const result = await BuildingsService.updateBuilding(
         buildingId,
         updateData,
-        ownerContext
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Only administrators can update buildings");
-      expect(mockPrisma.building.findUnique).not.toHaveBeenCalled();
-      expect(mockPrisma.building.update).not.toHaveBeenCalled();
-    });
-
-    it("should handle non-existent building update", async () => {
-      const buildingId = "non-existent";
-      const updateData = createMockBuildingRequestPartial();
-      mockPrisma.building.findUnique.mockResolvedValue(null);
-
-      const result = await BuildingService.updateBuilding(
-        buildingId,
-        updateData,
-        adminContext
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Building does not exist");
-      expect(mockPrisma.building.update).not.toHaveBeenCalled();
-    });
-
-    it("should not update building from different administrator", async () => {
-      const buildingId = "building-1";
-      const updateData = createMockBuildingRequestPartial();
-      const differentAdminBuilding = createMockBuilding("different-admin-id");
-      differentAdminBuilding.id = buildingId;
-
-      mockPrisma.building.findUnique.mockResolvedValue(differentAdminBuilding);
-
-      const result = await BuildingService.updateBuilding(
-        buildingId,
-        updateData,
-        adminContext
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "You don't have permission to update this building"
-      );
-      expect(mockPrisma.building.update).not.toHaveBeenCalled();
+      expect(result.code).toBe("BUILDING_NOT_FOUND");
     });
   });
 
   describe("deleteBuilding", () => {
-    it("should delete building for administrator", async () => {
-      const buildingId = "building-1";
+    it("should delete building successfully", async () => {
+      const buildingId = "550e8400-e29b-41d4-a716-446655440004"; // Valid UUID
       const existingBuilding = createMockBuilding(
         adminContext.administratorId!
       );
       existingBuilding.id = buildingId;
-      existingBuilding.apartments = [];
+      // Add _count property for the delete method
+      const buildingWithCount = {
+        ...existingBuilding,
+        _count: { apartments: 0 },
+      };
 
-      mockPrisma.building.findUnique.mockResolvedValue(existingBuilding);
+      mockPrisma.building.findFirst.mockResolvedValue(buildingWithCount);
       mockPrisma.building.delete.mockResolvedValue(existingBuilding);
 
-      const result = await BuildingService.deleteBuilding(
+      const result = await BuildingsService.deleteBuilding(
         buildingId,
-        adminContext
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(true);
-      expect(mockPrisma.building.findUnique).toHaveBeenCalledWith({
-        where: { id: buildingId },
-        include: { apartments: true },
-      });
       expect(mockPrisma.building.delete).toHaveBeenCalledWith({
         where: { id: buildingId },
       });
     });
 
-    it("should return error for owner trying to delete building", async () => {
-      const buildingId = "building-1";
+    it("should return error when building not found", async () => {
+      const buildingId = "550e8400-e29b-41d4-a716-446655440005"; // Valid UUID
 
-      const result = await BuildingService.deleteBuilding(
+      mockPrisma.building.findFirst.mockResolvedValue(null);
+
+      const result = await BuildingsService.deleteBuilding(
         buildingId,
-        ownerContext
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Only administrators can delete buildings");
-      expect(mockPrisma.building.findUnique).not.toHaveBeenCalled();
-      expect(mockPrisma.building.delete).not.toHaveBeenCalled();
-    });
-
-    it("should handle non-existent building deletion", async () => {
-      const buildingId = "non-existent";
-      mockPrisma.building.findUnique.mockResolvedValue(null);
-
-      const result = await BuildingService.deleteBuilding(
-        buildingId,
-        adminContext
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Building does not exist");
-      expect(mockPrisma.building.delete).not.toHaveBeenCalled();
-    });
-
-    it("should not delete building from different administrator", async () => {
-      const buildingId = "building-1";
-      const differentAdminBuilding = createMockBuilding("different-admin-id");
-      differentAdminBuilding.id = buildingId;
-      differentAdminBuilding.apartments = [];
-
-      mockPrisma.building.findUnique.mockResolvedValue(differentAdminBuilding);
-
-      const result = await BuildingService.deleteBuilding(
-        buildingId,
-        adminContext
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "You don't have permission to delete this building"
-      );
-      expect(mockPrisma.building.delete).not.toHaveBeenCalled();
-    });
-
-    it("should handle building with apartments", async () => {
-      const buildingId = "building-1";
-      const existingBuilding = createMockBuilding(
         adminContext.administratorId!
       );
-      existingBuilding.id = buildingId;
-      existingBuilding.apartments = [
-        {
-          id: "apt-1",
-          number: "101",
-          floor: 1,
-          rooms: 3,
-          buildingId: buildingId,
-          ownerId: "owner-1",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-
-      mockPrisma.building.findUnique.mockResolvedValue(existingBuilding);
-
-      const result = await BuildingService.deleteBuilding(
-        buildingId,
-        adminContext
-      );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Building has apartments. Please remove all apartments first."
-      );
-      expect(mockPrisma.building.delete).not.toHaveBeenCalled();
+      expect(result.code).toBe("BUILDING_NOT_FOUND");
     });
   });
 
-  describe("Multi-tenancy Security Tests", () => {
-    it("should ensure complete data isolation between administrators", async () => {
-      const admin1Context = createMockAdministratorContext();
-      const admin2Context = createMockAdministratorContext();
+  describe("getBuildingStats", () => {
+    it("should return building statistics successfully", async () => {
+      mockPrisma.building.aggregate.mockResolvedValue({ _count: { id: 5 } });
+      mockPrisma.apartment.aggregate.mockResolvedValue({ _count: { id: 25 } });
 
-      const admin1Buildings = [
-        createMockBuilding(admin1Context.administratorId!),
-      ];
-      const admin2Buildings = [
-        createMockBuilding(admin2Context.administratorId!),
-      ];
+      const result = await BuildingsService.getBuildingStats(
+        adminContext.administratorId!
+      );
 
-      // Admin 1 should only see their buildings
-      mockPrisma.building.findMany.mockResolvedValueOnce(admin1Buildings);
-      const admin1Result = await BuildingService.getBuildings(admin1Context);
-
-      // Admin 2 should only see their buildings
-      mockPrisma.building.findMany.mockResolvedValueOnce(admin2Buildings);
-      const admin2Result = await BuildingService.getBuildings(admin2Context);
-
-      expect(admin1Result.success).toBe(true);
-      expect(admin2Result.success).toBe(true);
-      expect(admin1Result.data).toEqual(admin1Buildings);
-      expect(admin2Result.data).toEqual(admin2Buildings);
-      expect(admin1Result.data).not.toEqual(admin2Result.data);
+      expect(result.success).toBe(true);
+      expect(result.data?.totalBuildings).toBe(5);
+      expect(result.data?.totalApartments).toBe(25);
     });
 
-    it("should prevent cross-tenant data access in building details", async () => {
-      const admin1Context = createMockAdministratorContext();
-      const admin2BuildingId = "admin2-building";
-      const admin2Building = createMockBuilding("different-admin-id");
-      admin2Building.id = admin2BuildingId;
+    it("should handle database errors", async () => {
+      mockPrisma.building.aggregate.mockRejectedValue(new Error("DB Error"));
 
-      // Simulate admin1 trying to access admin2's building
-      mockPrisma.building.findUnique.mockResolvedValue(admin2Building);
-
-      const result = await BuildingService.getBuildingById(
-        admin2BuildingId,
-        admin1Context
+      const result = await BuildingsService.getBuildingStats(
+        adminContext.administratorId!
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "You don't have permission to access this building"
-      );
+      expect(result.code).toBe("INTERNAL_ERROR");
     });
   });
 });

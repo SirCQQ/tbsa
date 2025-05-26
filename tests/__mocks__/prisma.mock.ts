@@ -3,49 +3,67 @@
 export type MockPrismaBuilding = {
   findMany: jest.MockedFunction<any>;
   findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
   create: jest.MockedFunction<any>;
   update: jest.MockedFunction<any>;
   delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
 };
 
 export type MockPrismaApartment = {
   findMany: jest.MockedFunction<any>;
   findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
   create: jest.MockedFunction<any>;
   update: jest.MockedFunction<any>;
   delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
 };
 
 export type MockPrismaWaterReading = {
   findMany: jest.MockedFunction<any>;
   findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
   create: jest.MockedFunction<any>;
   update: jest.MockedFunction<any>;
   delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
 };
 
 export type MockPrismaUser = {
   findMany: jest.MockedFunction<any>;
   findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
   create: jest.MockedFunction<any>;
   update: jest.MockedFunction<any>;
   delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
 };
 
 export type MockPrismaAdministrator = {
   findMany: jest.MockedFunction<any>;
   findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
   create: jest.MockedFunction<any>;
   update: jest.MockedFunction<any>;
   delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
 };
 
 export type MockPrismaOwner = {
   findMany: jest.MockedFunction<any>;
   findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
   create: jest.MockedFunction<any>;
   update: jest.MockedFunction<any>;
   delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
 };
 
 export type MockPrisma = {
@@ -65,44 +83,62 @@ export const createMockPrisma = (): MockPrisma => ({
   building: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
   },
   apartment: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
   },
   waterReading: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
   },
   user: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
   },
   administrator: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
   },
   owner: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
   },
   $transaction: jest.fn(),
   $connect: jest.fn(),

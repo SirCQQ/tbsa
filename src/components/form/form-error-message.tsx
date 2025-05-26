@@ -12,7 +12,7 @@ interface FormErrorMessageProps extends React.ComponentProps<"p"> {
   message?: string;
 
   // Custom render function
-  render?: (props: { message: string }) => React.ReactNode;
+  render?: (props: { children: React.ReactNode }) => React.ReactNode;
 }
 
 const FormErrorMessage: React.FC<FormErrorMessageProps> = ({
@@ -24,13 +24,13 @@ const FormErrorMessage: React.FC<FormErrorMessageProps> = ({
   ...pProps
 }) => {
   // Default render function
-  const defaultRender = ({ message }: { message: string }) => (
+  const defaultRender = ({ children }: { children: React.ReactNode }) => (
     <p
       className={cn("text-sm text-red-600 dark:text-red-400", className)}
       role="alert"
       {...pProps}
     >
-      {message}
+      {children}
     </p>
   );
 
@@ -38,18 +38,23 @@ const FormErrorMessage: React.FC<FormErrorMessageProps> = ({
 
   // Check if we have a valid custom message (not empty or whitespace only)
   if (message && message.trim().length > 0) {
-    return renderFunction({ message });
+    return renderFunction({ children: message });
   }
 
   // Check if we have valid form errors and a field name
   if (name && errors && typeof errors === "object") {
-    // Check if the specific field has an error
-    const fieldError = errors[name];
-    if (fieldError && fieldError.message) {
-      return (
-        <ErrorMessage errors={errors} name={name} render={renderFunction} />
-      );
-    }
+    return (
+      <ErrorMessage
+        name={name}
+        as={
+          <p
+            role="alert"
+            className={cn("text-sm text-red-600 dark:text-red-400", className)}
+            {...pProps}
+          />
+        }
+      />
+    );
   }
 
   // No valid error to display

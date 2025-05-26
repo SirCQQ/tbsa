@@ -85,18 +85,18 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
               ? `${inputId}-helper`
               : undefined
           }
+          aria-required={required}
           {...props}
         />
 
         {/* Error message - prioritize custom error over form errors */}
-        {hasErrorState && (
-          <FormErrorMessage
-            id={`${inputId}-error`}
-            message={error}
-            name={!error ? name : undefined}
-            errors={!error ? errors : undefined}
-          />
-        )}
+
+        <FormErrorMessage
+          id={`${inputId}-error`}
+          message={error}
+          name={name}
+          errors={!error ? errors : undefined}
+        />
 
         {helperText && !hasErrorState && (
           <p
