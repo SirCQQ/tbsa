@@ -41,6 +41,43 @@ export enum AuthErrorKey {
   INTERNAL_ERROR = "INTERNAL_ERROR",
 }
 
+// Service error codes
+export enum ServiceErrorCode {
+  NOT_FOUND = "NOT_FOUND",
+  DUPLICATE_ENTRY = "DUPLICATE_ENTRY",
+  CONSTRAINT_VIOLATION = "CONSTRAINT_VIOLATION",
+  VALIDATION_FAILED = "VALIDATION_FAILED",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+}
+
+// Helper functions for creating service responses
+export function createServiceSuccess<T>(
+  data: T,
+  message = "Success"
+): ApiResponse<T> {
+  return {
+    success: true,
+    message,
+    data,
+  };
+}
+
+export function createServiceError<T = never>(
+  code: keyof typeof ServiceErrorCode,
+  message: string,
+  details?: unknown[]
+): ApiResponse<T> {
+  return {
+    success: false,
+    message,
+    error: message,
+    code: ServiceErrorCode[code],
+    details,
+  };
+}
+
 export type PaginationParams = {
   page?: number;
   limit?: number;

@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
+import { AuthService } from "@/services/auth.service";
+import { createAuthError } from "@/lib/auth-errors";
+import { AuthErrorKey } from "@/types/api";
 
 export async function POST() {
   try {
-    // Create response
-    const response = NextResponse.json(
-      { message: "Logout successful" },
-      { status: 200 }
-    );
+    // Use service for logout logic
+    const result = await AuthService.logout();
+
+    if (!result.success) {
+      return createAuthError(AuthErrorKey.INTERNAL_ERROR);
+    }
+
+    // Create response with success message
+    const response = NextResponse.json(result.data, { status: 200 });
 
     // Clear the auth cookie
     response.cookies.set("auth-token", "", {
@@ -27,10 +34,7 @@ export async function POST() {
     return response;
   } catch (error) {
     console.error("Logout error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return createAuthError(AuthErrorKey.INTERNAL_ERROR);
   }
 }
 

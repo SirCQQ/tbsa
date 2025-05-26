@@ -370,15 +370,15 @@ export class AuthService {
   }
 
   /**
-   * Get user by JWT token
+   * Get current user from JWT token with full profile data
    */
-  static async getUserFromToken(token: string): Promise<ApiResponse<SafeUser>> {
+  static async getCurrentUser(token: string): Promise<ApiResponse<SafeUser>> {
     try {
       // Verify JWT token
       const { payload } = await jwtVerify(token, secret);
       const userId = payload.userId as string;
 
-      // Fetch fresh user data
+      // Fetch fresh user data with all relations
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
@@ -402,11 +402,14 @@ export class AuthService {
       });
 
       if (!user) {
-        return createServiceError(AuthErrorKey.USER_NOT_FOUND);
+        return createServiceError(
+          AuthErrorKey.USER_NOT_FOUND,
+          "User not found"
+        );
       }
 
-      // Prepare safe user data
-      const safeUser: SafeUser = {
+      // Prepare user data for response (exclude password)
+      const userData: SafeUser = {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -420,12 +423,15 @@ export class AuthService {
 
       return {
         success: true,
+        data: userData,
         message: "User retrieved successfully",
-        data: safeUser,
       };
     } catch (error) {
-      console.error("Token verification error:", error);
-      return createServiceError(AuthErrorKey.INVALID_TOKEN);
+      console.error("Error getting current user:", error);
+      return createServiceError(
+        AuthErrorKey.INVALID_TOKEN,
+        "Invalid or expired token"
+      );
     }
   }
 
@@ -450,6 +456,25 @@ export class AuthService {
     } catch (error) {
       console.error("Token verification error:", error);
       return null;
+    }
+  }
+
+  /**
+   * Logout user - clear authentication cookies
+   */
+  static async logout(): Promise<ApiResponse<{ message: string }>> {
+    try {
+      return {
+        success: true,
+        data: { message: "Logout successful" },
+        message: "User logged out successfully",
+      };
+    } catch (error) {
+      console.error("Error during logout:", error);
+      return createServiceError(
+        AuthErrorKey.INTERNAL_ERROR,
+        "Internal server error during logout"
+      );
     }
   }
 }
