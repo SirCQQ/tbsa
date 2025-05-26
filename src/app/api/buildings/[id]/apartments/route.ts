@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { TenantService } from "@/services/tenant.service";
 import { ApartmentService } from "@/services/apartment.service";
-import { getTenantContext } from "@/lib/tenant";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id: buildingId } = await params;
 
     // Get tenant context from headers
-    const tenantContext = getTenantContext(request);
+    const tenantContext = TenantService.getTenantContext(request);
 
     // Get apartments for building using service
     const result = await ApartmentService.getApartmentsByBuilding(

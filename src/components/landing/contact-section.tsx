@@ -7,10 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Clock, Send, MessageSquare } from "lucide-react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  contactFormValidation,
-  type ContactFormValidation,
-} from "@/types/validations";
+import { ContactFormSchema, type ContactFormData } from "@/schemas/contact";
 import { useState } from "react";
 import { ControlledInput, ControlledTextarea } from "../form";
 
@@ -20,8 +17,8 @@ export function ContactSection() {
     "idle" | "success" | "error"
   >("idle");
 
-  const methods = useForm<ContactFormValidation>({
-    resolver: zodResolver(contactFormValidation),
+  const methods = useForm<ContactFormData>({
+    resolver: zodResolver(ContactFormSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -34,7 +31,7 @@ export function ContactSection() {
 
   const { handleSubmit, reset } = methods;
 
-  const onSubmit = async (data: ContactFormValidation) => {
+  const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     setSubmitStatus("idle");
 

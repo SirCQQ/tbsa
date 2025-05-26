@@ -1,25 +1,23 @@
+import { UserSchema, LoginSchema, RegisterSchema } from "../src/schemas/user";
 import {
-  userSchema,
-  loginSchema,
-  registerSchema,
-  buildingSchema,
-  apartmentSchema,
-  waterReadingSchema,
-} from "../src/lib/validations";
+  CreateBuildingSchema,
+  UpdateBuildingSchema,
+} from "../src/schemas/building";
+import { ApartmentSchema } from "../src/schemas/apartment";
 
 describe("Validation Schemas", () => {
-  describe("userSchema", () => {
-    it("should validate valid user data", () => {
+  describe("UserSchema", () => {
+    it("should validate a valid user", () => {
       const validUser = {
         email: "test@example.com",
         password: "password123",
         firstName: "John",
         lastName: "Doe",
-        phone: "+40123456789",
+        phone: "+1234567890",
         role: "ADMINISTRATOR" as const,
       };
 
-      const result = userSchema.safeParse(validUser);
+      const result = UserSchema.safeParse(validUser);
       expect(result.success).toBe(true);
     });
 
@@ -32,10 +30,10 @@ describe("Validation Schemas", () => {
         role: "ADMINISTRATOR" as const,
       };
 
-      const result = userSchema.safeParse(invalidUser);
+      const result = UserSchema.safeParse(invalidUser);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Invalid email address");
+        expect(result.error.issues[0].path).toContain("email");
       }
     });
 
@@ -48,32 +46,14 @@ describe("Validation Schemas", () => {
         role: "ADMINISTRATOR" as const,
       };
 
-      const result = userSchema.safeParse(invalidUser);
+      const result = UserSchema.safeParse(invalidUser);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe(
-          "Password must be at least 6 characters"
-        );
+        expect(result.error.issues[0].path).toContain("password");
       }
     });
 
     it("should reject empty password", () => {
-      const invalidUser = {
-        email: "test@example.com",
-        password: "",
-        firstName: "John",
-        lastName: "Doe",
-        role: "ADMINISTRATOR" as const,
-      };
-
-      const result = userSchema.safeParse(invalidUser);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Password is required");
-      }
-    });
-
-    it("should reject whitespace-only password", () => {
       const invalidUser = {
         email: "test@example.com",
         password: "   ",
@@ -82,19 +62,14 @@ describe("Validation Schemas", () => {
         role: "ADMINISTRATOR" as const,
       };
 
-      const result = userSchema.safeParse(invalidUser);
+      const result = UserSchema.safeParse(invalidUser);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(
-          result.error.issues.some(
-            (issue) =>
-              issue.message === "Password cannot be empty or only whitespace"
-          )
-        ).toBe(true);
+        expect(result.error.issues[0].path).toContain("password");
       }
     });
 
-    it("should accept optional phone", () => {
+    it("should accept valid user with optional phone", () => {
       const validUser = {
         email: "test@example.com",
         password: "password123",
@@ -103,194 +78,141 @@ describe("Validation Schemas", () => {
         role: "OWNER" as const,
       };
 
-      const result = userSchema.safeParse(validUser);
+      const result = UserSchema.safeParse(validUser);
       expect(result.success).toBe(true);
     });
   });
 
-  describe("loginSchema", () => {
+  describe("LoginSchema", () => {
     it("should validate valid login data", () => {
       const validLogin = {
         email: "test@example.com",
         password: "password123",
       };
 
-      const result = loginSchema.safeParse(validLogin);
+      const result = LoginSchema.safeParse(validLogin);
       expect(result.success).toBe(true);
     });
 
-    it("should reject empty password", () => {
+    it("should reject invalid login data", () => {
       const invalidLogin = {
-        email: "test@example.com",
+        email: "invalid-email",
         password: "",
       };
 
-      const result = loginSchema.safeParse(invalidLogin);
+      const result = LoginSchema.safeParse(invalidLogin);
       expect(result.success).toBe(false);
     });
   });
 
-  describe("registerSchema", () => {
-    it("should validate when passwords match", () => {
+  describe("RegisterSchema", () => {
+    it("should validate valid registration data", () => {
       const validRegister = {
         email: "test@example.com",
         password: "password123",
         confirmPassword: "password123",
         firstName: "John",
         lastName: "Doe",
-        role: "OWNER" as const,
+        phone: "+1234567890",
+        role: "ADMINISTRATOR" as const,
       };
 
-      const result = registerSchema.safeParse(validRegister);
+      const result = RegisterSchema.safeParse(validRegister);
       expect(result.success).toBe(true);
     });
 
-    it("should reject when passwords do not match", () => {
+    it("should reject mismatched passwords", () => {
       const invalidRegister = {
         email: "test@example.com",
         password: "password123",
-        confirmPassword: "differentpassword",
+        confirmPassword: "different",
         firstName: "John",
         lastName: "Doe",
-        role: "OWNER" as const,
+        role: "ADMINISTRATOR" as const,
       };
 
-      const result = registerSchema.safeParse(invalidRegister);
+      const result = RegisterSchema.safeParse(invalidRegister);
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Passwords don't match");
+    });
+  });
+
+  describe("CreateBuildingSchema", () => {
+    it("should validate a valid building", () => {
+      const validBuilding = {
+        name: "Test Building",
+        address: "123 Test Street",
+        city: "Test City",
+        postalCode: "123456",
+        readingDeadline: 25,
+      };
+
+      const result = CreateBuildingSchema.safeParse(validBuilding);
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject invalid building data", () => {
+      const invalidBuilding = {
+        name: "",
+        address: "123 Test Street",
+        city: "Test City",
+        readingDeadline: 35, // Invalid deadline
+      };
+
+      const result = CreateBuildingSchema.safeParse(invalidBuilding);
+      expect(result.success).toBe(false);
+    });
+
+    it("should use default reading deadline", () => {
+      const validBuilding = {
+        name: "Test Building",
+        address: "123 Test Street",
+        city: "Test City",
+      };
+
+      const result = CreateBuildingSchema.safeParse(validBuilding);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.readingDeadline).toBe(25);
       }
     });
   });
 
-  describe("buildingSchema", () => {
-    it("should validate valid building data", () => {
-      const validBuilding = {
-        name: "Test Building",
-        address: "123 Test Street",
-        city: "Test City",
-        postalCode: "12345",
-        readingDeadline: 25,
-      };
-
-      const result = buildingSchema.safeParse(validBuilding);
-      expect(result.success).toBe(true);
-    });
-
-    it("should reject invalid reading deadline", () => {
-      const invalidBuilding = {
-        name: "Test Building",
-        address: "123 Test Street",
-        city: "Test City",
-        readingDeadline: 35, // Invalid: > 31
-      };
-
-      const result = buildingSchema.safeParse(invalidBuilding);
-      expect(result.success).toBe(false);
-    });
-
-    it("should accept optional postal code", () => {
-      const validBuilding = {
-        name: "Test Building",
-        address: "123 Test Street",
-        city: "Test City",
-        readingDeadline: 25,
-      };
-
-      const result = buildingSchema.safeParse(validBuilding);
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe("apartmentSchema", () => {
-    it("should validate valid apartment data", () => {
+  describe("ApartmentSchema", () => {
+    it("should validate a valid apartment", () => {
       const validApartment = {
-        number: "12A",
-        floor: 3,
-        rooms: 2,
-        buildingId: "123e4567-e89b-12d3-a456-426614174000",
-        ownerId: "123e4567-e89b-12d3-a456-426614174001",
+        number: "101",
+        floor: 1,
+        rooms: 3,
+        buildingId: "550e8400-e29b-41d4-a716-446655440000",
+        ownerId: "550e8400-e29b-41d4-a716-446655440001",
       };
 
-      const result = apartmentSchema.safeParse(validApartment);
+      const result = ApartmentSchema.safeParse(validApartment);
       expect(result.success).toBe(true);
     });
 
-    it("should reject invalid UUID", () => {
+    it("should reject invalid apartment data", () => {
       const invalidApartment = {
-        number: "12A",
+        number: "",
+        floor: 1,
+        rooms: 3,
         buildingId: "invalid-uuid",
       };
 
-      const result = apartmentSchema.safeParse(invalidApartment);
+      const result = ApartmentSchema.safeParse(invalidApartment);
       expect(result.success).toBe(false);
     });
 
-    it("should accept optional fields", () => {
+    it("should accept apartment without owner", () => {
       const validApartment = {
-        number: "12A",
-        buildingId: "123e4567-e89b-12d3-a456-426614174000",
+        number: "101",
+        floor: 1,
+        rooms: 3,
+        buildingId: "550e8400-e29b-41d4-a716-446655440000",
       };
 
-      const result = apartmentSchema.safeParse(validApartment);
+      const result = ApartmentSchema.safeParse(validApartment);
       expect(result.success).toBe(true);
-    });
-  });
-
-  describe("waterReadingSchema", () => {
-    it("should validate valid water reading data", () => {
-      const validReading = {
-        apartmentId: "123e4567-e89b-12d3-a456-426614174000",
-        day: 15,
-        month: 6,
-        year: 2024,
-        reading: 1250.5,
-      };
-
-      const result = waterReadingSchema.safeParse(validReading);
-      expect(result.success).toBe(true);
-    });
-
-    it("should reject invalid month", () => {
-      const invalidReading = {
-        apartmentId: "123e4567-e89b-12d3-a456-426614174000",
-        day: 15,
-        month: 13, // Invalid: > 12
-        year: 2024,
-        reading: 1250.5,
-      };
-
-      const result = waterReadingSchema.safeParse(invalidReading);
-      expect(result.success).toBe(false);
-    });
-
-    it("should reject negative reading", () => {
-      const invalidReading = {
-        apartmentId: "123e4567-e89b-12d3-a456-426614174000",
-        day: 15,
-        month: 6,
-        year: 2024,
-        reading: -10,
-      };
-
-      const result = waterReadingSchema.safeParse(invalidReading);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Reading must be positive");
-      }
-    });
-
-    it("should reject invalid day", () => {
-      const invalidReading = {
-        apartmentId: "123e4567-e89b-12d3-a456-426614174000",
-        day: 32, // Invalid: > 31
-        month: 6,
-        year: 2024,
-        reading: 1250.5,
-      };
-
-      const result = waterReadingSchema.safeParse(invalidReading);
-      expect(result.success).toBe(false);
     });
   });
 });

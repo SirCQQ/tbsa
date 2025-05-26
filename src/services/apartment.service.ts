@@ -1,16 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import {
-  ApartmentInput,
-  UpdateApartmentInput,
-  ApartmentQuery,
-} from "@/schemas/apartment";
+import { ApartmentInput, ApartmentQuery } from "@/schemas/apartment";
 import {
   ApiResponse,
   createServiceError,
   createServiceSuccess,
 } from "@/types/api";
 import { Apartment, Building, User, Prisma } from "@prisma/client/wasm";
-import { getTenantContext } from "@/lib/tenant";
 
 export type ApartmentWithRelations = Apartment & {
   building: Pick<Building, "id" | "name" | "address">;

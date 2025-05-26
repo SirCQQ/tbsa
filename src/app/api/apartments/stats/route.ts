@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApartmentService } from "@/services/apartment.service";
-import { getTenantContext } from "@/lib/tenant";
+import { TenantService } from "@/services/tenant.service";
 
 export async function GET(request: NextRequest) {
   try {
     // Get tenant context from headers
-    const tenantContext = getTenantContext(request);
+    const tenantContext = TenantService.getTenantContext(request);
 
     // Get apartment statistics using service
     const result = await ApartmentService.getApartmentStats(

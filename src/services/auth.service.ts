@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
-import { hashPassword, verifyPassword } from "../lib/auth";
+import { PasswordService } from "./password.service";
 import { createServiceError } from "../lib/auth-errors";
 import { prisma } from "../lib/prisma";
-import { loginSchema, registerSchema } from "../lib/validations";
+import { LoginSchema, RegisterSchema } from "@/schemas/user";
 import { ApiResponse, AuthErrorKey } from "../types/api";
 import {
   JWTPayload,
@@ -20,28 +20,28 @@ const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-key"
 );
 
-export interface LoginCredentials {
+export type LoginCredentials = {
   email: string;
   password: string;
-}
+};
 
-export interface RegisterData {
+export type RegisterData = {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
   phone?: string;
-}
+};
 
-export interface AuthResponse {
+export type AuthResponse = {
   user: User;
   message?: string;
-}
+};
 
-export interface SessionResponse {
+export type SessionResponse = {
   user: SafeUser | null;
   isAuthenticated: boolean;
-}
+};
 
 export type ChangePasswordData = {
   currentPassword: string;
@@ -80,7 +80,7 @@ export const authService = {
         user: response.data,
         isAuthenticated: true,
       };
-    } catch (error) {
+    } catch (_error) {
       // If /me fails, user is not authenticated
       return {
         user: null,
@@ -142,7 +142,7 @@ export class AuthService {
   static async register(data: RegisterRequest): Promise<ApiResponse<SafeUser>> {
     try {
       // Validate input data
-      const validationResult = registerSchema.safeParse(data);
+      const validationResult = RegisterSchema.safeParse(data);
       if (!validationResult.success) {
         return createServiceError(
           AuthErrorKey.VALIDATION_FAILED,
@@ -167,7 +167,7 @@ export class AuthService {
       }
 
       // Hash password
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
       // Create user
       const user = await prisma.user.create({
@@ -234,6 +234,7 @@ export class AuthService {
       };
     } catch (error) {
       console.error("Registration error:", error);
+
       return createServiceError(AuthErrorKey.INTERNAL_ERROR);
     }
   }
@@ -249,7 +250,7 @@ export class AuthService {
   > {
     try {
       // Validate input data
-      const validationResult = loginSchema.safeParse(data);
+      const validationResult = LoginSchema.safeParse(data);
       if (!validationResult.success) {
         return createServiceError(
           AuthErrorKey.VALIDATION_FAILED,
@@ -288,7 +289,10 @@ export class AuthService {
       }
 
       // Verify password
-      const isPasswordValid = await verifyPassword(password, user.password);
+      const isPasswordValid = await PasswordService.verifyPassword(
+        password,
+        user.password
+      );
       if (!isPasswordValid) {
         return createServiceError(AuthErrorKey.INVALID_CREDENTIALS);
       }
@@ -444,37 +448,5 @@ export class AuthService {
       .setIssuedAt()
       .setExpirationTime("24h")
       .sign(secret);
-  }
-
-  /**
-   * Verify JWT token (legacy method for backward compatibility)
-   */
-  static async verifyToken(token: string): Promise<JWTPayload | null> {
-    try {
-      const { payload } = await jwtVerify(token, secret);
-      return payload as JWTPayload;
-    } catch (error) {
-      console.error("Token verification error:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Logout user - clear authentication cookies
-   */
-  static async logout(): Promise<ApiResponse<{ message: string }>> {
-    try {
-      return {
-        success: true,
-        data: { message: "Logout successful" },
-        message: "User logged out successfully",
-      };
-    } catch (error) {
-      console.error("Error during logout:", error);
-      return createServiceError(
-        AuthErrorKey.INTERNAL_ERROR,
-        "Internal server error during logout"
-      );
-    }
   }
 }

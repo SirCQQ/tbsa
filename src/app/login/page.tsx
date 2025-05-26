@@ -15,10 +15,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { ControlledInput } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
-import { loginSchema } from "@/lib/validations";
 import { useAuth } from "@/contexts/auth-context";
 import type { LoginRequest } from "@/types/auth";
 import { AlertCircle, Eye, EyeOff, Building2 } from "lucide-react";
+import { LoginSchema } from "@/schemas/user";
 
 type LoginFormData = LoginRequest;
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
   const { login, isLoading, error, clearError } = useAuth();
 
   const methods = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(LoginSchema),
     defaultValues: {
       email: "",
       password: "",

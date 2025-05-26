@@ -8,6 +8,8 @@ import {
   StatsGrid,
   RecentActivity,
   QuickActions,
+  ConsumptionChart,
+  SidebarQuickActions,
 } from "@/components/dashboard";
 
 export default function DashboardPage() {
@@ -48,10 +50,8 @@ export default function DashboardPage() {
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
-            {/* Placeholder for future sidebar components */}
-            <div className="text-center text-muted-foreground py-8">
-              Sidebar components coming soon...
-            </div>
+            <ConsumptionChart user={user} />
+            <SidebarQuickActions user={user} />
           </div>
         </div>
       </div>

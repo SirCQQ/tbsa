@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { ControlledInput } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
-import { registerSchema } from "@/lib/validations";
+import { useRegister } from "@/hooks/use-auth";
+import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { RegisterRequest } from "@/types/auth";
 import {
   AlertCircle,
@@ -26,19 +27,21 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
+import { RegisterSchema } from "@/schemas/user";
 
 type RegisterFormData = RegisterRequest;
 
 export default function RegisterPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
+  const registerMutation = useRegister();
+  const { showRegistrationSuccess, showAuthError } = useAuthFeedback();
+
   const methods = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(RegisterSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -56,24 +59,11 @@ export default function RegisterPage() {
   const watchedRole = watch("role");
 
   const onSubmit = async (data: RegisterFormData) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setSubmitSuccess(false);
-
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const result = await registerMutation.mutateAsync(data);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setSubmitError(result.error || "Registration failed");
-        return;
+      if (result.user) {
+        showRegistrationSuccess(result.user);
       }
 
       setSubmitSuccess(true);
@@ -82,10 +72,11 @@ export default function RegisterPage() {
         router.push("/login");
       }, 3000);
     } catch (error) {
+      // Show error using the auth feedback hook
+      const errorMessage =
+        error instanceof Error ? error.message : "Eroare la înregistrare";
+      showAuthError(errorMessage, "Eroare la înregistrare");
       console.error("Registration error:", error);
-      setSubmitError("Network error. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -198,14 +189,14 @@ export default function RegisterPage() {
                     label="Nume"
                     placeholder="Ionescu"
                     required
-                    disabled={isSubmitting}
+                    disabled={registerMutation.isPending}
                   />
                   <ControlledInput
                     name="lastName"
                     label="Prenume"
                     placeholder="Ion"
                     required
-                    disabled={isSubmitting}
+                    disabled={registerMutation.isPending}
                   />
                 </div>
 
@@ -216,7 +207,7 @@ export default function RegisterPage() {
                   label="Email"
                   placeholder="exemplu@email.com"
                   required
-                  disabled={isSubmitting}
+                  disabled={registerMutation.isPending}
                 />
 
                 {/* Phone Field */}
@@ -225,7 +216,7 @@ export default function RegisterPage() {
                   type="tel"
                   label="Telefon (opțional)"
                   placeholder="+40 123 456 789"
-                  disabled={isSubmitting}
+                  disabled={registerMutation.isPending}
                 />
 
                 {/* Password Field */}
@@ -236,13 +227,13 @@ export default function RegisterPage() {
                     label="Parolă"
                     placeholder="Minimum 6 caractere"
                     required
-                    disabled={isSubmitting}
+                    disabled={registerMutation.isPending}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    disabled={isSubmitting}
+                    disabled={registerMutation.isPending}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -260,13 +251,13 @@ export default function RegisterPage() {
                     label="Confirmă parola"
                     placeholder="Rescrie parola"
                     required
-                    disabled={isSubmitting}
+                    disabled={registerMutation.isPending}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    disabled={isSubmitting}
+                    disabled={registerMutation.isPending}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -277,11 +268,11 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Error Message */}
-                {submitError && (
+                {registerMutation.error && (
                   <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                     <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
                     <p className="text-sm text-red-600 dark:text-red-400">
-                      {submitError}
+                      {registerMutation.error.message}
                     </p>
                   </div>
                 )}
@@ -290,14 +281,16 @@ export default function RegisterPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isSubmitting}
+                  disabled={registerMutation.isPending}
                 >
-                  {isSubmitting ? "Se înregistrează..." : "Creează cont"}
+                  {registerMutation.isPending
+                    ? "Se înregistrează..."
+                    : "Creează cont"}
                 </Button>
 
                 {/* Terms and Privacy */}
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  Prin crearea unui cont, accepți{" "}
+                <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+                  Prin crearea contului, accepți{" "}
                   <Link href="/terms" className="text-blue-600 hover:underline">
                     Termenii și Condițiile
                   </Link>{" "}
@@ -309,7 +302,7 @@ export default function RegisterPage() {
                     Politica de Confidențialitate
                   </Link>
                   .
-                </p>
+                </div>
               </form>
             </FormProvider>
           </CardContent>

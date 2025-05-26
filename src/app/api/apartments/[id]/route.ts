@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApartmentService } from "@/services/apartment.service";
 import { ApartmentSchema } from "@/schemas/apartment";
-import { getTenantContext } from "@/lib/tenant";
+import { TenantService } from "@/services/tenant.service";
 import { ZodError } from "zod";
 
 type RouteParams = {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Get tenant context from headers
-    const tenantContext = getTenantContext(request);
+    const tenantContext = TenantService.getTenantContext(request);
 
     // Get apartment using service
     const result = await ApartmentService.getApartmentById(
@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Get tenant context from headers
-    const tenantContext = getTenantContext(request);
+    const tenantContext = TenantService.getTenantContext(request);
 
     // Only administrators can update apartments
     if (tenantContext?.role !== "ADMINISTRATOR") {
@@ -105,7 +105,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Get tenant context from headers
-    const tenantContext = getTenantContext(request);
+    const tenantContext = TenantService.getTenantContext(request);
 
     // Only administrators can delete apartments
     if (tenantContext?.role !== "ADMINISTRATOR") {

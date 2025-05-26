@@ -17,7 +17,6 @@ const secret = new TextEncoder().encode(
 const protectedRoutes = {
   "/api/buildings": ["ADMINISTRATOR"] as const,
   "/api/apartments": ["ADMINISTRATOR", "OWNER"] as const,
-  "/api/water-readings": ["ADMINISTRATOR", "OWNER"] as const,
   "/dashboard": ["ADMINISTRATOR", "OWNER"] as const,
   "/admin": ["ADMINISTRATOR"] as const,
 } as const;

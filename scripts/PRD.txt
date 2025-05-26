@@ -200,10 +200,10 @@ Aplicația rezolvă problema gestionării manuale și ineficiente a citirilor de
 - **Apartments endpoints** trebuie implementate înaintea Water Readings
 - **Water Readings endpoints** cu logică de business pentru calcule
 
-## User Interfaces (Phases 3-4)
+## User types (Phases 3-4)
 - **Admin interface** poate fi dezvoltată în paralel cu Owner interface
 - **Dashboard-urile** trebuie implementate înaintea features specifice
-- **CRUD interfaces** depind de API endpoints corespunzătoare
+- **CRUD Types** depind de API endpoints corespunzătoare
 
 ## Advanced Features (Phase 5)
 - **Notification system** depinde de toate interfețele existente

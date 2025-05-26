@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Mock implementation of PrismaClient for testing
 
 export class PrismaClient {

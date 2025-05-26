@@ -1,10 +1,11 @@
-import { hashPassword, verifyPassword } from "@/lib/auth";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { PasswordService } from "@/services/password.service";
 
 describe("Auth Utils", () => {
-  describe("hashPassword", () => {
+  describe("PasswordService.hashPassword", () => {
     it("should hash a password successfully", async () => {
       const password = "testpassword123";
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
       expect(hashedPassword).toBeDefined();
       expect(hashedPassword).not.toBe(password);
@@ -14,8 +15,8 @@ describe("Auth Utils", () => {
 
     it("should generate different hashes for the same password", async () => {
       const password = "samepassword";
-      const hash1 = await hashPassword(password);
-      const hash2 = await hashPassword(password);
+      const hash1 = await PasswordService.hashPassword(password);
+      const hash2 = await PasswordService.hashPassword(password);
 
       expect(hash1).not.toBe(hash2); // Should be different due to salt
     });
@@ -24,7 +25,7 @@ describe("Auth Utils", () => {
       const password = "";
 
       try {
-        await hashPassword(password);
+        await PasswordService.hashPassword(password);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
@@ -35,7 +36,7 @@ describe("Auth Utils", () => {
       const password = "   ";
 
       try {
-        await hashPassword(password);
+        await PasswordService.hashPassword(password);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
@@ -44,14 +45,14 @@ describe("Auth Utils", () => {
 
     it("should throw error for null/undefined password", async () => {
       try {
-        await hashPassword(null as any);
+        await PasswordService.hashPassword(null as any);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
       }
 
       try {
-        await hashPassword(undefined as any);
+        await PasswordService.hashPassword(undefined as any);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
@@ -60,36 +61,46 @@ describe("Auth Utils", () => {
 
     it("should accept password with leading/trailing spaces if it has content", async () => {
       const password = "  validpassword  ";
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
       expect(hashedPassword).toBeDefined();
       expect(hashedPassword.length).toBeGreaterThan(0);
     });
   });
 
-  describe("verifyPassword", () => {
+  describe("PasswordService.verifyPassword", () => {
     it("should verify correct password", async () => {
       const password = "correctpassword";
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
-      const isValid = await verifyPassword(password, hashedPassword);
+      const isValid = await PasswordService.verifyPassword(
+        password,
+        hashedPassword
+      );
       expect(isValid).toBe(true);
     });
 
     it("should reject incorrect password", async () => {
       const correctPassword = "correctpassword";
       const incorrectPassword = "wrongpassword";
-      const hashedPassword = await hashPassword(correctPassword);
+      const hashedPassword = await PasswordService.hashPassword(
+        correctPassword
+      );
 
-      const isValid = await verifyPassword(incorrectPassword, hashedPassword);
+      const isValid = await PasswordService.verifyPassword(
+        incorrectPassword,
+        hashedPassword
+      );
       expect(isValid).toBe(false);
     });
 
     it("should throw error for empty password", async () => {
-      const hashedPassword = await hashPassword("validpassword");
+      const hashedPassword = await PasswordService.hashPassword(
+        "validpassword"
+      );
 
       try {
-        await verifyPassword("", hashedPassword);
+        await PasswordService.verifyPassword("", hashedPassword);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
@@ -97,10 +108,12 @@ describe("Auth Utils", () => {
     });
 
     it("should throw error for whitespace-only password", async () => {
-      const hashedPassword = await hashPassword("validpassword");
+      const hashedPassword = await PasswordService.hashPassword(
+        "validpassword"
+      );
 
       try {
-        await verifyPassword("   ", hashedPassword);
+        await PasswordService.verifyPassword("   ", hashedPassword);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
@@ -111,21 +124,21 @@ describe("Auth Utils", () => {
       const password = "validpassword";
 
       try {
-        await verifyPassword(password, "");
+        await PasswordService.verifyPassword(password, "");
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Hashed password cannot be empty"));
       }
 
       try {
-        await verifyPassword(password, null as any);
+        await PasswordService.verifyPassword(password, null as any);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Hashed password cannot be empty"));
       }
 
       try {
-        await verifyPassword(password, undefined as any);
+        await PasswordService.verifyPassword(password, undefined as any);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Hashed password cannot be empty"));
@@ -136,22 +149,27 @@ describe("Auth Utils", () => {
       const password = "testpassword";
       const invalidHash = "invalidhash";
 
-      const result = await verifyPassword(password, invalidHash);
+      const result = await PasswordService.verifyPassword(
+        password,
+        invalidHash
+      );
       expect(result).toBe(false);
     });
 
     it("should throw error for null/undefined password", async () => {
-      const hashedPassword = await hashPassword("validpassword");
+      const hashedPassword = await PasswordService.hashPassword(
+        "validpassword"
+      );
 
       try {
-        await verifyPassword(null as any, hashedPassword);
+        await PasswordService.verifyPassword(null as any, hashedPassword);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
       }
 
       try {
-        await verifyPassword(undefined as any, hashedPassword);
+        await PasswordService.verifyPassword(undefined as any, hashedPassword);
         fail("Expected function to throw an error");
       } catch (error) {
         expect(error).toEqual(new Error("Password cannot be empty"));
@@ -160,9 +178,12 @@ describe("Auth Utils", () => {
 
     it("should accept password with leading/trailing spaces if it has content", async () => {
       const password = "  validpassword  ";
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
-      const isValid = await verifyPassword(password, hashedPassword);
+      const isValid = await PasswordService.verifyPassword(
+        password,
+        hashedPassword
+      );
       expect(isValid).toBe(true);
     });
   });

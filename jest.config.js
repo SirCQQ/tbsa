@@ -11,6 +11,7 @@ const customJestConfig = {
   testEnvironment: "jsdom",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^jose$": "<rootDir>/tests/__mocks__/jose.js",
   },
   testMatch: [
     "<rootDir>/tests/**/*.test.{js,jsx,ts,tsx}",
@@ -21,6 +22,17 @@ const customJestConfig = {
     "!src/**/*.d.ts",
     "!src/**/*.stories.{js,jsx,ts,tsx}",
   ],
+  // Handle ES modules
+  extensionsToTreatAsEsm: [".ts", ".tsx"],
+  transform: {
+    "^.+\\.(ts|tsx)$": [
+      "ts-jest",
+      {
+        useESM: true,
+      },
+    ],
+  },
+  transformIgnorePatterns: ["node_modules/(?!(jose)/)"],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

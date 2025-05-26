@@ -70,16 +70,39 @@ export class SessionService {
       const sessionId = this.generateRandomBytes(32);
       const fingerprintHash = await this.createFingerprint(fingerprint);
 
-      // Create session record in database (if you want to track sessions)
-      // For now, we'll use in-memory/JWT-based sessions
+      // Create session record in database
+      const session = await prisma.session.create({
+        data: {
+          id: sessionId,
+          userId,
+          token: sessionId, // Use sessionId as token identifier
+          fingerprint: fingerprintHash,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        },
+      });
+
+      // Get user data for token payload
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          administrator: true,
+          owner: true,
+        },
+      });
+
+      if (!user) {
+        return createServiceError(AuthErrorKey.USER_NOT_FOUND);
+      }
 
       // Create access token (short-lived)
       const accessTokenPayload: JWTPayload = {
         userId,
-        email: "", // Will be filled by auth service
-        role: "OWNER", // Will be filled by auth service
+        email: user.email,
+        role: user.role,
         sessionId,
         fingerprint: fingerprintHash,
+        administratorId: user.administrator?.id,
+        ownerId: user.owner?.id,
       };
 
       const accessToken = await new SignJWT(accessTokenPayload)
@@ -107,7 +130,7 @@ export class SessionService {
         data: {
           accessToken,
           refreshToken,
-          sessionId,
+          sessionId: session.id,
         },
       };
     } catch (error) {
@@ -128,39 +151,47 @@ export class SessionService {
       const { payload } = await jwtVerify(refreshToken, refreshSecret);
       const refreshPayload = payload as RefreshTokenPayload;
 
+      // Verify session exists and is valid
+      const session = await prisma.session.findUnique({
+        where: { id: refreshPayload.sessionId },
+        include: { user: { include: { administrator: true, owner: true } } },
+      });
+
+      if (!session || session.expiresAt < new Date()) {
+        return createServiceError(
+          AuthErrorKey.INVALID_TOKEN,
+          "Session expired or not found"
+        );
+      }
+
       // Verify fingerprint matches
       const currentFingerprintHash = await this.createFingerprint(
         currentFingerprint
       );
-      if (refreshPayload.fingerprint !== currentFingerprintHash) {
+      if (session.fingerprint !== currentFingerprintHash) {
+        // Log potential security issue
+        console.warn("Session fingerprint mismatch detected", {
+          sessionId: session.id,
+          userId: session.userId,
+          storedFingerprint: session.fingerprint,
+          currentFingerprint: currentFingerprintHash,
+        });
+
         return createServiceError(
           AuthErrorKey.INVALID_TOKEN,
           "Session fingerprint mismatch - possible session hijacking"
         );
       }
 
-      // Get fresh user data
-      const user = await prisma.user.findUnique({
-        where: { id: refreshPayload.userId },
-        include: {
-          administrator: true,
-          owner: true,
-        },
-      });
-
-      if (!user) {
-        return createServiceError(AuthErrorKey.USER_NOT_FOUND);
-      }
-
       // Create new access token
       const accessTokenPayload: JWTPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        sessionId: refreshPayload.sessionId,
+        userId: session.user.id,
+        email: session.user.email,
+        role: session.user.role,
+        sessionId: session.id,
         fingerprint: currentFingerprintHash,
-        administratorId: user.administrator?.id,
-        ownerId: user.owner?.id,
+        administratorId: session.user.administrator?.id,
+        ownerId: session.user.owner?.id,
       };
 
       const accessToken = await new SignJWT(accessTokenPayload)
@@ -176,8 +207,8 @@ export class SessionService {
 
       if (shouldRotateRefreshToken) {
         const newRefreshPayload: RefreshTokenPayload = {
-          userId: user.id,
-          sessionId: refreshPayload.sessionId,
+          userId: session.user.id,
+          sessionId: session.id,
           fingerprint: currentFingerprintHash,
         };
 
@@ -187,6 +218,12 @@ export class SessionService {
           .setExpirationTime("7d")
           .sign(refreshSecret);
       }
+
+      // Update session last accessed time
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { updatedAt: new Date() },
+      });
 
       return {
         success: true,
@@ -203,27 +240,45 @@ export class SessionService {
   }
 
   /**
-   * Verify access token and check fingerprint
+   * Verify access token and validate session
    */
   static async verifyAccessToken(
     accessToken: string,
     currentFingerprint: SessionFingerprint
   ): Promise<ApiResponse<JWTPayload>> {
     try {
+      // Verify JWT token
       const { payload } = await jwtVerify(accessToken, accessSecret);
       const jwtPayload = payload as JWTPayload;
 
-      // Verify fingerprint if present
-      if (jwtPayload.fingerprint) {
-        const currentFingerprintHash = await this.createFingerprint(
-          currentFingerprint
+      // Verify session exists and is valid
+      const session = await prisma.session.findUnique({
+        where: { id: jwtPayload.sessionId },
+      });
+
+      if (!session || session.expiresAt < new Date()) {
+        return createServiceError(
+          AuthErrorKey.INVALID_TOKEN,
+          "Session expired or not found"
         );
-        if (jwtPayload.fingerprint !== currentFingerprintHash) {
-          return createServiceError(
-            AuthErrorKey.INVALID_TOKEN,
-            "Session fingerprint mismatch"
-          );
-        }
+      }
+
+      // Verify fingerprint matches
+      const currentFingerprintHash = await this.createFingerprint(
+        currentFingerprint
+      );
+      if (session.fingerprint !== currentFingerprintHash) {
+        console.warn("Session fingerprint mismatch detected", {
+          sessionId: session.id,
+          userId: session.userId,
+          storedFingerprint: session.fingerprint,
+          currentFingerprint: currentFingerprintHash,
+        });
+
+        return createServiceError(
+          AuthErrorKey.INVALID_TOKEN,
+          "Session fingerprint mismatch"
+        );
       }
 
       return {
@@ -238,14 +293,15 @@ export class SessionService {
   }
 
   /**
-   * Invalidate session (logout)
+   * Invalidate a specific session
    */
   static async invalidateSession(
-    _sessionId: string
+    sessionId: string
   ): Promise<ApiResponse<void>> {
     try {
-      // In a full implementation, you would mark the session as invalid in the database
-      // For now, we rely on token expiration and client-side token removal
+      await prisma.session.delete({
+        where: { id: sessionId },
+      });
 
       return {
         success: true,
@@ -259,18 +315,113 @@ export class SessionService {
   }
 
   /**
-   * Validate session fingerprint for security
+   * Invalidate all sessions for a user
+   */
+  static async invalidateAllUserSessions(
+    userId: string
+  ): Promise<ApiResponse<void>> {
+    try {
+      await prisma.session.deleteMany({
+        where: { userId },
+      });
+
+      return {
+        success: true,
+        message: "All user sessions invalidated successfully",
+        data: undefined,
+      };
+    } catch (error) {
+      console.error("User sessions invalidation error:", error);
+      return createServiceError(AuthErrorKey.INTERNAL_ERROR);
+    }
+  }
+
+  /**
+   * Clean up expired sessions
+   */
+  static async cleanupExpiredSessions(): Promise<
+    ApiResponse<{ deletedCount: number }>
+  > {
+    try {
+      const result = await prisma.session.deleteMany({
+        where: {
+          expiresAt: {
+            lt: new Date(),
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: `Cleaned up ${result.count} expired sessions`,
+        data: { deletedCount: result.count },
+      };
+    } catch (error) {
+      console.error("Session cleanup error:", error);
+      return createServiceError(AuthErrorKey.INTERNAL_ERROR);
+    }
+  }
+
+  /**
+   * Get active sessions for a user
+   */
+  static async getUserSessions(userId: string): Promise<
+    ApiResponse<
+      Array<{
+        id: string;
+        fingerprint: string;
+        createdAt: Date;
+        updatedAt: Date;
+        expiresAt: Date;
+      }>
+    >
+  > {
+    try {
+      const sessions = await prisma.session.findMany({
+        where: {
+          userId,
+          expiresAt: {
+            gt: new Date(),
+          },
+        },
+        select: {
+          id: true,
+          fingerprint: true,
+          createdAt: true,
+          updatedAt: true,
+          expiresAt: true,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      return {
+        success: true,
+        message: "User sessions retrieved successfully",
+        data: sessions,
+      };
+    } catch (error) {
+      console.error("Get user sessions error:", error);
+      return createServiceError(AuthErrorKey.INTERNAL_ERROR);
+    }
+  }
+
+  /**
+   * Validate session fingerprint
    */
   static async validateFingerprint(
     storedFingerprint: string,
     currentFingerprint: SessionFingerprint
   ): Promise<boolean> {
-    const currentHash = await this.createFingerprint(currentFingerprint);
-    return storedFingerprint === currentHash;
+    const currentFingerprintHash = await this.createFingerprint(
+      currentFingerprint
+    );
+    return storedFingerprint === currentFingerprintHash;
   }
 
   /**
-   * Create enhanced JWT token with session tracking
+   * Create enhanced token with session validation
    */
   static async createEnhancedToken(
     payload: JWTPayload,
@@ -279,13 +430,12 @@ export class SessionService {
     const enhancedPayload = {
       ...payload,
       fingerprint: await this.createFingerprint(fingerprint),
-      sessionId: payload.sessionId || this.generateRandomBytes(16),
     };
 
     return await new SignJWT(enhancedPayload)
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("15m") // Shorter expiration for better security
+      .setExpirationTime("15m")
       .sign(accessSecret);
   }
 }

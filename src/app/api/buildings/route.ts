@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth-server";
+import { getCurrentUser } from "@/services/auth-server.service";
 import { createAuthError } from "@/lib/auth-errors";
 import { AuthErrorKey } from "@/types/api";
 import { BuildingsService } from "@/services/buildings.service";

@@ -4,7 +4,7 @@ import { z } from "zod";
 export const CreateBuildingSchema = z.object({
   name: z
     .string()
-    .min(3, "Numele clădirii trebuie să aibă cel puțin 3 caractere")
+    .min(2, "Numele clădirii trebuie să aibă cel puțin 2 caractere")
     .max(100, "Numele clădirii nu poate avea mai mult de 100 de caractere"),
   address: z
     .string()

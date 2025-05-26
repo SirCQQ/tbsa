@@ -66,6 +66,18 @@ export type MockPrismaOwner = {
   aggregate: jest.MockedFunction<any>;
 };
 
+export type MockPrismaSession = {
+  findMany: jest.MockedFunction<any>;
+  findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
+  create: jest.MockedFunction<any>;
+  update: jest.MockedFunction<any>;
+  delete: jest.MockedFunction<any>;
+  deleteMany: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
+};
+
 export type MockPrisma = {
   building: MockPrismaBuilding;
   apartment: MockPrismaApartment;
@@ -73,6 +85,7 @@ export type MockPrisma = {
   user: MockPrismaUser;
   administrator: MockPrismaAdministrator;
   owner: MockPrismaOwner;
+  session: MockPrismaSession;
   $transaction: jest.MockedFunction<any>;
   $connect: jest.MockedFunction<any>;
   $disconnect: jest.MockedFunction<any>;
@@ -137,6 +150,17 @@ export const createMockPrisma = (): MockPrisma => ({
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  session: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
     count: jest.fn(),
     aggregate: jest.fn(),
   },

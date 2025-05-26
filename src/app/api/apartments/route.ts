@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApartmentService } from "@/services/apartment.service";
 import { ApartmentSchema, ApartmentQuerySchema } from "@/schemas/apartment";
-import { getTenantContext } from "@/lib/tenant";
+import { TenantService } from "@/services/tenant.service";
 import { ZodError } from "zod";
 
 export async function GET(request: NextRequest) {
   try {
     // Get tenant context from headers
-    const tenantContext = getTenantContext(request);
+    const tenantContext = TenantService.getTenantContext(request);
 
     // Parse and validate query parameters
     const { searchParams } = new URL(request.url);
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get tenant context from headers
-    const tenantContext = getTenantContext(request);
+    const tenantContext = TenantService.getTenantContext(request);
 
     // Only administrators can create apartments
     if (tenantContext?.role !== "ADMINISTRATOR") {

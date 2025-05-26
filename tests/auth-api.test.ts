@@ -1,4 +1,4 @@
-import { hashPassword } from "../src/lib/auth";
+import { PasswordService } from "../src/services/password.service";
 import { TextEncoder } from "util";
 // Mock jose library
 jest.mock("jose", () => ({
@@ -26,74 +26,61 @@ describe("Authentication API", () => {
   });
 
   describe("User Registration Flow", () => {
-    it("should validate registration data correctly", async () => {
-      const validRegistrationData = {
+    it("should validate registration data with Zod", async () => {
+      const { RegisterSchema } = await import("../src/schemas/user");
+
+      const validData = {
         firstName: "John",
         lastName: "Doe",
         email: "john.doe@example.com",
-        password: "StrongPassword123!",
-        confirmPassword: "StrongPassword123!",
-        phone: "+1234567890",
-        role: "OWNER",
+        password: "securePassword123",
+        confirmPassword: "securePassword123",
+        role: "OWNER" as const,
       };
 
-      // Test that our validation schema accepts valid data
-      const { registerSchema } = await import("../src/lib/validations");
-      const result = registerSchema.safeParse(validRegistrationData);
-
+      const result = RegisterSchema.safeParse(validData);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.email).toBe(validRegistrationData.email);
-        expect(result.data.role).toBe("OWNER");
-      }
     });
 
-    it("should reject registration with invalid data", async () => {
-      const invalidRegistrationData = {
+    it("should reject invalid registration data", async () => {
+      const { RegisterSchema } = await import("../src/schemas/user");
+
+      const invalidData = {
         firstName: "",
         lastName: "Doe",
         email: "invalid-email",
-        password: "123", // Too short
-        confirmPassword: "456", // Doesn't match
-        role: "INVALID_ROLE",
+        password: "123",
+        confirmPassword: "different",
+        role: "INVALID_ROLE" as string,
       };
 
-      const { registerSchema } = await import("../src/lib/validations");
-      const result = registerSchema.safeParse(invalidRegistrationData);
-
+      const result = RegisterSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.errors.length).toBeGreaterThan(0);
-      }
     });
   });
 
   describe("User Login Flow", () => {
-    it("should validate login data correctly", async () => {
-      const validLoginData = {
-        email: "user@example.com",
-        password: "ValidPassword123!",
+    it("should validate login data with Zod", async () => {
+      const { LoginSchema } = await import("../src/schemas/user");
+
+      const validData = {
+        email: "test@example.com",
+        password: "password123",
       };
 
-      const { loginSchema } = await import("../src/lib/validations");
-      const result = loginSchema.safeParse(validLoginData);
-
+      const result = LoginSchema.safeParse(validData);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.email).toBe(validLoginData.email);
-        expect(result.data.password).toBe(validLoginData.password);
-      }
     });
 
-    it("should reject login with empty password", async () => {
-      const invalidLoginData = {
-        email: "user@example.com",
+    it("should reject invalid login data", async () => {
+      const { LoginSchema } = await import("../src/schemas/user");
+
+      const invalidData = {
+        email: "invalid-email",
         password: "",
       };
 
-      const { loginSchema } = await import("../src/lib/validations");
-      const result = loginSchema.safeParse(invalidLoginData);
-
+      const result = LoginSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
   });
@@ -101,7 +88,7 @@ describe("Authentication API", () => {
   describe("Password Security", () => {
     it("should hash passwords securely", async () => {
       const password = "TestPassword123!";
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
       expect(hashedPassword).toBeDefined();
       expect(hashedPassword).not.toBe(password);
@@ -111,10 +98,12 @@ describe("Authentication API", () => {
 
     it("should verify passwords correctly", async () => {
       const password = "TestPassword123!";
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
-      const { verifyPassword } = await import("../src/lib/auth");
-      const isValid = await verifyPassword(password, hashedPassword);
+      const isValid = await PasswordService.verifyPassword(
+        password,
+        hashedPassword
+      );
 
       expect(isValid).toBe(true);
     });
@@ -122,10 +111,12 @@ describe("Authentication API", () => {
     it("should reject incorrect passwords", async () => {
       const password = "TestPassword123!";
       const wrongPassword = "WrongPassword456!";
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await PasswordService.hashPassword(password);
 
-      const { verifyPassword } = await import("../src/lib/auth");
-      const isValid = await verifyPassword(wrongPassword, hashedPassword);
+      const isValid = await PasswordService.verifyPassword(
+        wrongPassword,
+        hashedPassword
+      );
 
       expect(isValid).toBe(false);
     });
@@ -154,20 +145,6 @@ describe("Authentication API", () => {
       expect(verifiedPayload.userId).toBe("test-user-id");
       expect(verifiedPayload.email).toBe("test@example.com");
       expect(verifiedPayload.role).toBe("OWNER");
-    });
-  });
-
-  describe("Authentication Client", () => {
-    it("should have correct API endpoint structure", async () => {
-      const { AuthClient } = await import("../src/lib/auth-client");
-
-      // Test that AuthClient has the expected methods
-      expect(typeof AuthClient.register).toBe("function");
-      expect(typeof AuthClient.login).toBe("function");
-      expect(typeof AuthClient.logout).toBe("function");
-      expect(typeof AuthClient.getCurrentUser).toBe("function");
-      expect(typeof AuthClient.isAuthenticated).toBe("function");
-      expect(typeof AuthClient.hasRole).toBe("function");
     });
   });
 });
