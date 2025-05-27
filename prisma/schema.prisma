@@ -46,10 +46,14 @@ model User {
   // Session management
   sessions Session[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Owner     Owner?   @relation(fields: [ownerId], references: [id])
-  ownerId   String?
+  // Invite codes used by this user
+  usedInviteCodes InviteCode[] @relation("InviteCodeUsedBy")
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  Owner      Owner?       @relation(fields: [ownerId], references: [id])
+  ownerId    String?
+  InviteCode InviteCode[]
 
   @@map("users")
 }
@@ -194,15 +198,18 @@ model InviteCode {
   administrator Administrator @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 
   // Status and usage tracking
-  status InviteCodeStatus @default(ACTIVE)
-  usedBy String? // User ID who used the code
-  usedAt DateTime?
+  status     InviteCodeStatus @default(ACTIVE)
+  usedBy     String? // User ID who used the code
+  usedByUser User?            @relation("InviteCodeUsedBy", fields: [usedBy], references: [id], onDelete: SetNull)
+  usedAt     DateTime?
 
   // Expiration
   expiresAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    String?
 
   @@map("invite_codes")
 }

@@ -18,6 +18,7 @@ import {
   Bell,
   TrendingUp,
   Home,
+  Ticket,
 } from "lucide-react";
 import type { SafeUser } from "@/types/auth";
 import { useRouter } from "next/navigation";
@@ -64,6 +65,13 @@ export function SidebarQuickActions({ user }: SidebarQuickActionsProps) {
       },
       urgent: mockContext.overdueReadings > 0,
       onClick: () => console.log("Navigate to pending readings"),
+    },
+    {
+      icon: <Ticket className="h-4 w-4" />,
+      label: "Coduri Invitație",
+      description: "Gestionează codurile",
+      variant: "outline",
+      onClick: () => router.push("/dashboard/admin/invite-codes"),
     },
     {
       icon: <Users className="h-4 w-4" />,

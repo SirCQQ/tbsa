@@ -112,6 +112,14 @@ export class InviteCodesService {
               },
             },
           },
+          usedByUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
         },
       });
 
@@ -230,6 +238,14 @@ export class InviteCodesService {
                 },
               },
             },
+            usedByUser: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
           },
         }),
         // Assign apartment to user's owner profile
@@ -289,6 +305,14 @@ export class InviteCodesService {
                   address: true,
                 },
               },
+            },
+          },
+          usedByUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
             },
           },
         },
@@ -358,6 +382,14 @@ export class InviteCodesService {
                   address: true,
                 },
               },
+            },
+          },
+          usedByUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
             },
           },
         },

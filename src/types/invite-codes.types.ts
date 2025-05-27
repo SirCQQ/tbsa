@@ -1,5 +1,8 @@
 import type { InviteCodeStatus } from "@prisma/client";
 
+// Re-export the enum for easier imports
+export { InviteCodeStatus } from "@prisma/client";
+
 // Service response types
 export type ServiceResult<T> = {
   success: boolean;
@@ -29,6 +32,12 @@ export type InviteCodeWithDetails = {
   };
   createdBy: string;
   usedBy: string | null;
+  usedByUser: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
   usedAt: Date | null;
   expiresAt: Date | null;
   createdAt: Date;
