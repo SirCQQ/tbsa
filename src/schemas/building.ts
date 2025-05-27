@@ -3,6 +3,18 @@ import { z } from "zod";
 // Building type enum to match Prisma (simplified to only residential for now)
 export const BuildingTypeEnum = z.enum(["RESIDENTIAL"]);
 
+// Helper function to transform string to number or undefined
+const stringToNumber = (val: string | number | undefined) => {
+  if (val === undefined || val === null) return undefined;
+  if (typeof val === "number") return val;
+  if (typeof val === "string") {
+    if (val.trim() === "") return undefined;
+    const parsed = parseInt(val, 10);
+    return isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
+};
+
 // Schema for creating a new building
 export const CreateBuildingSchema = z.object({
   name: z
@@ -22,32 +34,57 @@ export const CreateBuildingSchema = z.object({
     .regex(/^\d{6}$/, "Codul poștal trebuie să aibă exact 6 cifre")
     .optional(),
   readingDeadline: z
-    .number()
-    .int("Termenul limită trebuie să fie un număr întreg")
-    .min(1, "Termenul limită trebuie să fie între 1 și 31")
-    .max(31, "Termenul limită trebuie să fie între 1 și 31")
-    .default(25),
+    .union([z.string(), z.number(), z.undefined()])
+    .transform((val) => {
+      if (val === undefined) return 25; // Apply default when undefined
+      return stringToNumber(val);
+    })
+    .pipe(
+      z
+        .number()
+        .int("Termenul limită trebuie să fie un număr întreg")
+        .min(1, "Termenul limită trebuie să fie între 1 și 31")
+        .max(31, "Termenul limită trebuie să fie între 1 și 31")
+    ),
 
   // Extended building information (type is always RESIDENTIAL, so we don't include it in the form)
   floors: z
-    .number()
-    .int("Numărul de etaje trebuie să fie un număr întreg")
-    .min(1, "Clădirea trebuie să aibă cel puțin 1 etaj")
-    .max(100, "Numărul de etaje nu poate fi mai mare de 100")
+    .union([z.string(), z.number()])
+    .transform(stringToNumber)
+    .pipe(
+      z
+        .number()
+        .int("Numărul de etaje trebuie să fie un număr întreg")
+        .min(1, "Clădirea trebuie să aibă cel puțin 1 etaj")
+        .max(100, "Numărul de etaje nu poate fi mai mare de 100")
+        .optional()
+    )
     .optional(),
   totalApartments: z
-    .number()
-    .int("Numărul de apartamente trebuie să fie un număr întreg")
-    .min(1, "Clădirea trebuie să aibă cel puțin 1 apartament")
-    .max(1000, "Numărul de apartamente nu poate fi mai mare de 1000")
+    .union([z.string(), z.number()])
+    .transform(stringToNumber)
+    .pipe(
+      z
+        .number()
+        .int("Numărul de apartamente trebuie să fie un număr întreg")
+        .min(1, "Clădirea trebuie să aibă cel puțin 1 apartament")
+        .max(1000, "Numărul de apartamente nu poate fi mai mare de 1000")
+        .optional()
+    )
     .optional(),
   yearBuilt: z
-    .number()
-    .int("Anul construcției trebuie să fie un număr întreg")
-    .min(1800, "Anul construcției nu poate fi mai mic de 1800")
-    .max(
-      new Date().getFullYear() + 5,
-      "Anul construcției nu poate fi în viitorul îndepărtat"
+    .union([z.string(), z.number()])
+    .transform(stringToNumber)
+    .pipe(
+      z
+        .number()
+        .int("Anul construcției trebuie să fie un număr întreg")
+        .min(1800, "Anul construcției nu poate fi mai mic de 1800")
+        .max(
+          new Date().getFullYear() + 5,
+          "Anul construcției nu poate fi în viitorul îndepărtat"
+        )
+        .optional()
     )
     .optional(),
   description: z
@@ -92,16 +129,28 @@ export const CreateApartmentSchema = z.object({
     .min(1, "Numărul apartamentului este obligatoriu")
     .max(10, "Numărul apartamentului nu poate avea mai mult de 10 caractere"),
   floor: z
-    .number()
-    .int("Etajul trebuie să fie un număr întreg")
-    .min(0, "Etajul nu poate fi negativ")
-    .max(100, "Etajul nu poate fi mai mare de 100")
+    .union([z.string(), z.number()])
+    .transform(stringToNumber)
+    .pipe(
+      z
+        .number()
+        .int("Etajul trebuie să fie un număr întreg")
+        .min(0, "Etajul nu poate fi negativ")
+        .max(100, "Etajul nu poate fi mai mare de 100")
+        .optional()
+    )
     .optional(),
   rooms: z
-    .number()
-    .int("Numărul de camere trebuie să fie un număr întreg")
-    .min(1, "Apartamentul trebuie să aibă cel puțin 1 cameră")
-    .max(20, "Numărul de camere nu poate fi mai mare de 20")
+    .union([z.string(), z.number()])
+    .transform(stringToNumber)
+    .pipe(
+      z
+        .number()
+        .int("Numărul de camere trebuie să fie un număr întreg")
+        .min(1, "Apartamentul trebuie să aibă cel puțin 1 cameră")
+        .max(20, "Numărul de camere nu poate fi mai mare de 20")
+        .optional()
+    )
     .optional(),
 });
 
@@ -115,10 +164,16 @@ export const CreateBuildingWithApartmentsSchema = CreateBuildingSchema.extend({
   // Option to auto-generate apartments based on floors and apartments per floor
   autoGenerateApartments: z.boolean().default(false),
   apartmentsPerFloor: z
-    .number()
-    .int("Numărul de apartamente pe etaj trebuie să fie un număr întreg")
-    .min(1, "Trebuie să fie cel puțin 1 apartament pe etaj")
-    .max(50, "Nu pot fi mai mult de 50 de apartamente pe etaj")
+    .union([z.string(), z.number()])
+    .transform(stringToNumber)
+    .pipe(
+      z
+        .number()
+        .int("Numărul de apartamente pe etaj trebuie să fie un număr întreg")
+        .min(1, "Trebuie să fie cel puțin 1 apartament pe etaj")
+        .max(50, "Nu pot fi mai mult de 50 de apartamente pe etaj")
+        .optional()
+    )
     .optional(),
 });
 

@@ -357,14 +357,17 @@ export class BuildingsService {
         validatedData.floors &&
         validatedData.apartmentsPerFloor
       ) {
-        // Auto-generate apartments based on floors and apartments per floor
+        // Auto-generate apartments with sequential numbering starting from 1
+        let apartmentNumber = 1;
+
         for (let floor = 1; floor <= validatedData.floors; floor++) {
           for (let apt = 1; apt <= validatedData.apartmentsPerFloor; apt++) {
             apartmentsToCreate.push({
-              number: `${floor}${apt.toString().padStart(2, "0")}`, // e.g., "101", "102", "201", etc.
+              number: apartmentNumber.toString(), // Sequential numbering: "1", "2", "3", etc.
               floor: floor,
               rooms: undefined, // Can be set later
             });
+            apartmentNumber++;
           }
         }
       } else if (

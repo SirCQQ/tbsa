@@ -79,7 +79,12 @@ export function CreateBuildingModal({
   // Calculate total apartments when auto-generating
   const calculatedApartments =
     watchAutoGenerate && watchFloors && watchApartmentsPerFloor
-      ? watchFloors * watchApartmentsPerFloor
+      ? (typeof watchFloors === "string"
+          ? parseInt(watchFloors, 10)
+          : watchFloors) *
+        (typeof watchApartmentsPerFloor === "string"
+          ? parseInt(watchApartmentsPerFloor, 10)
+          : watchApartmentsPerFloor)
       : 0;
 
   const onSubmit = async (data: CreateBuildingWithApartmentsData) => {
