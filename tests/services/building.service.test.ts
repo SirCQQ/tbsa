@@ -227,6 +227,9 @@ describe("BuildingsService", () => {
       expect(mockPrisma.building.create).toHaveBeenCalledWith({
         data: {
           ...buildingData,
+          hasElevator: false,
+          hasGarden: false,
+          hasParking: false,
           administratorId: adminContext.administratorId,
         },
         include: expect.any(Object),

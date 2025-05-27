@@ -40,6 +40,17 @@ export const createMockBuilding = (
   postalCode: faker.location.zipCode(),
   administratorId,
   readingDeadline: faker.number.int({ min: 1, max: 31 }),
+
+  // Extended building information
+  type: "RESIDENTIAL" as const,
+  floors: faker.number.int({ min: 1, max: 20 }),
+  totalApartments: faker.number.int({ min: 10, max: 100 }),
+  yearBuilt: faker.number.int({ min: 1950, max: 2024 }),
+  description: faker.lorem.sentence(),
+  hasElevator: faker.datatype.boolean(),
+  hasParking: faker.datatype.boolean(),
+  hasGarden: faker.datatype.boolean(),
+
   createdAt: faker.date.past(),
   updatedAt: faker.date.recent(),
   administrator: {

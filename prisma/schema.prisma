@@ -18,6 +18,10 @@ enum UserRole {
   OWNER
 }
 
+enum BuildingType {
+  RESIDENTIAL
+}
+
 // Base user model for both administrators and apartment owners
 model User {
   id        String   @id @default(uuid())
@@ -70,15 +74,26 @@ model Administrator {
 
 // Building model - managed by one administrator
 model Building {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   name            String
   address         String
   city            String
   postalCode      String?
   administratorId String
-  readingDeadline Int      @default(25) // Day of month until readings can be submitted
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  readingDeadline Int     @default(25) // Day of month until readings can be submitted
+
+  // Extended building information
+  type            BuildingType @default(RESIDENTIAL)
+  floors          Int? // Number of floors
+  totalApartments Int? // Total number of apartments planned
+  yearBuilt       Int? // Year of construction
+  description     String? // Additional notes/description
+  hasElevator     Boolean      @default(false)
+  hasParking      Boolean      @default(false)
+  hasGarden       Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   administrator Administrator @relation(fields: [administratorId], references: [id], onDelete: Cascade)

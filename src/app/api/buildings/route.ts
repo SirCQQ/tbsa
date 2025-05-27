@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Use service to create building
-    const result = await BuildingsService.createBuilding(
+    // Use service to create building with apartments
+    const result = await BuildingsService.createBuildingWithApartments(
       body,
       user.administrator.id
     );

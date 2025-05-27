@@ -4,7 +4,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { ControlledInput } from "./controlled-input";
+import { ControlledInput } from "../ui/inputs/form/controlled-input";
 import { Save, X } from "lucide-react";
 import { SafeUser } from "@/types/auth";
 

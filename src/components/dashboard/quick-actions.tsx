@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ import {
   CheckCircle,
   BarChart3,
   AlertTriangle,
+  Building2,
 } from "lucide-react";
 import type { SafeUser } from "@/types/auth";
 import { SubmitReadingModal } from "./modals/submit-reading-modal";
@@ -38,6 +40,7 @@ type QuickActionsProps = {
 export function QuickActions({ user }: QuickActionsProps) {
   const [isSubmitReadingOpen, setIsSubmitReadingOpen] = useState(false);
   const [isValidateReadingsOpen, setIsValidateReadingsOpen] = useState(false);
+  const router = useRouter();
 
   const isAdmin = user.role === "ADMINISTRATOR";
 
@@ -47,6 +50,7 @@ export function QuickActions({ user }: QuickActionsProps) {
       "bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
       "bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
       "bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
+      "bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700",
     ];
     return colors[index % colors.length];
   };
@@ -57,6 +61,12 @@ export function QuickActions({ user }: QuickActionsProps) {
       title: "Validează Citiri",
       description: "Aprobă citirile utilizatorilor",
       onClick: () => setIsValidateReadingsOpen(true),
+    },
+    {
+      icon: <Building2 className="h-5 w-5" />,
+      title: "Gestionează Clădiri",
+      description: "Administrează clădirile tale",
+      onClick: () => router.push("/dashboard/admin/buildings"),
     },
     {
       icon: <Users className="h-5 w-5" />,

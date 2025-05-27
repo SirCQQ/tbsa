@@ -125,6 +125,257 @@ async function main() {
       ownerId: owner1.owner!.id,
     },
   });
+  // Additional apartments for building 1
+  await prisma.apartment.create({
+    data: {
+      number: "3",
+      floor: 1,
+      rooms: 2,
+      buildingId: building1.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "4",
+      floor: 1,
+      rooms: 3,
+      buildingId: building1.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "5",
+      floor: 2,
+      rooms: 2,
+      buildingId: building1.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "6",
+      floor: 2,
+      rooms: 3,
+      buildingId: building1.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "7",
+      floor: 3,
+      rooms: 2,
+      buildingId: building1.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "8",
+      floor: 3,
+      rooms: 3,
+      buildingId: building1.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "9",
+      floor: 4,
+      rooms: 2,
+      buildingId: building1.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "10",
+      floor: 4,
+      rooms: 3,
+      buildingId: building1.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "11",
+      floor: 5,
+      rooms: 2,
+      buildingId: building1.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "12",
+      floor: 5,
+      rooms: 3,
+      buildingId: building1.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  // Additional apartments for building 2
+  await prisma.apartment.create({
+    data: {
+      number: "2",
+      floor: 1,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "3",
+      floor: 1,
+      rooms: 2,
+      buildingId: building2.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "4",
+      floor: 2,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "5",
+      floor: 2,
+      rooms: 2,
+      buildingId: building2.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "6",
+      floor: 2,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "7",
+      floor: 3,
+      rooms: 2,
+      buildingId: building2.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "8",
+      floor: 3,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "9",
+      floor: 3,
+      rooms: 2,
+      buildingId: building2.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "10",
+      floor: 4,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "11",
+      floor: 4,
+      rooms: 2,
+      buildingId: building2.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "12",
+      floor: 4,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "13",
+      floor: 5,
+      rooms: 2,
+      buildingId: building2.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "14",
+      floor: 5,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "15",
+      floor: 5,
+      rooms: 2,
+      buildingId: building2.id,
+      ownerId: owner1.owner!.id,
+    },
+  });
+
+  await prisma.apartment.create({
+    data: {
+      number: "16",
+      floor: 6,
+      rooms: 3,
+      buildingId: building2.id,
+      ownerId: owner2.owner!.id,
+    },
+  });
 
   console.log("✅ Created apartments");
 

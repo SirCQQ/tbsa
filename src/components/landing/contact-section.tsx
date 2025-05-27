@@ -9,7 +9,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ContactFormSchema, type ContactFormData } from "@/schemas/contact";
 import { useState } from "react";
-import { ControlledInput, ControlledTextarea } from "../form";
+import { ControlledInput, ControlledTextarea } from "@/components/ui/inputs";
 
 export function ContactSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);

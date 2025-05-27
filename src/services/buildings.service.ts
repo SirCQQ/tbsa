@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import {
   CreateBuildingSchema,
+  CreateBuildingWithApartmentsSchema,
   UpdateBuildingSchema,
   BuildingQuerySchema,
   BuildingIdSchema,
   type CreateBuildingData,
+  type CreateBuildingWithApartmentsData,
   type UpdateBuildingData,
 } from "@/schemas/building";
 import { ZodError } from "zod";
@@ -296,6 +298,149 @@ export class BuildingsService {
       };
     } catch (error) {
       console.error("Error in BuildingsService.createBuilding:", error);
+
+      if (error instanceof ZodError) {
+        return {
+          success: false,
+          error: "Datele introduse sunt invalide",
+          code: "VALIDATION_FAILED",
+          details: error.format(),
+        };
+      }
+
+      return {
+        success: false,
+        error: "Eroare internă la crearea clădirii",
+        code: "INTERNAL_ERROR",
+      };
+    }
+  }
+
+  /**
+   * Create a new building with optional apartments
+   */
+  static async createBuildingWithApartments(
+    buildingData: unknown,
+    administratorId: string
+  ): Promise<ServiceResult<BuildingWithDetails>> {
+    try {
+      // Validate request data
+      const validatedData: CreateBuildingWithApartmentsData =
+        CreateBuildingWithApartmentsSchema.parse(buildingData);
+
+      // Check if building with same name and address already exists for this admin
+      const existingBuilding = await prisma.building.findFirst({
+        where: {
+          name: validatedData.name,
+          address: validatedData.address,
+          administratorId,
+        },
+      });
+
+      if (existingBuilding) {
+        return {
+          success: false,
+          error: "O clădire cu același nume și adresă există deja",
+          code: "BUILDING_ALREADY_EXISTS",
+        };
+      }
+
+      // Prepare apartments data
+      let apartmentsToCreate: Array<{
+        number: string;
+        floor?: number;
+        rooms?: number;
+      }> = [];
+
+      if (
+        validatedData.autoGenerateApartments &&
+        validatedData.floors &&
+        validatedData.apartmentsPerFloor
+      ) {
+        // Auto-generate apartments based on floors and apartments per floor
+        for (let floor = 1; floor <= validatedData.floors; floor++) {
+          for (let apt = 1; apt <= validatedData.apartmentsPerFloor; apt++) {
+            apartmentsToCreate.push({
+              number: `${floor}${apt.toString().padStart(2, "0")}`, // e.g., "101", "102", "201", etc.
+              floor: floor,
+              rooms: undefined, // Can be set later
+            });
+          }
+        }
+      } else if (
+        validatedData.apartments &&
+        validatedData.apartments.length > 0
+      ) {
+        // Use manually specified apartments
+        apartmentsToCreate = validatedData.apartments;
+      }
+
+      // Create building and apartments in a transaction
+      const result = await prisma.$transaction(async (tx) => {
+        // Create the building first
+        const building = await tx.building.create({
+          data: {
+            name: validatedData.name,
+            address: validatedData.address,
+            city: validatedData.city,
+            postalCode: validatedData.postalCode,
+            readingDeadline: validatedData.readingDeadline,
+            floors: validatedData.floors,
+            totalApartments:
+              validatedData.totalApartments ||
+              apartmentsToCreate.length ||
+              undefined,
+            yearBuilt: validatedData.yearBuilt,
+            description: validatedData.description,
+            hasElevator: validatedData.hasElevator,
+            hasParking: validatedData.hasParking,
+            hasGarden: validatedData.hasGarden,
+            type: "RESIDENTIAL", // Always residential for now
+            administratorId,
+          },
+        });
+
+        // Create apartments if any
+        if (apartmentsToCreate.length > 0) {
+          await tx.apartment.createMany({
+            data: apartmentsToCreate.map((apt) => ({
+              ...apt,
+              buildingId: building.id,
+            })),
+          });
+        }
+
+        // Return building with full details
+        return await tx.building.findUnique({
+          where: { id: building.id },
+          include: {
+            _count: {
+              select: { apartments: true },
+            },
+            administrator: {
+              include: {
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+      });
+
+      return {
+        success: true,
+        data: result as BuildingWithDetails,
+      };
+    } catch (error) {
+      console.error(
+        "Error in BuildingsService.createBuildingWithApartments:",
+        error
+      );
 
       if (error instanceof ZodError) {
         return {
