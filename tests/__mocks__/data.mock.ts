@@ -56,6 +56,8 @@ export const createMockBuilding = (
   administrator: {
     id: administratorId,
     userId: faker.string.uuid(),
+    createdAt: faker.date.past(),
+    updatedAt: faker.date.recent(),
     user: {
       firstName: faker.person.firstName(),
       lastName: faker.person.lastName(),
@@ -112,6 +114,8 @@ export const createMockApartment = (
     ? {
         id: ownerId,
         userId: faker.string.uuid(),
+        createdAt: faker.date.past(),
+        updatedAt: faker.date.recent(),
         user: {
           firstName: faker.person.firstName(),
           lastName: faker.person.lastName(),
@@ -155,16 +159,21 @@ export const createMockUser = (
   role,
   createdAt: faker.date.past(),
   updatedAt: faker.date.recent(),
+  ownerId: null,
 });
 
 export const createMockAdministrator = (userId?: string): Administrator => ({
   id: faker.string.uuid(),
   userId: userId || faker.string.uuid(),
+  createdAt: faker.date.past(),
+  updatedAt: faker.date.recent(),
 });
 
 export const createMockOwner = (userId?: string): Owner => ({
   id: faker.string.uuid(),
   userId: userId || faker.string.uuid(),
+  createdAt: faker.date.past(),
+  updatedAt: faker.date.recent(),
 });
 
 // Auth Service Prisma Result Factories
@@ -192,10 +201,12 @@ export const createMockGetCurrentUserPrismaResult = (
           })[];
         })
       | null,
+    ownerId: null as string | null,
   };
 
   if (role === "ADMINISTRATOR") {
     baseResult.administrator = createMockAdministrator(user.id);
+    baseResult.ownerId = null;
   } else if (role === "OWNER") {
     const owner = createMockOwner(user.id);
     const buildingId = faker.string.uuid();
@@ -224,6 +235,7 @@ export const createMockGetCurrentUserPrismaResult = (
       ...owner,
       apartments,
     };
+    baseResult.ownerId = owner.id;
   }
 
   return baseResult;

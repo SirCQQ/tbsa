@@ -72,6 +72,7 @@ export class AuthServerService {
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,
+        ownerId: user.owner?.id || null,
       };
 
       return { user: safeUser, isAuthenticated: true };

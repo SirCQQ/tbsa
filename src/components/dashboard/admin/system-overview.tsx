@@ -36,15 +36,15 @@ const systemMetrics: SystemMetric[] = [
 
 export function SystemOverview() {
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 rounded-lg p-6 border-0 shadow-sm dark:shadow-gray-900/20 transition-all duration-300 hover:shadow-lg dark:hover:shadow-gray-900/30">
-      <h3 className="text-lg font-semibold mb-6 text-gray-900 dark:text-white">
+    <div className="bg-card rounded-lg p-6 border-0 shadow-sm transition-all duration-300 hover:shadow-lg">
+      <h3 className="text-lg font-semibold mb-6 text-foreground">
         Prezentare Generală Sistem
       </h3>
       <div className="space-y-6">
         {systemMetrics.map((metric, index) => (
           <div key={index} className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-muted-foreground">
                 {metric.label}
               </span>
               <span className={`font-semibold ${metric.color}`}>

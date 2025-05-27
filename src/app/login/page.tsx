@@ -62,11 +62,9 @@ export default function LoginPage() {
               </span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Bine ai venit înapoi
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Conectează-te pentru a accesa contul tău
+          <h1 className="text-2xl font-bold text-foreground">Conectează-te</h1>
+          <p className="text-muted-foreground mt-2">
+            Introdu datele tale pentru a accesa contul
           </p>
         </div>
 

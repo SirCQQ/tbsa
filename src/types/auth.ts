@@ -5,10 +5,10 @@ import type {
   Owner,
   Apartment,
   Building,
-} from "@prisma/client/wasm";
+} from "@prisma/client";
 
 // Re-export Prisma types for consistency
-export type { UserRole } from "@prisma/client/wasm";
+export type { UserRole } from "@prisma/client";
 
 // Extended user type with relations for API responses
 export type User = PrismaUser & {

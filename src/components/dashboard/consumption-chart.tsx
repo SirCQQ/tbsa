@@ -43,10 +43,10 @@ export function ConsumptionChart({ user }: ConsumptionChartProps) {
     return <Minus className="h-3 w-3" />;
   };
 
-  const getTrendColor = () => {
-    if (trend > 0.5) return "text-red-500 dark:text-red-400";
-    if (trend < -0.5) return "text-green-500 dark:text-green-400";
-    return "text-gray-500 dark:text-gray-400";
+  const getTrendColor = (trend: number) => {
+    if (trend > 0.5) return "text-destructive";
+    if (trend < -0.5) return "text-green-600 dark:text-green-400";
+    return "text-muted-foreground";
   };
 
   const maxConsumption = Math.max(
@@ -56,11 +56,11 @@ export function ConsumptionChart({ user }: ConsumptionChartProps) {
   return (
     <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2 text-gray-900 dark:text-white">
-          <Droplets className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+        <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+          <Droplets className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           {isAdmin ? "Consum Mediu Clădire" : "Consumul Meu"}
         </CardTitle>
-        <CardDescription className="text-xs text-gray-600 dark:text-gray-400">
+        <CardDescription className="text-xs text-muted-foreground">
           Ultimele 6 luni (m³)
         </CardDescription>
       </CardHeader>
@@ -71,6 +71,12 @@ export function ConsumptionChart({ user }: ConsumptionChartProps) {
             const height = (data.consumption / maxConsumption) * 100;
             const avgHeight = (data.average / maxConsumption) * 100;
             const isCurrentMonth = index === mockData.length - 1;
+            const trend =
+              index > 0
+                ? data.consumption - mockData[index - 1].consumption
+                : 0;
+            const trendPercentage =
+              index > 0 ? (trend / mockData[index - 1].consumption) * 100 : 0;
 
             return (
               <div
@@ -88,21 +94,21 @@ export function ConsumptionChart({ user }: ConsumptionChartProps) {
                   <div
                     className={`w-3 sm:w-4 rounded-t transition-all duration-300 group-hover:scale-110 group-active:scale-95 ${
                       isCurrentMonth
-                        ? "bg-blue-500 dark:bg-blue-400 group-hover:bg-blue-600 dark:group-hover:bg-blue-300"
-                        : data.consumption > data.average
-                        ? "bg-red-400 dark:bg-red-500 group-hover:bg-red-500 dark:group-hover:bg-red-400"
-                        : "bg-green-400 dark:bg-green-500 group-hover:bg-green-500 dark:group-hover:bg-green-400"
+                        ? "bg-primary hover:bg-primary/80"
+                        : trend > 0
+                        ? "bg-destructive hover:bg-destructive/80"
+                        : "bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-500"
                     }`}
                     style={{ height: `${height * 0.75}%` }}
                   />
 
                   {/* Tooltip on hover/touch */}
-                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
                     {data.consumption} m³
                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-2 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
                   </div>
                 </div>
-                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors duration-200">
+                <span className="text-xs sm:text-sm text-muted-foreground mt-1 group-hover:text-foreground transition-colors duration-200">
                   {data.month}
                 </span>
               </div>
@@ -113,18 +119,21 @@ export function ConsumptionChart({ user }: ConsumptionChartProps) {
         {/* Current Stats */}
         <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+            <span className="text-sm sm:text-base font-medium text-foreground">
               {currentMonth.month}: {currentMonth.consumption} m³
             </span>
-            <div
-              className={`flex items-center gap-1 text-xs sm:text-sm ${getTrendColor()}`}
-            >
-              {getTrendIcon()}
-              {Math.abs(trend).toFixed(1)}
+            <div className="flex items-center gap-1">
+              <TrendingUp
+                className={`h-3 w-3 sm:h-4 sm:w-4 ${getTrendColor(trend)}`}
+              />
+              <span className={`text-xs sm:text-sm ${getTrendColor(trend)}`}>
+                {trend > 0 ? "+" : ""}
+                {Math.abs(trend).toFixed(1)}%
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
             <span>Media clădirii: {currentMonth.average} m³</span>
             <Badge
               variant={isAboveAverage ? "destructive" : "secondary"}
@@ -136,7 +145,7 @@ export function ConsumptionChart({ user }: ConsumptionChartProps) {
         </div>
 
         {/* Quick Insight */}
-        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 sm:p-4 rounded-lg">
+        <div className="text-xs sm:text-sm text-muted-foreground bg-muted p-3 sm:p-4 rounded-lg">
           {trend > 0
             ? `Consum crescut cu ${trend.toFixed(1)} m³ față de luna trecută`
             : trend < 0

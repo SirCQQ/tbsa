@@ -21,6 +21,7 @@ import {
   Home,
   Shield,
   ChevronDown,
+  Building,
 } from "lucide-react";
 import { useSession, useLogout } from "@/hooks/use-auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
@@ -32,123 +33,88 @@ interface UserNavProps {
 export function UserNav({ onLogout }: UserNavProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
-  const { data: sessionData, isLoading } = useSession();
-  const logoutMutation = useLogout();
-  const { showLogoutSuccess, showAuthError, showLoadingFeedback } =
-    useAuthFeedback();
+  const { data: session } = useSession();
+  const { mutate: logout } = useLogout();
+  const { showLogoutSuccess, showAuthError } = useAuthFeedback();
 
-  // Early return if no user data
-  if (isLoading || !sessionData?.user) {
-    return <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />;
+  const user = session?.user;
+
+  if (!user) {
+    return null;
   }
 
-  const user = sessionData.user;
+  const userInitials =
+    user.firstName && user.lastName
+      ? `${user.firstName[0]}${user.lastName[0]}`
+      : user.firstName
+      ? user.firstName[0]
+      : user.lastName
+      ? user.lastName[0]
+      : user.email[0];
 
-  // Generate user initials for avatar with safe fallbacks
-  const getInitials = (
-    firstName?: string | null,
-    lastName?: string | null
-  ): string => {
-    const first = firstName?.charAt(0) || "";
-    const last = lastName?.charAt(0) || "";
+  const displayName =
+    user.firstName && user.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user.firstName || user.lastName || user.email;
 
-    if (first && last) {
-      return `${first}${last}`.toUpperCase();
-    }
+  const isAdmin = user.role === "ADMINISTRATOR";
+  const isOwner = user.role === "OWNER";
 
-    if (first) {
-      return first.toUpperCase();
-    }
-
-    if (last) {
-      return last.toUpperCase();
-    }
-
-    // Fallback to first letter of email if no names available
-    return user.email?.charAt(0)?.toUpperCase() || "U";
+  const roleInfo = {
+    label: isAdmin ? "Administrator" : "Proprietar",
+    variant: isAdmin ? ("default" as const) : ("secondary" as const),
+    description: isAdmin
+      ? "Acces complet la sistem și gestionare utilizatori"
+      : "Gestionare apartamente și citiri de consum",
   };
 
-  const userInitials = getInitials(user.firstName, user.lastName);
-
-  // Get role display info
-  const getRoleInfo = (role: string) => {
-    switch (role) {
-      case "ADMINISTRATOR":
-        return {
-          label: "Administrator",
-          icon: Shield,
-          variant: "destructive" as const,
-          description: "Acces complet la sistem",
-        };
-      case "OWNER":
-        return {
-          label: "Proprietar",
-          icon: Home,
-          variant: "secondary" as const,
-          description: "Gestionare apartamente",
-        };
-      default:
-        return {
-          label: role,
-          icon: User,
-          variant: "outline" as const,
-          description: "Utilizator",
-        };
-    }
-  };
-
-  const roleInfo = getRoleInfo(user.role);
-  const RoleIcon = roleInfo.icon;
-
-  // Safe display name with fallbacks
-  const displayName = (() => {
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    }
-    if (user.firstName) {
-      return user.firstName;
-    }
-    if (user.lastName) {
-      return user.lastName;
-    }
-    return user.email || "Utilizator";
-  })();
+  const RoleIcon = isAdmin ? Shield : Home;
 
   const handleLogout = async () => {
-    setIsLoggingOut(true);
-    const loadingToast = showLoadingFeedback("Se deconectează...");
+    if (isLoggingOut) return;
 
     try {
-      await logoutMutation.mutateAsync();
+      setIsLoggingOut(true);
+
+      await logout();
+
       showLogoutSuccess();
-      onLogout?.();
+
+      if (onLogout) {
+        onLogout();
+      }
+
       router.push("/");
     } catch (error) {
+      console.error("Logout error:", error);
       showAuthError(
-        error instanceof Error
-          ? error.message
-          : "A apărut o eroare neașteptată",
+        "A apărut o eroare la deconectare. Te rugăm să încerci din nou.",
         "Eroare la deconectare"
       );
     } finally {
-      loadingToast.dismiss();
       setIsLoggingOut(false);
     }
   };
 
-  const handleProfileClick = () => {
-    // Navigate to profile page when implemented
-    router.push("/profile");
-  };
-
   const handleDashboardClick = () => {
-    // Navigate to dashboard
     router.push("/dashboard");
   };
 
+  const handleProfileClick = () => {
+    router.push("/profile");
+  };
+
   const handleSettingsClick = () => {
-    // Navigate to settings when implemented
-    router.push("/settings");
+    // TODO: Implement settings page
+    console.log("Navigate to settings");
+  };
+
+  const handleApartmentsClick = () => {
+    router.push("/dashboard/apartments");
+  };
+
+  const handleBuildingsClick = () => {
+    router.push("/dashboard/admin/buildings");
   };
 
   return (
@@ -160,8 +126,9 @@ export function UserNav({ onLogout }: UserNavProps) {
         >
           <div className="flex items-center space-x-3">
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
-                {userInitials}
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                {user.firstName?.[0]?.toUpperCase() || "U"}
+                {user.lastName?.[0]?.toUpperCase() || ""}
               </AvatarFallback>
             </Avatar>
 
@@ -187,8 +154,9 @@ export function UserNav({ onLogout }: UserNavProps) {
           <div className="flex flex-col space-y-2">
             <div className="flex items-center space-x-3">
               <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-blue-600 text-white font-medium">
-                  {userInitials}
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                  {user.firstName?.[0]?.toUpperCase() || "U"}
+                  {user.lastName?.[0]?.toUpperCase() || ""}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
@@ -226,6 +194,20 @@ export function UserNav({ onLogout }: UserNavProps) {
           <span>Dashboard</span>
         </DropdownMenuItem>
 
+        {(isOwner || isAdmin) && (
+          <DropdownMenuItem onClick={handleApartmentsClick}>
+            <Home className="mr-2 h-4 w-4" />
+            <span>Apartamentele Mele</span>
+          </DropdownMenuItem>
+        )}
+
+        {isAdmin && (
+          <DropdownMenuItem onClick={handleBuildingsClick}>
+            <Building className="mr-2 h-4 w-4" />
+            <span>Managementul Clădirilor</span>
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuItem onClick={handleProfileClick}>
           <User className="mr-2 h-4 w-4" />
           <span>Profil</span>
@@ -241,7 +223,7 @@ export function UserNav({ onLogout }: UserNavProps) {
         <DropdownMenuItem
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="text-red-600 focus:text-red-600"
+          className="text-red-600 dark:text-red-400"
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>{isLoggingOut ? "Se deconectează..." : "Deconectare"}</span>

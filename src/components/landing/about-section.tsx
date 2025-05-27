@@ -1,7 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, Target, Heart, Award, Zap } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Award, Building2, Heart, Target, Users, Zap } from "lucide-react";
 
 export function AboutSection() {
   const values = [
@@ -46,27 +45,21 @@ export function AboutSection() {
     <section id="about" className="py-20 bg-white dark:bg-gray-800">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Header */}
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <Badge variant="secondary" className="mb-4">
-            Despre noi
-          </Badge>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Cine suntem și ce{" "}
-            <span className="text-blue-600 dark:text-blue-400">
-              ne motivează
-            </span>
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Despre TBSA
           </h2>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-            TBSA a fost creată din nevoia de a moderniza și simplifica
-            administrarea asociațiilor de apartamente din România.
+          <p className="mt-4 text-lg text-muted-foreground">
+            Soluția modernă pentru administrarea eficientă a asociațiilor de
+            proprietari
           </p>
         </div>
 
         {/* Story Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Povestea noastră
+            <h3 className="text-2xl font-bold text-foreground mb-6">
+              Misiunea noastră
             </h3>
             <div className="space-y-4 text-gray-600 dark:text-gray-300">
               <p className="leading-relaxed">

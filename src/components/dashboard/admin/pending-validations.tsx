@@ -62,9 +62,9 @@ const statusConfig = {
 
 export function PendingValidations() {
   return (
-    <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20">
+    <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-card">
       <CardHeader>
-        <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
           Validări în Așteptare
         </CardTitle>
@@ -79,10 +79,10 @@ export function PendingValidations() {
                 className={`flex items-center justify-between p-3 rounded-lg ${config.bgColor} transition-colors duration-200 hover:opacity-80`}
               >
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-foreground">
                     {validation.building}, {validation.apartment}
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     Citire: {validation.reading} {validation.unit}
                   </p>
                 </div>

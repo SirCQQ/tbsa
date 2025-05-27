@@ -111,8 +111,8 @@ export function UserManagement() {
     <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-            <Users className="h-5 w-5" />
+          <CardTitle className="text-foreground flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Gestionare Utilizatori
           </CardTitle>
           <Button variant="outline" size="sm">
@@ -121,7 +121,7 @@ export function UserManagement() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+        <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
           {mockUserActions.map((action) => {
             const config = actionConfig[action.type];
             const IconComponent = config.icon;
@@ -129,18 +129,18 @@ export function UserManagement() {
             return (
               <div
                 key={action.id}
-                className={`p-3 sm:p-4 rounded-lg border border-gray-200 dark:border-gray-600 ${config.bgColor} transition-all duration-200 hover:opacity-80`}
+                className={`p-3 sm:p-4 rounded-lg border ${config.bgColor} transition-all duration-200 hover:opacity-80`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div
-                      className={`p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-700 ${config.color} flex-shrink-0`}
+                      className={`p-1.5 sm:p-2 rounded-lg bg-background ${config.color} flex-shrink-0`}
                     >
                       <IconComponent className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
+                        <p className="font-medium text-sm sm:text-base text-foreground truncate">
                           {action.user.name}
                         </p>
                         <span

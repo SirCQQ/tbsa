@@ -100,6 +100,7 @@ describe("AuthService", () => {
           createdAt: mockUser.createdAt,
           administrator: null,
           owner: mockCreatedUser.owner,
+          ownerId: null,
         });
         expect(mockPrisma.user.create).toHaveBeenCalledWith({
           data: {
@@ -256,6 +257,7 @@ describe("AuthService", () => {
           createdAt: mockUser.createdAt,
           administrator: null,
           owner: mockUserWithRelations.owner,
+          ownerId: mockUserWithRelations.owner.id,
         });
         expect(result.data?.token).toBeDefined();
         expect(typeof result.data?.token).toBe("string");

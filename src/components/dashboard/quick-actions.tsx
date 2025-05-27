@@ -21,6 +21,7 @@ import {
   BarChart3,
   AlertTriangle,
   Building2,
+  Home,
 } from "lucide-react";
 import type { SafeUser } from "@/types/auth";
 import { SubmitReadingModal } from "./modals/submit-reading-modal";
@@ -51,6 +52,7 @@ export function QuickActions({ user }: QuickActionsProps) {
       "bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
       "bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
       "bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700",
+      "bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700",
     ];
     return colors[index % colors.length];
   };
@@ -90,6 +92,12 @@ export function QuickActions({ user }: QuickActionsProps) {
 
   const ownerActions: ActionButton[] = [
     {
+      icon: <Home className="h-5 w-5" />,
+      title: "Apartamentele Mele",
+      description: "Gestionează apartamentele tale",
+      onClick: () => router.push("/dashboard/apartments"),
+    },
+    {
       icon: <Upload className="h-5 w-5" />,
       title: "Trimite Citire",
       description: "Adaugă citirea lunară de apă",
@@ -119,13 +127,13 @@ export function QuickActions({ user }: QuickActionsProps) {
 
   return (
     <>
-      <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20">
+      <Card className="transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Zap className="h-5 w-5 text-blue-600" />
             Acțiuni Rapide
           </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Funcționalități frecvent utilizate
           </CardDescription>
         </CardHeader>

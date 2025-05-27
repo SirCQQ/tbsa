@@ -97,9 +97,8 @@ export function ContactSection() {
           <Badge variant="secondary" className="mb-4">
             Contact
           </Badge>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Hai să{" "}
-            <span className="text-blue-600 dark:text-blue-400">discutăm</span>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Contactează-ne
           </h2>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
             Suntem aici să te ajutăm să transformi administrarea asociației

@@ -225,6 +225,7 @@ export class AuthService {
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,
+        ownerId: null,
       };
 
       return {
@@ -308,6 +309,7 @@ export class AuthService {
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,
+        ownerId: user.owner?.id || null,
       };
 
       // If fingerprint is provided, use enhanced session management
@@ -423,6 +425,7 @@ export class AuthService {
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,
+        ownerId: user.owner?.id || null,
       };
 
       return {

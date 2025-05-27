@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserNav } from "@/components/auth/user-nav";
-import { Building2, Menu, X } from "lucide-react";
+import { Building2, Menu, X, Home, Building } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -23,13 +23,20 @@ export function Header() {
     setIsMenuOpen(false);
   };
 
+  // Check if user can access apartments
+  const canAccessApartments =
+    user && (user.role === "OWNER" || user.role === "ADMINISTRATOR");
+
+  // Check if user is administrator
+  const isAdmin = user && user.role === "ADMINISTRATOR";
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-            <Building2 className="h-5 w-5 text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Building2 className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold">TBSA</span>
         </Link>
@@ -119,9 +126,32 @@ export function Header() {
                       href="/dashboard"
                       onClick={() => setIsMenuOpen(false)}
                     >
+                      <Building2 className="mr-2 h-4 w-4" />
                       Dashboard
                     </Link>
                   </Button>
+                  {canAccessApartments && (
+                    <Button variant="ghost" asChild className="justify-start">
+                      <Link
+                        href="/dashboard/apartments"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Home className="mr-2 h-4 w-4" />
+                        Apartamentele Mele
+                      </Link>
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button variant="ghost" asChild className="justify-start">
+                      <Link
+                        href="/dashboard/admin/buildings"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Building className="mr-2 h-4 w-4" />
+                        Managementul Clădirilor
+                      </Link>
+                    </Button>
+                  )}
                   <Button variant="ghost" asChild className="justify-start">
                     <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
                       Profil

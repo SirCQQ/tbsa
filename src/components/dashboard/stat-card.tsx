@@ -36,12 +36,12 @@ export function StatCard({
   };
 
   return (
-    <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20 min-h-[120px] sm:min-h-[130px] cursor-pointer active:scale-95">
+    <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-0 shadow-sm bg-card min-h-[120px] sm:min-h-[130px] cursor-pointer active:scale-95">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-50/20 dark:to-gray-800/20 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-muted/20 pointer-events-none" />
 
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3 relative p-4 sm:p-6">
-        <CardTitle className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 leading-tight">
+        <CardTitle className="text-sm sm:text-base font-medium text-muted-foreground leading-tight">
           {title}
         </CardTitle>
         <div
@@ -52,7 +52,7 @@ export function StatCard({
       </CardHeader>
 
       <CardContent className="relative p-4 sm:p-6 pt-0">
-        <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
+        <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 sm:mb-2">
           {value}
         </div>
         <p

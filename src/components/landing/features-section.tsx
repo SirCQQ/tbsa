@@ -85,19 +85,16 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="py-20 bg-gray-50 dark:bg-gray-900">
+    <section id="features" className="py-20 bg-muted/30">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <Badge variant="secondary" className="mb-4">
             Funcționalități
           </Badge>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Tot ce ai nevoie pentru{" "}
-            <span className="text-blue-600 dark:text-blue-400">
-              administrarea perfectă
-            </span>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Funcționalități complete pentru gestionarea asociației
           </h2>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
+          <p className="mt-4 text-lg text-muted-foreground">
             TBSA oferă toate instrumentele necesare pentru gestionarea eficientă
             a asociațiilor de apartamente, de la citiri până la raportare.
           </p>
@@ -127,7 +124,7 @@ export function FeaturesSection() {
                     {feature.highlights.map((highlight, idx) => (
                       <li
                         key={idx}
-                        className="flex items-center text-sm text-gray-600 dark:text-gray-300"
+                        className="flex items-center text-sm text-muted-foreground"
                       >
                         <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                         {highlight}
@@ -141,13 +138,13 @@ export function FeaturesSection() {
         </div>
 
         {/* Stats Section */}
-        <div className="mt-20 bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm">
+        <div className="mt-20 bg-card rounded-2xl p-8 shadow-sm">
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 100%
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">
+              <div className="text-sm text-muted-foreground">
                 Automatizare citiri
               </div>
             </div>
@@ -155,7 +152,7 @@ export function FeaturesSection() {
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                 24/7
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">
+              <div className="text-sm text-muted-foreground">
                 Disponibilitate sistem
               </div>
             </div>
@@ -163,7 +160,7 @@ export function FeaturesSection() {
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                 99.9%
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">
+              <div className="text-sm text-muted-foreground">
                 Acuratețe date
               </div>
             </div>

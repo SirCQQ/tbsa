@@ -21,10 +21,10 @@ export function AdminHeader({ user }: AdminHeaderProps) {
     <div className="mb-6 md:mb-8">
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div className="flex-1">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-            Panou Administrator
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            Dashboard Administrator
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1 md:mt-2 text-sm md:text-base">
+          <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
             Bun venit, {user.firstName} {user.lastName}! Gestionează sistemul
             din acest panou centralizat.
           </p>

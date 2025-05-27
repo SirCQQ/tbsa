@@ -14,30 +14,42 @@ datasource db {
 }
 
 enum UserRole {
-  ADMINISTRATOR
   OWNER
+  ADMINISTRATOR
 }
 
 enum BuildingType {
   RESIDENTIAL
 }
 
+enum InviteCodeStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
 // Base user model for both administrators and apartment owners
 model User {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   email     String   @unique
-  password  String
   firstName String
   lastName  String
   phone     String?
-  role      UserRole
+  role      UserRole @default(OWNER)
+  password  String
+
+  // Profile associations
+  owner         Owner?         @relation("UserOwner")
+  administrator Administrator? @relation("UserAdministrator")
+
+  // Session management
+  sessions Session[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Relations
-  administrator Administrator?
-  owner         Owner?
-  sessions      Session[]
+  Owner     Owner?   @relation(fields: [ownerId], references: [id])
+  ownerId   String?
 
   @@map("users")
 }
@@ -62,12 +74,18 @@ model Session {
 
 // Administrator model - can manage multiple buildings
 model Administrator {
-  id     String @id @default(uuid())
+  id     String @id @default(cuid())
   userId String @unique
+  user   User   @relation("UserAdministrator", fields: [userId], references: [id], onDelete: Cascade)
 
-  // Relations
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Administrator manages buildings
   buildings Building[]
+
+  // Administrator creates invite codes
+  inviteCodes InviteCode[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@map("administrators")
 }
@@ -104,32 +122,39 @@ model Building {
 
 // Apartment model - belongs to a building, owned by one owner
 model Apartment {
-  id         String   @id @default(uuid())
-  number     String // Apartment number (e.g., "12", "A3", etc.)
+  id         String  @id @default(cuid())
+  number     String
   floor      Int?
   rooms      Int?
-  buildingId String
   ownerId    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  buildingId String
 
   // Relations
-  building      Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   owner         Owner?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  building      Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   waterReadings WaterReading[]
+  inviteCode    InviteCode?
 
-  @@unique([buildingId, number]) // Unique apartment per building
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Unique constraint: one apartment number per building
+  @@unique([number, buildingId])
   @@map("apartments")
 }
 
 // Owner model - can own multiple apartments
 model Owner {
-  id     String @id @default(uuid())
+  id     String @id @default(cuid())
   userId String @unique
+  user   User   @relation("UserOwner", fields: [userId], references: [id], onDelete: Cascade)
 
-  // Relations
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Owner has apartments
   apartments Apartment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  User      User[]
 
   @@map("owners")
 }
@@ -156,4 +181,28 @@ model WaterReading {
 
   @@unique([apartmentId, month, year]) // One reading per apartment per month
   @@map("water_readings")
+}
+
+model InviteCode {
+  id          String    @id @default(cuid())
+  code        String    @unique // 6-8 character code
+  apartmentId String    @unique // One code per apartment
+  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+
+  // Who created the code
+  createdBy     String
+  administrator Administrator @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  // Status and usage tracking
+  status InviteCodeStatus @default(ACTIVE)
+  usedBy String? // User ID who used the code
+  usedAt DateTime?
+
+  // Expiration
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("invite_codes")
 }
