@@ -77,7 +77,14 @@ export async function POST(req: NextRequest) {
       clientIP,
       userAgent,
       {
-        role: result.data.user.role,
+        hasRefreshToken: !!result.data.refreshToken,
+      }
+    );
+
+    // Log successful login
+    console.log(
+      `User ${result.data.user.email} logged in successfully from ${clientIP} using ${userAgent}`,
+      {
         hasRefreshToken: !!result.data.refreshToken,
       }
     );

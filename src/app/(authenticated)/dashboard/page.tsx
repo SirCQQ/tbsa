@@ -4,6 +4,9 @@ import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { OwnerDashboard } from "@/components/dashboard";
+import { PermissionGuard } from "@/components/auth/permission-guard";
+import { Card, CardContent } from "@/components/ui/card";
+import { Shield } from "lucide-react";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -28,22 +31,27 @@ export default function DashboardPage() {
     return null;
   }
 
-  // Allow both OWNER and ADMINISTRATOR roles to access this dashboard
-  // Administrators can be property owners too
-  if (user.role !== "OWNER" && user.role !== "ADMINISTRATOR") {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Acces interzis
-          </h2>
-          <p className="text-gray-600">
-            Nu aveți permisiunea să accesați această pagină.
-          </p>
+  return (
+    <PermissionGuard
+      permission="apartments:read:own"
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="text-center py-8">
+              <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Acces interzis
+              </h2>
+              <p className="text-gray-600">
+                Nu aveți permisiunea să accesați această pagină.
+              </p>
+            </CardContent>
+          </Card>
         </div>
-      </div>
-    );
-  }
-
-  return <OwnerDashboard user={user} />;
+      }
+      showLoading={true}
+    >
+      <OwnerDashboard user={user} />
+    </PermissionGuard>
+  );
 }

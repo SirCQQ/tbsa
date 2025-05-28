@@ -111,23 +111,33 @@ export function useAuthFeedback() {
     [toast]
   );
 
-  // Role-specific welcome messages
-  const showRoleBasedWelcome = useCallback(
+  // Permission-based welcome messages
+  const showPermissionBasedWelcome = useCallback(
     (user: SafeUser) => {
-      const roleMessages = {
-        ADMINISTRATOR: {
+      // Check if user has admin permissions
+      const hasAdminPermissions = user.permissions?.some((p) =>
+        p.includes("buildings:read:all")
+      );
+      // Check if user has owner permissions
+      const hasOwnerPermissions = user.permissions?.some((p) =>
+        p.includes("apartments:read:own")
+      );
+
+      let message;
+      if (hasAdminPermissions) {
+        message = {
           title: "Panou Administrator",
           description:
             "Ai acces complet la gestionarea clădirilor și apartamentelor.",
-        },
-        OWNER: {
+        };
+      } else if (hasOwnerPermissions) {
+        message = {
           title: "Panou Proprietar",
           description:
             "Poți vizualiza și gestiona citirile pentru apartamentele tale.",
-        },
-      };
+        };
+      }
 
-      const message = roleMessages[user.role];
       if (message) {
         toast({
           title: message.title,
@@ -149,6 +159,6 @@ export function useAuthFeedback() {
     showSessionExpired,
     showLoadingFeedback,
     showConnectionStatus,
-    showRoleBasedWelcome,
+    showPermissionBasedWelcome,
   };
 }

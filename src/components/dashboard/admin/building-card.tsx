@@ -38,8 +38,15 @@ export function BuildingCard({
   onAction,
   isDeleting = false,
 }: BuildingCardProps) {
+  const handleCardClick = () => {
+    onAction("view", building.id, building.name);
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20 cursor-pointer active:scale-95">
+    <Card
+      className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50 dark:shadow-gray-900/20 cursor-pointer active:scale-95"
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div>
@@ -56,6 +63,7 @@ export function BuildingCard({
                 variant="ghost"
                 className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
                 disabled={isDeleting}
+                onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>

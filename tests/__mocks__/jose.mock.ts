@@ -4,7 +4,7 @@ export const mockJose = {
     payload: {
       userId: "test-user-id",
       email: "test@example.com",
-      role: "ADMINISTRATOR",
+      permissions: ["buildings:read:all"],
       administratorId: "test-admin-id",
     },
   }),

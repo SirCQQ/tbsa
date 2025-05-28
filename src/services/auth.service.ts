@@ -12,8 +12,8 @@ import {
   SessionFingerprint,
 } from "../types/auth";
 import { SessionService } from "./session.service";
+import { PermissionService } from "./permission.service";
 import { api } from "@/lib/axios";
-import type { User } from "@prisma/client/wasm";
 
 // Create secret key for JWT (keeping for backward compatibility)
 const secret = new TextEncoder().encode(
@@ -34,7 +34,7 @@ export type RegisterData = {
 };
 
 export type AuthResponse = {
-  user: User;
+  user: SafeUser;
   message?: string;
 };
 
@@ -151,7 +151,7 @@ export class AuthService {
         );
       }
 
-      const { firstName, lastName, email, password, phone, role } =
+      const { firstName, lastName, email, password, phone } =
         validationResult.data;
 
       // Check if user already exists
@@ -169,7 +169,19 @@ export class AuthService {
       // Hash password
       const hashedPassword = await PasswordService.hashPassword(password);
 
-      // Create user
+      // Find the BASIC_USER role
+      const basicUserRole = await prisma.role.findUnique({
+        where: { name: "BASIC_USER" },
+      });
+
+      if (!basicUserRole) {
+        return createServiceError(
+          AuthErrorKey.VALIDATION_FAILED,
+          "BASIC_USER role not found"
+        );
+      }
+
+      // Create user with BASIC_USER role
       const user = await prisma.user.create({
         data: {
           firstName,
@@ -177,9 +189,10 @@ export class AuthService {
           email,
           password: hashedPassword,
           phone,
-          role,
+          roleId: basicUserRole.id,
         },
         include: {
+          role: true,
           administrator: true,
           owner: {
             include: {
@@ -199,21 +212,6 @@ export class AuthService {
         },
       });
 
-      // Create role-specific records
-      if (role === "ADMINISTRATOR") {
-        await prisma.administrator.create({
-          data: {
-            userId: user.id,
-          },
-        });
-      } else if (role === "OWNER") {
-        await prisma.owner.create({
-          data: {
-            userId: user.id,
-          },
-        });
-      }
-
       // Prepare safe user data
       const safeUser: SafeUser = {
         id: user.id,
@@ -221,7 +219,6 @@ export class AuthService {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        role: user.role,
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,
@@ -266,6 +263,7 @@ export class AuthService {
       const user = await prisma.user.findUnique({
         where: { email },
         include: {
+          role: true,
           administrator: true,
           owner: {
             include: {
@@ -305,12 +303,16 @@ export class AuthService {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        role: user.role,
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,
         ownerId: user.owner?.id || null,
       };
+
+      // Get user permissions for JWT
+      const userPermissions = await PermissionService.getUserPermissionStrings(
+        user.id
+      );
 
       // If fingerprint is provided, use enhanced session management
       if (fingerprint) {
@@ -327,7 +329,8 @@ export class AuthService {
         const payload: JWTPayload = {
           userId: user.id,
           email: user.email,
-          role: user.role,
+
+          permissions: userPermissions,
           administratorId: user.administrator?.id,
           ownerId: user.owner?.id,
           sessionId: sessionResult.data.sessionId,
@@ -354,7 +357,7 @@ export class AuthService {
       const payload: JWTPayload = {
         userId: user.id,
         email: user.email,
-        role: user.role,
+        permissions: userPermissions,
         administratorId: user.administrator?.id,
         ownerId: user.owner?.id,
       };
@@ -388,6 +391,7 @@ export class AuthService {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
+          role: true,
           administrator: true,
           owner: {
             include: {
@@ -421,7 +425,6 @@ export class AuthService {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        role: user.role,
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,

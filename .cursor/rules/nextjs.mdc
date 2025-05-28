@@ -1,0 +1,281 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Next.js App Router Guidelines
+
+## Dynamic Route Parameters (Next.js 15+)
+
+- **Always await params in dynamic routes**
+  - In Next.js 15+, `params` is a Promise and must be awaited
+  - This applies to both page components and API routes
+
+### Page Components
+```typescript
+// ✅ DO: Await params in page components
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function Page({ params }: Props) {
+  const { id } = await params;
+  return <Component id={id} />;
+}
+
+// ❌ DON'T: Use params directly without awaiting
+type Props = {
+  params: { id: string }; // Wrong type
+};
+
+export default function Page({ params }: Props) {
+  return <Component id={params.id} />; // Error in Next.js 15+
+}
+```
+
+### API Routes
+```typescript
+// ✅ DO: Await params in API routes
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  // Use id here
+}
+
+// ❌ DON'T: Use params directly
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } } // Wrong type
+) {
+  const id = params.id; // Error in Next.js 15+
+}
+```
+
+## Server Components vs Client Components
+
+- **Prefer Server Components by default**
+  - Use `"use client"` only when necessary (state, effects, browser APIs)
+  - Server components can be async and await data directly
+
+- **Data Fetching Patterns**
+  - Server components: Fetch data directly in the component
+  - Client components: Use React Query hooks
+
+### Server Component Data Fetching
+```typescript
+// ✅ DO: Fetch data in server components
+export default async function Page({ params }: Props) {
+  const { id } = await params;
+  const data = await fetchData(id);
+  return <Component data={data} />;
+}
+```
+
+### Client Component Data Fetching
+```typescript
+// ✅ DO: Use hooks in client components
+"use client";
+
+export default function Page({ id }: { id: string }) {
+  const { data, isLoading } = useData(id);
+  return <Component data={data} isLoading={isLoading} />;
+}
+```
+
+## Metadata
+
+- **Export metadata from page components**
+  - Use static metadata for SEO optimization
+  - Can be dynamic based on params
+
+```typescript
+// ✅ DO: Export metadata for pages
+export const metadata: Metadata = {
+  title: "Page Title",
+  description: "Page description",
+};
+
+// ✅ DO: Generate dynamic metadata
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const data = await fetchData(id);
+  return {
+    title: data.title,
+    description: data.description,
+  };
+}
+```
+
+## Error Handling
+
+- **Use error.tsx for error boundaries**
+- **Use not-found.tsx for 404 pages**
+- **Handle loading states with loading.tsx**
+
+## Route Handlers (API Routes)
+
+- **Always validate input data**
+- **Use proper HTTP status codes**
+- **Handle authentication consistently**
+
+```typescript
+// ✅ DO: Proper API route structure
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    
+    // Validate authentication
+    const authResult = await getCurrentUser();
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    // Validate input
+    if (!id) {
+      return NextResponse.json({ error: "ID required" }, { status: 400 });
+    }
+    
+    // Process request
+    const data = await fetchData(id);
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("API Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+```
+
+## File Organization
+
+- **Group related routes in folders**
+- **Use route groups `(name)` for organization without affecting URL structure**
+- **Place shared components in appropriate directories**
+
+## Performance
+
+- **Use Suspense boundaries for loading states**
+- **Implement proper caching strategies**
+- **Optimize images with next/image**
+- **Use dynamic imports for code splitting**
+
+## Common Patterns
+
+### Protected Routes
+```typescript
+// ✅ DO: Use middleware for route protection
+// middleware.ts handles authentication
+// Layout components handle role-based access
+```
+
+### Form Handling
+```typescript
+// ✅ DO: Use Server Actions for form submissions
+export async function createAction(formData: FormData) {
+  // Server-side form processing
+}
+
+// ✅ DO: Use React Hook Form for complex client-side forms
+"use client";
+export function Form() {
+  const { register, handleSubmit } = useForm();
+  // Client-side form handling
+}
+```
+
+## Migration Notes
+
+- **Next.js 15 Breaking Changes**
+  - `params` and `searchParams` are now Promises
+  - Always await these in components and API routes
+  - Update TypeScript types accordingly
+
+## Prisma Schema Constraints
+
+- **Always check schema constraints before creating data**
+  - Unique constraints (e.g., `@@unique([apartmentId, month, year])`)
+  - Foreign key relationships and required fields
+  - Field types and validation rules
+
+- **ID Standardization**
+  - Use `@default(uuid())` for all model IDs consistently
+  - Avoid mixing CUID and UUID in the same project
+  - Update validation schemas to match Prisma ID types
+
+### Common Prisma Patterns
+```typescript
+// ✅ DO: Check for unique constraints in seed/test data
+const usedCombinations = new Set<string>();
+while (records.length < targetCount) {
+  const combination = generateUniqueCombination();
+  if (!usedCombinations.has(combination.key)) {
+    usedCombinations.add(combination.key);
+    records.push(combination);
+  }
+}
+
+// ✅ DO: Use consistent ID types
+model User {
+  id String @id @default(uuid()) // Consistent UUID usage
+}
+
+// ❌ DON'T: Mix ID types
+model User {
+  id String @id @default(cuid()) // Inconsistent with other models using uuid()
+}
+```
+
+### Schema Validation
+- Always verify field names against the actual Prisma schema
+- Check for required relationships and foreign keys
+- Understand unique constraints and indexes
+- Use proper field types (String, Int, Float, DateTime, etc.)
+- **Match validation schemas with Prisma ID types (UUID vs CUID)**
+
+```typescript
+// ✅ DO: Match validation with Prisma schema
+// If Prisma uses @default(uuid())
+const schema = z.object({
+  id: z.string().uuid(),
+  ownerId: z.string().uuid().optional(),
+});
+
+// ❌ DON'T: Use wrong validation for ID type
+// If Prisma uses @default(uuid()) but validation expects CUID
+const schema = z.object({
+  id: z.string().regex(/^c[a-z0-9]{24}$/), // Wrong for UUID
+});
+```
+
+## Seed Data Consistency
+
+- **Maintain logical consistency in generated data**
+  - If a building has X apartments per floor, use X for ALL floors
+  - Don't mix different logic for ground floor vs upper floors unless specifically required
+  - Ensure data relationships make business sense
+
+### Consistent Data Generation
+```typescript
+// ✅ DO: Use consistent logic across all iterations
+for (let floor = 0; floor <= config.floors; floor++) {
+  const apartmentsOnFloor = config.apartmentsPerFloor; // Same for all floors
+  // Generate apartments...
+}
+
+// ❌ DON'T: Use different logic for different iterations
+for (let floor = 0; floor <= config.floors; floor++) {
+  const apartmentsOnFloor = floor === 0 
+    ? Math.min(config.apartmentsPerFloor, 4) // Different for ground floor
+    : config.apartmentsPerFloor; // Different for upper floors
+}
+```
+
+### Data Validation in Seeds
+- Test seed output to ensure it matches expectations
+- Verify totals and counts make sense
+- Check that relationships are properly established
+- Ensure unique constraints are respected

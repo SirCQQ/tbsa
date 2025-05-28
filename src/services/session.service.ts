@@ -98,7 +98,7 @@ export class SessionService {
       const accessTokenPayload: JWTPayload = {
         userId,
         email: user.email,
-        role: user.role,
+        permissions: [], // Will be populated by PermissionService
         sessionId,
         fingerprint: fingerprintHash,
         administratorId: user.administrator?.id,
@@ -187,7 +187,7 @@ export class SessionService {
       const accessTokenPayload: JWTPayload = {
         userId: session.user.id,
         email: session.user.email,
-        role: session.user.role,
+        permissions: [], // Will be populated by PermissionService
         sessionId: session.id,
         fingerprint: currentFingerprintHash,
         administratorId: session.user.administrator?.id,

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -19,9 +21,12 @@ import {
   TrendingUp,
   Home,
   Ticket,
+  Building2,
 } from "lucide-react";
 import type { SafeUser } from "@/types/auth";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import Link from "next/link";
 
 type QuickAction = {
   icon: React.ReactNode;
@@ -40,9 +45,18 @@ type SidebarQuickActionsProps = {
   user: SafeUser;
 };
 
-export function SidebarQuickActions({ user }: SidebarQuickActionsProps) {
+export function SidebarQuickActions() {
+  const { user, hasPermission } = useAuth();
   const router = useRouter();
-  const isAdmin = user.role === "ADMINISTRATOR";
+
+  if (!user) return null;
+
+  // Use permissions instead of role checks
+  const isAdmin = hasPermission("buildings:read:all");
+  const canCreateBuildings = hasPermission("buildings:create:all");
+  const canManageUsers = hasPermission("users:read:all");
+  const canCreateApartments = hasPermission("apartments:create:own");
+  const canSubmitReadings = hasPermission("water_readings:create:own");
 
   // Mock data pentru context
   const mockContext = {
@@ -153,6 +167,61 @@ export function SidebarQuickActions({ user }: SidebarQuickActionsProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Admin Actions */}
+        {canCreateBuildings && (
+          <Button asChild className="w-full justify-start" variant="outline">
+            <Link href="/dashboard/admin/buildings/create">
+              <Building2 className="mr-2 h-4 w-4" />
+              Adaugă Clădire
+            </Link>
+          </Button>
+        )}
+
+        {canManageUsers && (
+          <Button asChild className="w-full justify-start" variant="outline">
+            <Link href="/dashboard/admin/users">
+              <Users className="mr-2 h-4 w-4" />
+              Gestionează Utilizatori
+            </Link>
+          </Button>
+        )}
+
+        {isAdmin && (
+          <Button asChild className="w-full justify-start" variant="outline">
+            <Link href="/dashboard/admin/reports">
+              <FileText className="mr-2 h-4 w-4" />
+              Rapoarte
+            </Link>
+          </Button>
+        )}
+
+        {/* Owner Actions */}
+        {canCreateApartments && (
+          <Button asChild className="w-full justify-start" variant="outline">
+            <Link href="/dashboard/apartments/create">
+              <Home className="mr-2 h-4 w-4" />
+              Adaugă Apartament
+            </Link>
+          </Button>
+        )}
+
+        {canSubmitReadings && (
+          <Button asChild className="w-full justify-start" variant="outline">
+            <Link href="/dashboard/readings/submit">
+              <Droplets className="mr-2 h-4 w-4" />
+              Trimite Citire
+            </Link>
+          </Button>
+        )}
+
+        {/* Common Actions */}
+        <Button asChild className="w-full justify-start" variant="outline">
+          <Link href="/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            Setări
+          </Link>
+        </Button>
+
         {actions.map((action, index) => (
           <div key={index} className="relative">
             {action.urgent && (

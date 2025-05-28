@@ -13,6 +13,7 @@ import { User, Mail, Phone, Shield, Edit } from "lucide-react";
 import type { SafeUser } from "@/types/auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 type ProfileFormData = {
   firstName: string;
@@ -27,10 +28,11 @@ type PersonalInfoCardProps = {
 export function PersonalInfoCard({ user }: PersonalInfoCardProps) {
   const { showAuthError } = useAuthFeedback();
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isAdmin = user.role === "ADMINISTRATOR";
+  const isAdmin = hasPermission("buildings:update:own");
 
   const handleFormSubmit = async (_data: ProfileFormData) => {
     setIsSaving(true);

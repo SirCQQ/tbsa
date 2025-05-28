@@ -463,12 +463,25 @@ describe("AuthService", () => {
       const payload: JWTPayload = {
         userId: "123",
         email: "test@example.com",
-        role: "OWNER",
+        permissions: ["buildings:read:all"],
         administratorId: undefined,
         ownerId: "owner-123",
         sessionId: "session-123",
         fingerprint: "fingerprint-hash",
       };
+
+      const token = await AuthService.createToken(payload);
+
+      expect(typeof token).toBe("string");
+      expect(token).not.toBe("");
+    });
+
+    it("should handle token creation with minimal payload", async () => {
+      const payload = {
+        userId: "123",
+        email: "test@example.com",
+        permissions: ["apartments:read:own"],
+      } as JWTPayload;
 
       const token = await AuthService.createToken(payload);
 
@@ -651,7 +664,7 @@ describe("Edge cases and error handling", () => {
       const payload = {
         userId: "123",
         email: "test@example.com",
-        role: "OWNER",
+        permissions: ["apartments:read:own"],
       } as JWTPayload;
 
       const token = await AuthService.createToken(payload);

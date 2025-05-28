@@ -1,17 +1,24 @@
 import type {
   User as PrismaUser,
-  UserRole,
   Administrator,
   Owner,
   Apartment,
   Building,
+  Role,
 } from "@prisma/client";
+import { PermissionString } from "@/lib/constants";
 
-// Re-export Prisma types for consistency
-export type { UserRole } from "@prisma/client";
+// Permission type for JWT
+export type Permission = {
+  id: string;
+  resource: string;
+  action: string;
+  scope: string | null;
+};
 
 // Extended user type with relations for API responses
 export type User = PrismaUser & {
+  role: Role;
   administrator?: Administrator | null;
   owner?:
     | (Owner & {
@@ -54,14 +61,13 @@ export type RegisterRequest = {
   password: string;
   confirmPassword: string;
   phone?: string;
-  role: UserRole;
 };
 
-// JWT types
+// JWT types - removed role field, only permissions
 export type JWTPayload = {
   userId: string;
   email: string;
-  role: UserRole;
+  permissions: PermissionString[]; // Array of permission strings like "buildings:read:all"
   administratorId?: string;
   ownerId?: string;
   sessionId?: string;
@@ -102,8 +108,15 @@ export type SessionInfo = {
   userAgent: string;
 };
 
-// Utility types
-export type SafeUser = Omit<User, "password" | "updatedAt">;
+// Safe user type - completely removed role dependency
+export type SafeUser = Omit<
+  User,
+  "password" | "updatedAt" | "role" | "roleId"
+> & {
+  permissions?: PermissionString[]; // Add permissions for client-side checks
+  ownerId?: string | null; // Add ownerId for backward compatibility
+};
+
 export type UserWithoutPassword = Omit<PrismaUser, "password">;
 
 // Authentication state types

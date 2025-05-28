@@ -12,7 +12,7 @@ jest.mock("jose", () => ({
     payload: {
       userId: "test-user-id",
       email: "test@example.com",
-      role: "OWNER",
+      permissions: ["apartments:read:own"],
     },
   }),
 }));
@@ -130,7 +130,7 @@ describe("Authentication API", () => {
       const payload = {
         userId: "test-user-id",
         email: "test@example.com",
-        role: "OWNER",
+        permissions: ["apartments:read:own"],
       };
 
       const token = await new SignJWT(payload)
@@ -144,7 +144,7 @@ describe("Authentication API", () => {
       const { payload: verifiedPayload } = await jwtVerify(token, secret);
       expect(verifiedPayload.userId).toBe("test-user-id");
       expect(verifiedPayload.email).toBe("test@example.com");
-      expect(verifiedPayload.role).toBe("OWNER");
+      expect(verifiedPayload.permissions).toEqual(["apartments:read:own"]);
     });
   });
 });

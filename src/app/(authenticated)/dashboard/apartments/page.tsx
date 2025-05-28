@@ -24,20 +24,13 @@ export default function ApartmentsPage() {
     );
   }
 
-  if (!isAuthenticated || !user) {
-    return null;
-  }
-
-  // Allow both OWNER and ADMINISTRATOR roles to access this page
-  if (user.role !== "OWNER" && user.role !== "ADMINISTRATOR") {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-2">
-            Acces Restricționat
-          </h2>
+          <h2 className="text-xl font-semibold mb-2">Acces neautorizat</h2>
           <p className="text-muted-foreground">
-            Doar proprietarii și administratorii pot accesa această pagină.
+            Trebuie să fiți autentificat pentru a accesa această pagină.
           </p>
         </div>
       </div>

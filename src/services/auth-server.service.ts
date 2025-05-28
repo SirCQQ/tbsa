@@ -3,6 +3,12 @@ import { jwtVerify } from "jose";
 import { redirect } from "next/navigation";
 import type { SafeUser, JWTPayload } from "@/types/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  PermissionService,
+  type PermissionResource,
+  type PermissionAction,
+  type PermissionScope,
+} from "@/services/permission.service";
 
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-key"
@@ -61,6 +67,11 @@ export class AuthServerService {
         return { user: null, isAuthenticated: false, error: "User not found" };
       }
 
+      // Get user permissions for client-side checks
+      const permissions = await PermissionService.getUserPermissionStrings(
+        user.id
+      );
+
       // Prepare safe user data
       const safeUser: SafeUser = {
         id: user.id,
@@ -68,11 +79,11 @@ export class AuthServerService {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        role: user.role,
         createdAt: user.createdAt,
         administrator: user.administrator,
         owner: user.owner,
         ownerId: user.owner?.id || null,
+        permissions,
       };
 
       return { user: safeUser, isAuthenticated: true };
@@ -100,27 +111,92 @@ export class AuthServerService {
   }
 
   /**
-   * Require specific role for a page (redirects if not authorized)
+   * Require specific permission for a page (redirects if not authorized)
    */
-  static async requireRole(
-    role: "ADMINISTRATOR" | "OWNER",
-    redirectTo: string = "/login"
+  static async requirePermission(
+    resource: PermissionResource,
+    action: PermissionAction,
+    scope?: PermissionScope,
+    redirectTo: string = "/unauthorized"
   ): Promise<SafeUser> {
-    const user = await AuthServerService.requireAuth(redirectTo);
+    const user = await AuthServerService.requireAuth();
 
-    if (user.role !== role) {
-      redirect("/unauthorized");
+    const hasPermission = await PermissionService.hasPermission(user.id, {
+      resource,
+      action,
+      scope,
+    });
+
+    if (!hasPermission) {
+      redirect(redirectTo);
     }
 
     return user;
   }
 
   /**
-   * Check if user has specific role (returns boolean, no redirect)
+   * Check if user has specific permission (returns boolean, no redirect)
    */
-  static async hasRole(role: "ADMINISTRATOR" | "OWNER"): Promise<boolean> {
+  static async hasPermission(
+    resource: PermissionResource,
+    action: PermissionAction,
+    scope?: PermissionScope
+  ): Promise<boolean> {
     const { user, isAuthenticated } = await AuthServerService.getCurrentUser();
-    return isAuthenticated && user?.role === role;
+
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
+    return await PermissionService.hasPermission(user.id, {
+      resource,
+      action,
+      scope,
+    });
+  }
+
+  /**
+   * Require any of the specified permissions (redirects if none are met)
+   */
+  static async requireAnyPermission(
+    permissions: Array<{
+      resource: PermissionResource;
+      action: PermissionAction;
+      scope?: PermissionScope;
+    }>,
+    redirectTo: string = "/unauthorized"
+  ): Promise<SafeUser> {
+    const user = await AuthServerService.requireAuth();
+
+    const hasAnyPermission = await PermissionService.hasAnyPermission(
+      user.id,
+      permissions
+    );
+
+    if (!hasAnyPermission) {
+      redirect(redirectTo);
+    }
+
+    return user;
+  }
+
+  /**
+   * Check if user has any of the specified permissions (returns boolean, no redirect)
+   */
+  static async hasAnyPermission(
+    permissions: Array<{
+      resource: PermissionResource;
+      action: PermissionAction;
+      scope?: PermissionScope;
+    }>
+  ): Promise<boolean> {
+    const { user, isAuthenticated } = await AuthServerService.getCurrentUser();
+
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
+    return await PermissionService.hasAnyPermission(user.id, permissions);
   }
 
   /**
@@ -128,55 +204,80 @@ export class AuthServerService {
    */
   static getUserFromHeaders(headers: Headers): JWTPayload | null {
     const userId = headers.get("x-user-id");
-    const userRole = headers.get("x-user-role");
     const userEmail = headers.get("x-user-email");
+    const userPermissions = headers.get("x-user-permissions");
     const administratorId = headers.get("x-administrator-id");
     const ownerId = headers.get("x-owner-id");
 
-    if (!userId || !userRole || !userEmail) {
+    if (!userId || !userEmail) {
       return null;
     }
 
     return {
       userId,
-      role: userRole as "ADMINISTRATOR" | "OWNER",
       email: userEmail,
+      permissions: userPermissions ? JSON.parse(userPermissions) : [],
       administratorId: administratorId || undefined,
       ownerId: ownerId || undefined,
     };
   }
 
   /**
-   * Validate tenant access for API routes
+   * Validate tenant access for API routes using permissions
    */
-  static validateTenantAccess(
+  static async validateTenantAccess(
     userContext: JWTPayload,
     resourceAdministratorId?: string
-  ): boolean {
-    // Administrators can only access their own tenant's resources
-    if (userContext.role === "ADMINISTRATOR") {
-      return userContext.administratorId === resourceAdministratorId;
+  ): Promise<boolean> {
+    // Check if user has admin permissions for all resources
+    const hasAdminAccess = await PermissionService.hasPermission(
+      userContext.userId,
+      {
+        resource: "buildings",
+        action: "read",
+        scope: "all",
+      }
+    );
+
+    if (hasAdminAccess) {
+      return true;
     }
 
-    // Owners can access resources in their buildings
-    if (userContext.role === "OWNER") {
-      // This would need additional logic to check if the owner
-      // has access to the specific resource based on their apartments
-      return true; // Simplified for now
+    // Check if user has building-specific access
+    if (
+      resourceAdministratorId &&
+      userContext.administratorId === resourceAdministratorId
+    ) {
+      return true;
+    }
+
+    // Check if user has owner permissions for their buildings
+    if (userContext.ownerId) {
+      const hasOwnerAccess = await PermissionService.hasPermission(
+        userContext.userId,
+        {
+          resource: "buildings",
+          action: "read",
+          scope: "building",
+        }
+      );
+      return hasOwnerAccess;
     }
 
     return false;
   }
 
   /**
-   * Higher-order function for protecting API routes
+   * Higher-order function for protecting API routes with permission checks
    */
-  static withAuth(
+  static withPermission(
     handler: (
       request: Request,
       context: { user: JWTPayload }
     ) => Promise<Response>,
-    requiredRole?: "ADMINISTRATOR" | "OWNER"
+    resource: PermissionResource,
+    action: PermissionAction,
+    scope?: PermissionScope
   ) {
     return async (request: Request): Promise<Response> => {
       const userContext = AuthServerService.getUserFromHeaders(request.headers);
@@ -188,7 +289,16 @@ export class AuthServerService {
         );
       }
 
-      if (requiredRole && userContext.role !== requiredRole) {
+      const hasPermission = await PermissionService.hasPermission(
+        userContext.userId,
+        {
+          resource,
+          action,
+          scope,
+        }
+      );
+
+      if (!hasPermission) {
         return new Response(
           JSON.stringify({ error: "Insufficient permissions" }),
           { status: 403, headers: { "Content-Type": "application/json" } }
@@ -198,13 +308,39 @@ export class AuthServerService {
       return handler(request, { user: userContext });
     };
   }
+
+  /**
+   * Higher-order function for protecting API routes with authentication only
+   */
+  static withAuth(
+    handler: (
+      request: Request,
+      context: { user: JWTPayload }
+    ) => Promise<Response>
+  ) {
+    return async (request: Request): Promise<Response> => {
+      const userContext = AuthServerService.getUserFromHeaders(request.headers);
+
+      if (!userContext) {
+        return new Response(
+          JSON.stringify({ error: "Authentication required" }),
+          { status: 401, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return handler(request, { user: userContext });
+    };
+  }
 }
 
-// Export convenience functions for backward compatibility
+// Export convenience functions
 export const getCurrentUser = AuthServerService.getCurrentUser;
 export const requireAuth = AuthServerService.requireAuth;
-export const requireRole = AuthServerService.requireRole;
-export const hasRole = AuthServerService.hasRole;
+export const requirePermission = AuthServerService.requirePermission;
+export const hasPermission = AuthServerService.hasPermission;
+export const requireAnyPermission = AuthServerService.requireAnyPermission;
+export const hasAnyPermission = AuthServerService.hasAnyPermission;
 export const getUserFromHeaders = AuthServerService.getUserFromHeaders;
 export const validateTenantAccess = AuthServerService.validateTenantAccess;
 export const withAuth = AuthServerService.withAuth;
+export const withPermission = AuthServerService.withPermission;

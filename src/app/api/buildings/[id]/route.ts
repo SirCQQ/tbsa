@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/services/auth-server.service";
 import { createAuthError } from "@/lib/auth-errors";
 import { AuthErrorKey } from "@/types/api";
 import { BuildingsService } from "@/services/buildings.service";
+import { hasPermission } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -17,8 +18,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Only administrators can view building details
-    if (user.role !== "ADMINISTRATOR") {
+    // Check if user has permission to view building details
+    const canViewBuildings = await hasPermission({
+      resource: "buildings",
+      action: "read",
+      scope: "all",
+    });
+
+    if (!canViewBuildings) {
       return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 
@@ -78,8 +85,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Only administrators can update buildings
-    if (user.role !== "ADMINISTRATOR") {
+    // Check if user has permission to update buildings
+    const canUpdateBuildings = await hasPermission({
+      resource: "buildings",
+      action: "update",
+      scope: "all",
+    });
+
+    if (!canUpdateBuildings) {
       return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 
@@ -143,8 +156,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Only administrators can delete buildings
-    if (user.role !== "ADMINISTRATOR") {
+    // Check if user has permission to delete buildings
+    const canDeleteBuildings = await hasPermission({
+      resource: "buildings",
+      action: "delete",
+      scope: "all",
+    });
+
+    if (!canDeleteBuildings) {
       return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 

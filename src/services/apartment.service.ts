@@ -245,12 +245,12 @@ export class ApartmentService {
           },
           include: {
             user: {
-              select: { role: true },
+              select: { id: true, email: true },
             },
           },
         });
 
-        if (!owner || owner.user.role !== "OWNER") {
+        if (!owner) {
           return createServiceError(
             "NOT_FOUND",
             "Proprietarul specificat nu a fost găsit"
@@ -332,12 +332,12 @@ export class ApartmentService {
           },
           include: {
             user: {
-              select: { role: true },
+              select: { id: true, email: true },
             },
           },
         });
 
-        if (!owner || owner.user.role !== "OWNER") {
+        if (!owner) {
           return createServiceError(
             "NOT_FOUND",
             "Proprietarul specificat nu a fost găsit"

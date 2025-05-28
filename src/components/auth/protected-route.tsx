@@ -1,13 +1,15 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
-import type { UserRole } from "@/types/auth";
+import type { PermissionString } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: UserRole;
+  requiredPermission?: PermissionString;
+  requiredPermissions?: PermissionString[];
+  requireAll?: boolean; // If true, user must have ALL permissions. If false, user needs ANY permission
   fallbackUrl?: string;
   loadingComponent?: React.ReactNode;
   unauthorizedComponent?: React.ReactNode;
@@ -15,12 +17,15 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({
   children,
-  requiredRole,
+  requiredPermission,
+  requiredPermissions,
+  requireAll = false,
   fallbackUrl = "/login",
   loadingComponent,
   unauthorizedComponent,
 }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, hasRole, user } = useAuth();
+  const { isAuthenticated, isLoading, hasPermission, hasAnyPermission, user } =
+    useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -45,8 +50,27 @@ export function ProtectedRoute({
     return null; // Will redirect via useEffect
   }
 
-  // Check role requirement
-  if (requiredRole && !hasRole(requiredRole)) {
+  // Check permission requirements
+  let hasRequiredPermissions = true;
+
+  if (requiredPermission) {
+    hasRequiredPermissions = hasPermission(requiredPermission);
+  } else if (requiredPermissions && requiredPermissions.length > 0) {
+    if (requireAll) {
+      hasRequiredPermissions = requiredPermissions.every((permission) =>
+        hasPermission(permission)
+      );
+    } else {
+      hasRequiredPermissions = hasAnyPermission(requiredPermissions);
+    }
+  }
+
+  if (!hasRequiredPermissions) {
+    const permissionsText = requiredPermission
+      ? requiredPermission
+      : requiredPermissions?.join(requireAll ? " AND " : " OR ") ||
+        "Necunoscut";
+
     return (
       unauthorizedComponent || (
         <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8">
@@ -60,10 +84,10 @@ export function ProtectedRoute({
               </p>
               <div className="bg-muted rounded-lg p-4 mb-4">
                 <p className="text-sm text-foreground">
-                  <strong>Rolul dvs.:</strong> {user?.role || "Necunoscut"}
+                  <strong>Utilizator:</strong> {user?.email || "Necunoscut"}
                 </p>
                 <p className="text-sm text-foreground">
-                  <strong>Roluri necesare:</strong> {requiredRole}
+                  <strong>Permisiuni necesare:</strong> {permissionsText}
                 </p>
               </div>
               <button
@@ -82,13 +106,13 @@ export function ProtectedRoute({
   return <>{children}</>;
 }
 
-// Convenience components for specific roles
+// Convenience components for specific permission sets
 export function AdminRoute({
   children,
   ...props
-}: Omit<ProtectedRouteProps, "requiredRole">) {
+}: Omit<ProtectedRouteProps, "requiredPermission">) {
   return (
-    <ProtectedRoute requiredRole="ADMINISTRATOR" {...props}>
+    <ProtectedRoute requiredPermission="buildings:read:all" {...props}>
       {children}
     </ProtectedRoute>
   );
@@ -97,9 +121,9 @@ export function AdminRoute({
 export function OwnerRoute({
   children,
   ...props
-}: Omit<ProtectedRouteProps, "requiredRole">) {
+}: Omit<ProtectedRouteProps, "requiredPermission">) {
   return (
-    <ProtectedRoute requiredRole="OWNER" {...props}>
+    <ProtectedRoute requiredPermission="apartments:read:own" {...props}>
       {children}
     </ProtectedRoute>
   );

@@ -17,7 +17,7 @@ import { ControlledInput } from "@/components/ui/inputs";
 import { Badge } from "@/components/ui/badge";
 import { useRegister } from "@/hooks/use-auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
-import type { RegisterRequest } from "@/types/auth";
+import type { RegisterRequest, SafeUser } from "@/types/auth";
 import {
   AlertCircle,
   Eye,
@@ -49,21 +49,22 @@ export default function RegisterPage() {
       password: "",
       confirmPassword: "",
       phone: "",
-      role: "OWNER",
     },
   });
 
   const { handleSubmit, setValue, watch } = methods;
-
-  // Watch role field to update UI
-  const watchedRole = watch("role");
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
       const result = await registerMutation.mutateAsync(data);
 
       if (result.user) {
-        showRegistrationSuccess(result.user);
+        // Create a SafeUser object for the success message
+        const safeUser: SafeUser = {
+          ...result.user,
+          ownerId: null,
+        };
+        showRegistrationSuccess(safeUser);
       }
 
       setSubmitSuccess(true);
@@ -143,128 +144,58 @@ export default function RegisterPage() {
           <CardContent>
             <FormProvider {...methods}>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Role Selection */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Tipul contului <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setValue("role", "OWNER")}
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        watchedRole === "OWNER"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      <Users className="h-5 w-5 mx-auto mb-2 text-gray-600 dark:text-gray-400" />
-                      <div className="text-sm font-medium">Proprietar</div>
-                      <div className="text-xs text-gray-500">
-                        Apartament/Locuință
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setValue("role", "ADMINISTRATOR")}
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        watchedRole === "ADMINISTRATOR"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      <UserPlus className="h-5 w-5 mx-auto mb-2 text-gray-600 dark:text-gray-400" />
-                      <div className="text-sm font-medium">Administrator</div>
-                      <div className="text-xs text-gray-500">
-                        Gestionează bloc
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
                 {/* Name Fields */}
                 <div className="grid grid-cols-2 gap-4">
                   <ControlledInput
                     name="firstName"
-                    label="Nume"
-                    placeholder="Ionescu"
+                    label="Prenume"
+                    placeholder="Introduceți prenumele"
                     required
-                    disabled={registerMutation.isPending}
                   />
                   <ControlledInput
                     name="lastName"
-                    label="Prenume"
-                    placeholder="Ion"
+                    label="Nume"
+                    placeholder="Introduceți numele"
                     required
-                    disabled={registerMutation.isPending}
                   />
                 </div>
 
                 {/* Email Field */}
                 <ControlledInput
                   name="email"
-                  type="email"
                   label="Email"
+                  type="email"
                   placeholder="exemplu@email.com"
                   required
-                  disabled={registerMutation.isPending}
                 />
 
                 {/* Phone Field */}
                 <ControlledInput
                   name="phone"
-                  type="tel"
-                  label="Telefon (opțional)"
-                  placeholder="+40 123 456 789"
-                  disabled={registerMutation.isPending}
+                  label="Telefon"
+                  placeholder="0712345678"
                 />
 
                 {/* Password Field */}
                 <div className="relative">
                   <ControlledInput
                     name="password"
-                    type={showPassword ? "text" : "password"}
                     label="Parolă"
-                    placeholder="Minimum 6 caractere"
+                    type="password"
+                    placeholder="Introduceți parola"
                     required
-                    disabled={registerMutation.isPending}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    disabled={registerMutation.isPending}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
                 </div>
 
                 {/* Confirm Password Field */}
                 <div className="relative">
                   <ControlledInput
                     name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
                     label="Confirmă parola"
-                    placeholder="Rescrie parola"
+                    type="password"
+                    placeholder="Confirmați parola"
                     required
-                    disabled={registerMutation.isPending}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    disabled={registerMutation.isPending}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
                 </div>
 
                 {/* Error Message */}

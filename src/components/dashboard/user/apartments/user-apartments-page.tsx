@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,17 @@ export function UserApartmentsPage({ user }: UserApartmentsPageProps) {
   const { data: statsResponse, isLoading: isStatsLoading } =
     useApartmentStats();
 
+  // Handle error state in useEffect to avoid calling toast during render
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca apartamentele",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
   // Extract apartments from response
   const apartments = useMemo(() => {
     return apartmentsResponse?.data?.apartments || [];
@@ -78,15 +89,6 @@ export function UserApartmentsPage({ user }: UserApartmentsPageProps) {
           .includes(searchTerm.toLowerCase())
     );
   }, [apartments, searchTerm]);
-
-  // Handle error state
-  if (error) {
-    toast({
-      title: "Eroare",
-      description: "Nu s-au putut încărca apartamentele",
-      variant: "destructive",
-    });
-  }
 
   if (isLoading || isStatsLoading) {
     return (

@@ -8,6 +8,7 @@ import {
 import { AuthErrorKey } from "@/types/api";
 import { SessionService } from "@/services/session.service";
 import { SessionFingerprint } from "@/types/auth";
+import { UserRole } from "@/types/auth";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "your-secret-key"
@@ -17,7 +18,10 @@ const JWT_SECRET = new TextEncoder().encode(
 const protectedRoutes = {
   "/api/buildings": ["ADMINISTRATOR"] as const,
   "/api/apartments": ["ADMINISTRATOR", "OWNER"] as const,
+  "/api/invite-codes": ["ADMINISTRATOR", "OWNER"] as const,
   "/dashboard": ["ADMINISTRATOR", "OWNER"] as const,
+  "/dashboard/admin": ["ADMINISTRATOR"] as const,
+  "/dashboard/apartments": ["ADMINISTRATOR", "OWNER"] as const,
   "/admin": ["ADMINISTRATOR"] as const,
 } as const;
 
@@ -53,23 +57,20 @@ function getClientIP(request: NextRequest): string | undefined {
 interface CustomJWTPayload {
   userId: string;
   email: string;
-  role: "OWNER" | "ADMINISTRATOR";
+  permissions: string[];
+  administratorId?: string;
+  ownerId?: string;
+  sessionId?: string;
+  fingerprint?: string;
   iat: number;
   exp: number;
 }
 
-async function verifyToken(token: string): Promise<CustomJWTPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as unknown as CustomJWTPayload;
-  } catch (error) {
-    console.error("Token verification failed:", error);
-    return null;
-  }
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  console.log(`Middleware executing for: ${pathname}`);
+
   const clientIP = getClientIP(request);
   const userAgent = request.headers.get("user-agent") || "";
 
@@ -87,22 +88,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  try {
-    // Get token from cookie
-    const token = request.cookies.get("auth-token")?.value;
+  // Get auth token from cookies
+  const authToken = request.cookies.get("auth-token")?.value;
 
-    if (!token) {
-      auditAuthEvent(
-        "token_invalid",
-        undefined,
-        undefined,
-        clientIP,
-        userAgent,
-        { reason: "missing_token", path: pathname }
-      );
-      return createAuthError(AuthErrorKey.MISSING_TOKEN);
+  if (!authToken) {
+    // For dashboard routes, redirect to login instead of returning JSON error
+    if (pathname.startsWith("/dashboard")) {
+      return NextResponse.redirect(new URL("/login", request.url));
     }
 
+    // For API routes, return JSON error
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Authentication required",
+        error: "No token provided",
+      },
+      { status: 401 }
+    );
+  }
+
+  try {
     // Create current session fingerprint
     const currentFingerprint: SessionFingerprint = {
       userAgent,
@@ -111,21 +117,28 @@ export async function middleware(request: NextRequest) {
       acceptEncoding: request.headers.get("accept-encoding") || "",
     };
 
-    // Try enhanced verification first
-    const enhancedResult = await SessionService.verifyAccessToken(
-      token,
-      currentFingerprint
-    );
+    let payload: CustomJWTPayload;
 
-    let payload;
-    if (enhancedResult.success && enhancedResult.data) {
-      // Enhanced verification successful
-      payload = enhancedResult.data;
-    } else {
+    try {
+      // Try enhanced verification first
+      const enhancedResult = await SessionService.verifyAccessToken(
+        authToken,
+        currentFingerprint
+      );
+
+      if (enhancedResult.success && enhancedResult.data) {
+        payload = enhancedResult.data as CustomJWTPayload;
+      } else {
+        throw new Error("Enhanced verification failed");
+      }
+    } catch (enhancedError) {
       // Fallback to legacy verification for backward compatibility
       try {
-        const { payload: legacyPayload } = await jwtVerify(token, JWT_SECRET);
-        payload = legacyPayload;
+        const { payload: legacyPayload } = await jwtVerify(
+          authToken,
+          JWT_SECRET
+        );
+        payload = legacyPayload as unknown as CustomJWTPayload;
       } catch (legacyError) {
         auditAuthEvent(
           "token_invalid",
@@ -133,67 +146,34 @@ export async function middleware(request: NextRequest) {
           undefined,
           clientIP,
           userAgent,
-          {
-            reason: "token_verification_failed",
-            path: pathname,
-            enhancedError: enhancedResult.error,
-            legacyError:
-              legacyError instanceof Error
-                ? legacyError.message
-                : String(legacyError),
-          }
+          { reason: "verification_failed", path: pathname }
         );
-        const errorType = getJWTErrorType(legacyError);
-        return createAuthError(errorType);
+
+        // For dashboard routes, redirect to login instead of returning JSON error
+        if (pathname.startsWith("/dashboard")) {
+          return NextResponse.redirect(new URL("/login", request.url));
+        }
+
+        return createAuthError(AuthErrorKey.INVALID_TOKEN);
       }
     }
 
-    const userRole = payload.role as string;
     const userId = payload.userId as string;
     const email = payload.email as string;
+    const permissions = payload.permissions as string[];
     const administratorId = payload.administratorId as string | undefined;
     const ownerId = payload.ownerId as string | undefined;
 
-    // Check if user has required role for this route
-    const requiredRoles =
-      protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
-    if (!requiredRoles.some((role) => role === userRole)) {
-      auditAuthEvent("permission_denied", userId, email, clientIP, userAgent, {
-        reason: "insufficient_role",
-        userRole,
-        requiredRoles,
-        path: pathname,
-      });
-      return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
-    }
-
-    // Additional tenant validation for specific routes
-    if (pathname.startsWith("/api/buildings")) {
-      // Only administrators can access buildings
-      if (userRole !== "ADMINISTRATOR" || !administratorId) {
-        auditAuthEvent(
-          "permission_denied",
-          userId,
-          email,
-          clientIP,
-          userAgent,
-          {
-            reason: "tenant_access_denied",
-            userRole,
-            administratorId,
-            path: pathname,
-          }
-        );
-        return createAuthError(
-          AuthErrorKey.TENANT_ACCESS_DENIED,
-          "Only administrators can access buildings"
-        );
-      }
-    }
+    // Check if user has required permissions for this route
+    // For now, we'll use a simplified check - if user has any admin permissions, allow admin routes
+    const hasAdminPermissions = permissions.some(
+      (permission) =>
+        permission.includes(":all") || permission.startsWith("admin_grant:")
+    );
 
     // Check role-based access for admin routes
     if (pathname.startsWith("/dashboard/admin")) {
-      if (userRole !== "ADMINISTRATOR") {
+      if (!hasAdminPermissions) {
         // Non-admin trying to access admin dashboard
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
@@ -203,7 +183,7 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.next();
     response.headers.set("x-user-id", userId);
     response.headers.set("x-user-email", email);
-    response.headers.set("x-user-role", userRole);
+    response.headers.set("x-user-permissions", JSON.stringify(permissions));
 
     if (administratorId) {
       response.headers.set("x-administrator-id", administratorId);
@@ -215,12 +195,17 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Middleware error:", error);
     auditAuthEvent("token_invalid", undefined, undefined, clientIP, userAgent, {
       reason: "middleware_error",
       error: error instanceof Error ? error.message : String(error),
       path: pathname,
     });
+
+    // For dashboard routes, redirect to login instead of returning JSON error
+    if (pathname.startsWith("/dashboard")) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
     return createAuthError(AuthErrorKey.INTERNAL_ERROR);
   }
 }

@@ -88,7 +88,7 @@ export class InviteCodesService {
       if (apartment.inviteCode) {
         await prisma.inviteCode.update({
           where: { id: apartment.inviteCode.id },
-          data: { status: "CANCELLED" },
+          data: { status: "REVOKED" },
         });
       }
 
@@ -371,7 +371,7 @@ export class InviteCodesService {
 
       const updatedCode = await prisma.inviteCode.update({
         where: { id: codeId },
-        data: { status: "CANCELLED" },
+        data: { status: "REVOKED" },
         include: {
           apartment: {
             include: {

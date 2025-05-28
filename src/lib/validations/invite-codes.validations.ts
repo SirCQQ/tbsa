@@ -1,9 +1,15 @@
 import { z } from "zod";
 
-// Validation schema for creating invite codes
+// Validation schema for creating invite codes (API)
 export const CreateInviteCodeSchema = z.object({
   apartmentId: z.string().min(1, "ID-ul apartamentului este obligatoriu"),
   expiresAt: z.date().optional(),
+});
+
+// Validation schema for create invite code form (UI)
+export const CreateInviteCodeFormSchema = z.object({
+  apartmentId: z.string().min(1, "Selectează un apartament"),
+  expiresAt: z.string().optional(),
 });
 
 // Validation schema for using invite codes
@@ -26,5 +32,8 @@ export const CancelInviteCodeSchema = z.object({
 
 // Type inference from schemas
 export type CreateInviteCodeInput = z.infer<typeof CreateInviteCodeSchema>;
+export type CreateInviteCodeFormInput = z.infer<
+  typeof CreateInviteCodeFormSchema
+>;
 export type UseInviteCodeInput = z.infer<typeof UseInviteCodeSchema>;
 export type CancelInviteCodeInput = z.infer<typeof CancelInviteCodeSchema>;

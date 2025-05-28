@@ -1,8 +1,6 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import {
   StatsGrid,
   RecentActivity,
@@ -16,38 +14,10 @@ import {
 } from "@/components/dashboard";
 
 export default function AdminDashboardPage() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-      return;
-    }
-
-    if (!isLoading && isAuthenticated && user) {
-      // Only allow administrators
-      if (user.role !== "ADMINISTRATOR") {
-        router.push("/dashboard");
-        return;
-      }
-    }
-  }, [isAuthenticated, isLoading, user, router]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return null;
-  }
-
-  // Only render for ADMINISTRATOR role
-  if (user.role !== "ADMINISTRATOR") {
+  // At this point, authentication is guaranteed by the layout
+  if (!user) {
     return null;
   }
 

@@ -1,0 +1,1042 @@
+---
+description: Creting, editing forms
+globs: 
+alwaysApply: false
+---
+# Forms with React Hook Form & ControlledInput
+
+All forms must use React Hook Form for form state management with ControlledInput components for consistent styling and validation. Forms should be organized in separate components with proper TypeScript typing and Zod validation schemas.
+
+## **Required Setup**
+
+- **Use React Hook Form** for all form state management
+- **Use ControlledInput components** as the primary pattern for form fields
+- **Fallback to Shadcn UI Form components** if ControlledInput doesn't exist
+- **Create separate Form components** in dedicated files
+- **Use Zod schemas** for validation with `@hookform/resolvers/zod`
+- **Follow consistent naming conventions** for forms and schemas
+- **Implement proper error handling** and loading states
+
+## **ControlledInput Component**
+
+### **Check if ControlledInput Exists**
+First, verify if ControlledInput component is available:
+```bash
+# Check if ControlledInput component exists
+ls src/components/ui/inputs/form/controlled-input.tsx
+```
+
+### **Existing ControlledInput API**
+```typescript
+// ✅ DO: Use existing ControlledInput component
+// Import from the correct path
+import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
+
+// API structure:
+interface ControlledInputProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> extends Omit<FormInputProps, "name"> {
+  name: TName;
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+  defaultValue?: PathValue<TFieldValues, TName>;
+  rules?: ControllerProps<TFieldValues, TName>["rules"];
+  // Plus all standard Input props: type, placeholder, disabled, min, max, step, etc.
+}
+```
+
+### **Existing ControlledSelect API**
+```typescript
+// ✅ DO: Use existing ControlledSelect component
+import { ControlledSelect } from "@/components/ui/inputs/form/controlled-select";
+
+// API structure:
+interface ControlledSelectProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> extends Omit<FormSelectProps, "name" | "value" | "onValueChange"> {
+  name: TName;
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+  placeholder?: string;
+  options: Array<{ value: string; label: string; disabled?: boolean }>;
+  defaultValue?: PathValue<TFieldValues, TName>;
+  rules?: ControllerProps<TFieldValues, TName>["rules"];
+}
+```
+
+### **Existing ControlledCheckbox API**
+```typescript
+// ✅ DO: Use existing ControlledCheckbox component
+import { ControlledCheckbox } from "@/components/ui/inputs/form/controlled-checkbox";
+
+// API structure:
+interface ControlledCheckboxProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> extends Omit<React.ComponentProps<typeof FormCheckbox>, "name" | "checked" | "onCheckedChange"> {
+  name: TName;
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+  defaultValue?: PathValue<TFieldValues, TName>;
+  rules?: ControllerProps<TFieldValues, TName>["rules"];
+}
+```
+
+### **Existing ControlledTextarea API**
+```typescript
+// ✅ DO: Use existing ControlledTextarea component
+import { ControlledTextarea } from "@/components/ui/inputs/form/controlled-textarea";
+
+// API structure:
+interface ControlledTextareaProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> extends Omit<FormTextareaProps, "name"> {
+  name: TName;
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+  rows?: number;
+  defaultValue?: PathValue<TFieldValues, TName>;
+  rules?: ControllerProps<TFieldValues, TName>["rules"];
+  // Plus all standard Textarea props: placeholder, disabled, className, etc.
+}
+```
+
+### **Create ControlledInput if Missing**
+```typescript
+// ✅ DO: Create ControlledInput component using FormFieldWrapper if it doesn't exist
+// src/components/ui/controlled-input.tsx
+import React from "react";
+import { Control, FieldPath, FieldValues } from "react-hook-form";
+import { FormField } from "@/components/ui/form";
+import { FormFieldWrapper } from "@/components/ui/inputs/form-field-wrapper";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+interface ControlledInputProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> {
+  control: Control<TFieldValues>;
+  name: TName;
+  label: string;
+  placeholder?: string;
+  type?: "text" | "email" | "password" | "number" | "tel" | "url";
+  variant?: "input" | "textarea";
+  className?: string;
+  disabled?: boolean;
+  required?: boolean;
+  helperText?: string;
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
+  rows?: number;
+}
+
+export function ControlledInput<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>({
+  control,
+  name,
+  label,
+  placeholder,
+  type = "text",
+  variant = "input",
+  className,
+  disabled,
+  required,
+  helperText,
+  min,
+  max,
+  step,
+  rows = 3,
+}: ControlledInputProps<TFieldValues, TName>) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <FormFieldWrapper 
+          label={label}
+          helperText={fieldState.error?.message || helperText}
+          required={required}
+          className={className}
+        >
+          {variant === "textarea" ? (
+            <Textarea
+              placeholder={placeholder}
+              disabled={disabled}
+              rows={rows}
+              className="resize-none"
+              {...field}
+            />
+          ) : (
+            <Input
+              type={type}
+              placeholder={placeholder}
+              disabled={disabled}
+              min={min}
+              max={max}
+              step={step}
+              {...field}
+              onChange={(e) => {
+                if (type === "number") {
+                  const value = e.target.value === "" ? "" : Number(e.target.value);
+                  field.onChange(value);
+                } else {
+                  field.onChange(e.target.value);
+                }
+              }}
+            />
+          )}
+        </FormFieldWrapper>
+      )}
+    />
+  );
+}
+```
+
+### **ControlledSelect Component**
+```typescript
+// ✅ DO: Create ControlledSelect component using FormFieldWrapper for dropdowns
+// src/components/ui/controlled-select.tsx
+import React from "react";
+import { Control, FieldPath, FieldValues } from "react-hook-form";
+import { FormField } from "@/components/ui/form";
+import { FormFieldWrapper } from "@/components/ui/inputs/form-field-wrapper";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+interface ControlledSelectProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> {
+  control: Control<TFieldValues>;
+  name: TName;
+  label: string;
+  placeholder?: string;
+  options: SelectOption[];
+  className?: string;
+  disabled?: boolean;
+  required?: boolean;
+  helperText?: string;
+}
+
+export function ControlledSelect<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>({
+  control,
+  name,
+  label,
+  placeholder = "Selectați o opțiune",
+  options,
+  className,
+  disabled,
+  required,
+  helperText,
+}: ControlledSelectProps<TFieldValues, TName>) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <FormFieldWrapper 
+          label={label}
+          helperText={fieldState.error?.message || helperText}
+          required={required}
+          className={className}
+        >
+          <Select
+            onValueChange={field.onChange}
+            defaultValue={field.value}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem
+                  key={option.value}
+                  value={option.value}
+                  disabled={option.disabled}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormFieldWrapper>
+      )}
+    />
+  );
+}
+```
+
+### **ControlledCheckbox Component**
+```typescript
+// ✅ DO: Create ControlledCheckbox component using FormFieldWrapper
+// src/components/ui/controlled-checkbox.tsx
+import React from "react";
+import { Control, FieldPath, FieldValues } from "react-hook-form";
+import { FormField } from "@/components/ui/form";
+import { FormFieldWrapper } from "@/components/ui/inputs/form-field-wrapper";
+import { Checkbox } from "@/components/ui/checkbox";
+
+interface ControlledCheckboxProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> {
+  control: Control<TFieldValues>;
+  name: TName;
+  label: string;
+  helperText?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+export function ControlledCheckbox<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>({
+  control,
+  name,
+  label,
+  helperText,
+  className,
+  disabled,
+}: ControlledCheckboxProps<TFieldValues, TName>) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <FormFieldWrapper 
+          label={label}
+          helperText={fieldState.error?.message || helperText}
+          className={`flex flex-row items-start space-x-3 space-y-0 ${className}`}
+        >
+          <Checkbox
+            checked={field.value}
+            onCheckedChange={field.onChange}
+            disabled={disabled}
+          />
+        </FormFieldWrapper>
+      )}
+    />
+  );
+}
+```
+
+## **File Organization Structure**
+
+```
+src/
+├── components/
+│   ├── ui/
+│   │   ├── inputs/
+│   │   │   ├── form/
+│   │   │   │   ├── controlled-input.tsx      # Primary form input component
+│   │   │   │   ├── controlled-select.tsx     # Select dropdown component
+│   │   │   │   ├── controlled-checkbox.tsx   # Checkbox component
+│   │   │   │   └── controlled-textarea.tsx   # Textarea component
+│   │   │   ├── form-input.tsx                # Base form input
+│   │   │   ├── form-select.tsx               # Base form select
+│   │   │   ├── form-textarea.tsx             # Base form textarea
+│   │   │   └── form-field-wrapper.tsx        # Form field wrapper
+│   │   ├── controlled-select.tsx             # Select dropdown component (fallback)
+│   │   ├── controlled-checkbox.tsx           # Checkbox component (fallback)
+│   │   └── form.tsx                          # Shadcn UI Form components (fallback)
+│   └── forms/
+│       ├── create-building-form.tsx
+│       ├── edit-user-form.tsx
+│       ├── login-form.tsx
+│       └── index.ts
+├── schemas/
+│   ├── building.ts
+│   ├── user.ts
+│   └── auth.ts
+└── types/
+    └── forms.ts
+```
+
+## **Form Component Structure with ControlledInput**
+
+### **Preferred Pattern (with existing ControlledInput)**
+```typescript
+// ✅ DO: Use existing ControlledInput component
+// src/components/forms/create-building-form.tsx
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
+import { ControlledTextarea } from "@/components/ui/inputs/form/controlled-textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { createBuildingSchema, type CreateBuildingFormData } from "@/schemas/building";
+import { useCreateBuilding } from "@/hooks/api/use-buildings";
+
+interface CreateBuildingFormProps {
+  onSuccess?: (building: Building) => void;
+  onCancel?: () => void;
+}
+
+export function CreateBuildingForm({ onSuccess, onCancel }: CreateBuildingFormProps) {
+  const createBuilding = useCreateBuilding();
+  
+  const form = useForm<CreateBuildingFormData>({
+    resolver: zodResolver(createBuildingSchema),
+    defaultValues: {
+      name: "",
+      address: "",
+      floors: 1,
+      apartmentsPerFloor: 1,
+      description: "",
+    },
+  });
+
+  const onSubmit = async (data: CreateBuildingFormData) => {
+    try {
+      const result = await createBuilding.mutateAsync(data);
+      form.reset();
+      onSuccess?.(result.data);
+    } catch (error) {
+      if (error instanceof Error) {
+        form.setError("root", { message: error.message });
+      }
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <ControlledInput
+          name="name"
+          label="Nume Clădire"
+          placeholder="Introduceți numele clădirii"
+          required
+        />
+
+        <ControlledInput
+          name="address"
+          label="Adresă"
+          placeholder="Introduceți adresa"
+          required
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <ControlledInput
+            name="floors"
+            label="Numărul de etaje"
+            type="number"
+            min={1}
+            max={50}
+            required
+          />
+
+          <ControlledInput
+            name="apartmentsPerFloor"
+            label="Apartamente per etaj"
+            type="number"
+            min={1}
+            max={20}
+            required
+          />
+        </div>
+
+        <ControlledTextarea
+          name="description"
+          label="Descriere"
+          placeholder="Descrierea clădirii..."
+          helperText="Informații suplimentare despre clădire"
+          rows={4}
+        />
+
+        {form.formState.errors.root && (
+          <Alert variant="destructive">
+            <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex justify-end space-x-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Anulează
+            </Button>
+          )}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Se creează..." : "Creează Clădirea"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+```
+
+### **Using ControlledSelect and ControlledCheckbox**
+```typescript
+// ✅ DO: Use specialized controlled components
+import { ControlledSelect } from "@/components/ui/inputs/form/controlled-select";
+import { ControlledCheckbox } from "@/components/ui/inputs/form/controlled-checkbox";
+import { ControlledTextarea } from "@/components/ui/inputs/form/controlled-textarea";
+import { SelectItem } from "@/components/ui/inputs/form-select";
+
+export function CreateUserForm() {
+  const form = useForm<CreateUserFormData>({
+    resolver: zodResolver(createUserSchema),
+  });
+
+  const { data: roles } = useRoles();
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <ControlledInput
+          name="firstName"
+          label="Prenume"
+          placeholder="Introduceți prenumele"
+          required
+        />
+
+        <ControlledInput
+          name="lastName"
+          label="Nume"
+          placeholder="Introduceți numele"
+          required
+        />
+
+        <ControlledInput
+          name="email"
+          label="Email"
+          type="email"
+          placeholder="exemplu@email.com"
+          required
+        />
+
+        <ControlledSelect
+          name="roleId"
+          label="Rol"
+          placeholder="Selectați un rol"
+          required
+        >
+          {roles?.map((role) => (
+            <SelectItem key={role.id} value={role.id}>
+              {role.name}
+            </SelectItem>
+          ))}
+        </ControlledSelect>
+
+        <ControlledCheckbox
+          name="isActive"
+          label="Utilizator activ"
+          helperText="Utilizatorul poate accesa aplicația"
+        />
+
+        <ControlledTextarea
+          name="notes"
+          label="Observații"
+          placeholder="Observații despre utilizator..."
+          helperText="Informații suplimentare despre utilizator"
+          rows={3}
+        />
+
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? "Se creează..." : "Creează Utilizatorul"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+### **Fallback Pattern (without ControlledInput)**
+```typescript
+// ✅ FALLBACK: Use FormFieldWrapper with Shadcn UI components if ControlledInput is not available
+import { FormFieldWrapper } from "@/components/ui/inputs/form-field-wrapper";
+import { Input } from "@/components/ui/input";
+import { useFormContext } from "react-hook-form";
+
+export function FallbackFormField({ name, label, placeholder, required, ...inputProps }) {
+  const { register, formState: { errors } } = useFormContext();
+  
+  return (
+    <FormFieldWrapper 
+      label={label} 
+      required={required}
+      helperText={errors[name]?.message}
+    >
+      <Input 
+        {...register(name)}
+        placeholder={placeholder}
+        {...inputProps}
+      />
+    </FormFieldWrapper>
+  );
+}
+
+// Alternative: Use Shadcn UI FormField if FormFieldWrapper is not available
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+<FormField
+  control={form.control}
+  name="name"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Nume Clădire</FormLabel>
+      <FormControl>
+        <Input placeholder="Introduceți numele clădirii" {...field} />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+```
+
+## **Advanced ControlledInput Patterns**
+
+### **Dynamic Form Fields with ControlledInput**
+```typescript
+// ✅ DO: Use ControlledInput with useFieldArray
+import { useFieldArray } from "react-hook-form";
+import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
+import { Button } from "@/components/ui/button";
+import { Plus, Trash2 } from "lucide-react";
+
+export function DynamicApartmentForm() {
+  const form = useForm<{
+    apartments: { number: string; floor: number }[];
+  }>({
+    defaultValues: {
+      apartments: [{ number: "", floor: 0 }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "apartments",
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-4">
+          {fields.map((field, index) => (
+            <div key={field.id} className="flex items-end space-x-2">
+              <ControlledInput
+                name={`apartments.${index}.number`}
+                label="Numărul apartamentului"
+                placeholder="Ex: 1A"
+                className="flex-1"
+              />
+              
+              <ControlledInput
+                name={`apartments.${index}.floor`}
+                label="Etaj"
+                type="number"
+                min={0}
+                className="flex-1"
+              />
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => remove(index)}
+                disabled={fields.length === 1}
+                className="mb-2"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => append({ number: "", floor: 0 })}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Adaugă Apartament
+        </Button>
+
+        <Button type="submit">Salvează</Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+### **Conditional Fields with ControlledInput**
+```typescript
+// ✅ DO: Handle conditional fields
+export function ConditionalForm() {
+  const form = useForm();
+  const userType = form.watch("userType");
+
+  return (
+    <Form {...form}>
+      <form className="space-y-4">
+        <ControlledSelect
+          name="userType"
+          label="Tip utilizator"
+          options={[
+            { value: "owner", label: "Proprietar" },
+            { value: "tenant", label: "Chiriaș" },
+            { value: "manager", label: "Administrator" },
+          ]}
+          required
+        />
+
+        {userType === "owner" && (
+          <ControlledInput
+            name="ownedApartments"
+            label="Apartamente deținute"
+            placeholder="Numărul apartamentelor separate prin virgulă"
+          />
+        )}
+
+        {userType === "tenant" && (
+          <ControlledInput
+            name="rentedApartment"
+            label="Apartament închiriat"
+            placeholder="Numărul apartamentului"
+          />
+        )}
+
+        {userType === "manager" && (
+          <ControlledSelect
+            name="managedBuildings"
+            label="Clădiri administrate"
+            options={buildingOptions}
+          />
+        )}
+      </form>
+    </Form>
+  );
+}
+```
+
+## **Creating Custom Form Components with FormFieldWrapper**
+
+### **Custom Input Component**
+```typescript
+// ✅ DO: Use FormFieldWrapper for custom form components
+// src/components/ui/inputs/custom-input.tsx
+import * as React from "react";
+import { Input } from "@/components/ui/input";
+import { FormFieldWrapper } from "./form-field-wrapper";
+
+interface CustomInputProps extends React.ComponentProps<typeof Input> {
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+}
+
+const CustomInput = React.forwardRef<
+  React.ElementRef<typeof Input>,
+  CustomInputProps
+>(({ label, helperText, required = false, ...inputProps }, ref) => {
+  return (
+    <FormFieldWrapper label={label} helperText={helperText} required={required}>
+      <Input ref={ref} {...inputProps} />
+    </FormFieldWrapper>
+  );
+});
+
+CustomInput.displayName = "CustomInput";
+
+export { CustomInput, type CustomInputProps };
+```
+
+### **Custom Select Component**
+```typescript
+// ✅ DO: Use FormFieldWrapper for custom select components
+// src/components/ui/inputs/custom-select.tsx
+import * as React from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FormFieldWrapper } from "./form-field-wrapper";
+
+interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+interface CustomSelectProps {
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+  placeholder?: string;
+  options: SelectOption[];
+  value?: string;
+  onValueChange?: (value: string) => void;
+  disabled?: boolean;
+}
+
+const CustomSelect = React.forwardRef<
+  React.ElementRef<typeof Select>,
+  CustomSelectProps
+>(({ 
+  label, 
+  helperText, 
+  required = false, 
+  placeholder = "Selectați o opțiune",
+  options,
+  value,
+  onValueChange,
+  disabled,
+  ...selectProps 
+}, ref) => {
+  return (
+    <FormFieldWrapper label={label} helperText={helperText} required={required}>
+      <Select 
+        value={value} 
+        onValueChange={onValueChange} 
+        disabled={disabled}
+        {...selectProps}
+      >
+        <SelectTrigger ref={ref}>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              disabled={option.disabled}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormFieldWrapper>
+  );
+});
+
+CustomSelect.displayName = "CustomSelect";
+
+export { CustomSelect, type CustomSelectProps };
+```
+
+### **Custom Textarea Component**
+```typescript
+// ✅ DO: Use FormFieldWrapper for custom textarea components
+// src/components/ui/inputs/custom-textarea.tsx
+import * as React from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { FormFieldWrapper } from "./form-field-wrapper";
+
+interface CustomTextareaProps extends React.ComponentProps<typeof Textarea> {
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+}
+
+const CustomTextarea = React.forwardRef<
+  React.ElementRef<typeof Textarea>,
+  CustomTextareaProps
+>(({ label, helperText, required = false, ...textareaProps }, ref) => {
+  return (
+    <FormFieldWrapper label={label} helperText={helperText} required={required}>
+      <Textarea ref={ref} className="resize-none" {...textareaProps} />
+    </FormFieldWrapper>
+  );
+});
+
+CustomTextarea.displayName = "CustomTextarea";
+
+export { CustomTextarea, type CustomTextareaProps };
+```
+
+### **Custom Checkbox Component**
+```typescript
+// ✅ DO: Use FormFieldWrapper for custom checkbox components
+// src/components/ui/inputs/custom-checkbox.tsx
+import * as React from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FormFieldWrapper } from "./form-field-wrapper";
+
+interface CustomCheckboxProps extends React.ComponentProps<typeof Checkbox> {
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  required?: boolean;
+}
+
+const CustomCheckbox = React.forwardRef<
+  React.ElementRef<typeof Checkbox>,
+  CustomCheckboxProps
+>(({ label, helperText, required = false, ...checkboxProps }, ref) => {
+  return (
+    <FormFieldWrapper 
+      label={label} 
+      helperText={helperText} 
+      required={required}
+      className="flex flex-row items-start space-x-3 space-y-0"
+    >
+      <Checkbox ref={ref} {...checkboxProps} />
+    </FormFieldWrapper>
+  );
+});
+
+CustomCheckbox.displayName = "CustomCheckbox";
+
+export { CustomCheckbox, type CustomCheckboxProps };
+```
+
+## **Form Component Decision Tree**
+
+```typescript
+// ✅ DO: Follow this decision tree for form components
+
+// 1. Check if ControlledInput exists
+try {
+  import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
+  // Use ControlledInput pattern (preferred)
+} catch {
+  // 2. Check if FormFieldWrapper exists
+  try {
+    import { FormFieldWrapper } from "@/components/ui/inputs/form-field-wrapper";
+    // Use FormFieldWrapper with basic components
+  } catch {
+    // 3. Check if Shadcn UI Form components exist
+    try {
+      import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+      // Use Shadcn UI FormField pattern
+    } catch {
+      // 4. Use basic components as last resort
+      // Use fallback pattern with basic components
+    }
+  }
+}
+```
+
+## **Migration Guide**
+
+### **From FormField to ControlledInput**
+```typescript
+// ❌ OLD: Shadcn UI FormField pattern
+<FormField
+  control={form.control}
+  name="name"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Name</FormLabel>
+      <FormControl>
+        <Input placeholder="Enter name" {...field} />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
+// ✅ NEW: ControlledInput pattern
+<ControlledInput
+  name="name"
+  label="Name"
+  placeholder="Enter name"
+  required
+/>
+```
+
+### **From Basic Components to FormFieldWrapper**
+```typescript
+// ❌ OLD: Basic component pattern
+<div className="space-y-2">
+  <Label htmlFor="name">Name</Label>
+  <Input id="name" {...register("name")} />
+  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+</div>
+
+// ✅ NEW: FormFieldWrapper pattern
+<FormFieldWrapper 
+  label="Name" 
+  required={true}
+  helperText={errors.name?.message}
+>
+  <Input {...register("name")} />
+</FormFieldWrapper>
+```
+
+### **From FormField to FormFieldWrapper**
+```typescript
+// ❌ OLD: Verbose FormField pattern
+<FormField
+  control={form.control}
+  name="name"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Name</FormLabel>
+      <FormControl>
+        <Input placeholder="Enter name" {...field} />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
+// ✅ NEW: Cleaner FormFieldWrapper pattern
+<FormFieldWrapper label="Name" required={true}>
+  <Input {...register("name")} placeholder="Enter name" />
+</FormFieldWrapper>
+```
+
+## **Best Practices Summary**
+
+- **Prioritize ControlledInput components** for all form fields
+- **Import from correct paths**: 
+  - `@/components/ui/inputs/form/controlled-input`
+  - `@/components/ui/inputs/form/controlled-select`
+  - `@/components/ui/inputs/form/controlled-checkbox`
+  - `@/components/ui/inputs/form/controlled-textarea`
+- **Use existing APIs**: `name`, `label`, `required`, `helperText`, plus component-specific props
+- **ControlledSelect uses children**: Pass `SelectItem` components as children, not an `options` array
+- **ControlledTextarea for multi-line**: Use for descriptions, notes, comments with `rows` prop
+- **Use FormFieldWrapper** for custom form components when controlled components are not suitable
+- **Import FormFieldWrapper**: `@/components/ui/inputs/form-field-wrapper`
+- **FormFieldWrapper props**: `label`, `helperText`, `required`, `children`, `className`
+- **Create missing controlled components** if they don't exist using FormFieldWrapper pattern
+- **Use specialized controlled components** for different input types
+- **Handle number inputs automatically** with proper type conversion
+- **Include required indicators** with red asterisk (handled by FormFieldWrapper)
+- **Support all common input types** (text, email, number, tel, url, etc.)
+- **Maintain consistent API** across all controlled components
+- **Fallback to FormFieldWrapper + basic components** if controlled components are not available
+- **Fallback to Shadcn UI FormField** if FormFieldWrapper is not available
+- **Test controlled components** with proper accessibility
+- **Use TypeScript generics** for type safety across all form fields
+- **Leverage FormFieldWrapper** for consistent styling and error handling across all form components
+- **Import SelectItem** from `@/components/ui/inputs/form-select` when using ControlledSelect

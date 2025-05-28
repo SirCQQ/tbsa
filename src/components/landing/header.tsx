@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/auth-context";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, hasPermission } = useAuth();
 
   const navigationItems = [
     { href: "#features", label: "Funcționalități" },
@@ -23,12 +23,11 @@ export function Header() {
     setIsMenuOpen(false);
   };
 
-  // Check if user can access apartments
-  const canAccessApartments =
-    user && (user.role === "OWNER" || user.role === "ADMINISTRATOR");
-
-  // Check if user is administrator
-  const isAdmin = user && user.role === "ADMINISTRATOR";
+  // Check permissions instead of roles
+  const canAccessApartments = hasPermission("apartments:read:own");
+  const canAccessAdminBuildings = hasPermission("buildings:read:all");
+  const isSuperAdmin = hasPermission("admin_grant:create:all");
+  const isAdmin = hasPermission("buildings:read:all");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -60,7 +59,7 @@ export function Header() {
           <ThemeToggle />
 
           {isAuthenticated ? (
-            <UserNav onLogout={handleLogout} />
+            <UserNav />
           ) : (
             <>
               <Button variant="ghost" asChild>
@@ -117,7 +116,9 @@ export function Header() {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {user.email} •{" "}
-                    {user.role === "ADMINISTRATOR"
+                    {isSuperAdmin
+                      ? "Super Administrator"
+                      : isAdmin
                       ? "Administrator"
                       : "Proprietar"}
                   </div>
@@ -141,7 +142,7 @@ export function Header() {
                       </Link>
                     </Button>
                   )}
-                  {isAdmin && (
+                  {canAccessAdminBuildings && (
                     <Button variant="ghost" asChild className="justify-start">
                       <Link
                         href="/dashboard/admin/buildings"

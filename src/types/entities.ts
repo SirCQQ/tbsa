@@ -15,7 +15,6 @@ export type {
   Building as BuildingEntity,
   Apartment as ApartmentEntity,
   WaterReading as WaterReadingEntity,
-  UserRole,
 } from "@prisma/client/wasm";
 
 // Extended types with relations for API responses

@@ -22,7 +22,7 @@ export const INVITE_CODE_STATUS_CONFIG: Record<
     variant: "destructive",
     className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   },
-  CANCELLED: {
+  REVOKED: {
     label: "Anulat",
     variant: "secondary",
     className: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",

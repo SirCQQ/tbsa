@@ -250,3 +250,22 @@ export function useDeleteApartment() {
     },
   });
 }
+
+/**
+ * Hook to fetch apartments by building ID
+ */
+export function useApartmentsByBuilding(buildingId?: string) {
+  return useQuery({
+    queryKey: [...queryKeys.apartments.all(), "by-building", buildingId],
+    queryFn: async (): Promise<{
+      success: boolean;
+      data?: ApartmentWithRelations[];
+    }> => {
+      if (!buildingId) return { success: false, data: [] };
+      const response = await api.get(`/buildings/${buildingId}/apartments`);
+      return { success: true, data: response.data };
+    },
+    enabled: !!buildingId,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}

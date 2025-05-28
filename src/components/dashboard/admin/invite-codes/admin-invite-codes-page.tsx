@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Copy, Ban, CheckCircle, Clock, XCircle } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  Plus,
+  Copy,
+  Ban,
+  CheckCircle,
+  Clock,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,31 +25,32 @@ import { InviteCodeStatus } from "@/types/invite-codes.types";
 import { formatDistanceToNow } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useApartments } from "@/hooks/api/use-apartments";
+import { useAuth } from "@/contexts/auth-context";
 
 const statusConfig = {
-  ACTIVE: {
+  [InviteCodeStatus.ACTIVE]: {
     label: "Activ",
-    icon: CheckCircle,
     variant: "default" as const,
-    color: "text-green-600",
-  },
-  USED: {
-    label: "Folosit",
-    icon: CheckCircle,
-    variant: "secondary" as const,
-    color: "text-blue-600",
-  },
-  EXPIRED: {
-    label: "Expirat",
     icon: Clock,
-    variant: "destructive" as const,
-    color: "text-orange-600",
+    color: "text-blue-500",
   },
-  CANCELLED: {
-    label: "Anulat",
+  [InviteCodeStatus.USED]: {
+    label: "Folosit",
+    variant: "secondary" as const,
+    icon: CheckCircle,
+    color: "text-green-500",
+  },
+  [InviteCodeStatus.EXPIRED]: {
+    label: "Expirat",
+    variant: "destructive" as const,
     icon: XCircle,
+    color: "text-red-500",
+  },
+  [InviteCodeStatus.REVOKED]: {
+    label: "Anulat",
     variant: "outline" as const,
-    color: "text-red-600",
+    icon: AlertCircle,
+    color: "text-orange-500",
   },
 };
 
@@ -49,58 +58,112 @@ export function AdminInviteCodesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Get current user and check if they're an administrator
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  // Only use administrator ID if user is loaded and is actually an administrator
+  const administratorId = user?.administrator?.id;
+
+  // All hooks must be called before any early returns
   const {
     data: inviteCodes,
     isLoading,
     error,
-  } = useInviteCodes("admin-id-placeholder");
+  } = useInviteCodes(administratorId);
   const cancelInviteCode = useCancelInviteCode();
+  console.log({ inviteCodes });
+  // Get apartments for the dropdown (if needed in the future)
+  const { data: _apartments } = useApartments({
+    buildingId: "",
+    page: 1,
+    limit: 100,
+  });
 
-  const { data: apartmentsResponse } = useApartments();
-  const apartments = apartmentsResponse?.data?.apartments || [];
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!inviteCodes) {
+      return { total: 0, active: 0, used: 0, expired: 0 };
+    }
 
-  const filteredCodes =
-    inviteCodes?.filter(
-      (code) =>
-        code.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        code.apartment.number
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        code.apartment.building.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())
-    ) || [];
+    return {
+      total: inviteCodes.length,
+      active: inviteCodes.filter(
+        (code) => code.status === InviteCodeStatus.ACTIVE
+      ).length,
+      used: inviteCodes.filter((code) => code.status === InviteCodeStatus.USED)
+        .length,
+      expired: inviteCodes.filter(
+        (code) => code.status === InviteCodeStatus.EXPIRED
+      ).length,
+    };
+  }, [inviteCodes]);
 
-  const stats = {
-    total: inviteCodes?.length || 0,
-    active:
-      inviteCodes?.filter((code) => code.status === InviteCodeStatus.ACTIVE)
-        .length || 0,
-    used:
-      inviteCodes?.filter((code) => code.status === InviteCodeStatus.USED)
-        .length || 0,
-    expired:
-      inviteCodes?.filter((code) => code.status === InviteCodeStatus.EXPIRED)
-        .length || 0,
-  };
+  // Filter codes based on search
+  const filteredCodes = useMemo(() => {
+    if (!inviteCodes) return [];
+
+    return inviteCodes.filter((code) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        code.code.toLowerCase().includes(searchLower) ||
+        code.apartment.number.toLowerCase().includes(searchLower) ||
+        code.apartment.building.name.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [inviteCodes, searchTerm]);
+
+  // Early return checks after all hooks
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              Trebuie să fiți autentificat pentru a accesa această pagină.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user.permissions?.includes("invite_codes:read:all")) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              Nu aveți permisiunea să accesați această pagină. Doar
+              administratorii pot gestiona codurile de invitație.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const onCopyCode = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      toast.success("Cod copiat în clipboard!");
-    } catch (error) {
+      toast.success("Codul a fost copiat în clipboard!");
+    } catch (_error) {
       toast.error("Nu s-a putut copia codul");
     }
   };
 
   const onCancelCode = async (codeId: string) => {
     try {
-      await cancelInviteCode.mutateAsync({
-        codeId,
-        administratorId: "admin-id-placeholder",
-      });
+      await cancelInviteCode.mutateAsync(codeId);
       toast.success("Codul a fost anulat cu succes!");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Nu s-a putut anula codul");
     }
   };

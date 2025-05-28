@@ -1,0 +1,354 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Data Mappers
+
+Guidelines for creating and using mapper functions to transform data consistently across the application.
+
+## **Mapper Structure**
+
+- **Location**: Place all mappers in `src/lib/mappers/`
+- **Naming**: Use `[entity].mapper.ts` format (e.g., `user.mapper.ts`, `role.mapper.ts`)
+- **Export**: Use named exports for all mapper functions
+- **Index File**: Create `src/lib/mappers/index.ts` to re-export all mappers for easier imports
+
+```typescript
+// ✅ DO: Proper mapper structure
+// src/lib/mappers/user.mapper.ts
+import type { UserWithRoleAndProfile } from "@/services/permission.service";
+
+export function mapUserToApiResponse(user: UserWithRoleAndProfile) {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    // ... other fields
+  };
+}
+
+export function mapUsersToApiResponse(users: UserWithRoleAndProfile[]) {
+  return users.map(mapUserToApiResponse);
+}
+
+// src/lib/mappers/index.ts
+export * from "./user.mapper";
+export * from "./role.mapper";
+export * from "./apartment.mapper";
+```
+
+## **Mapper Types**
+
+Create different mappers for different use cases:
+
+- **`mapEntityToApiResponse`**: For API endpoint responses
+- **`mapEntityForDisplay`**: For UI display (excludes sensitive data)
+- **`mapEntityForSelect`**: For dropdown/select components
+- **`mapEntityForForm`**: For form initialization
+
+```typescript
+// ✅ DO: Multiple mapper types
+export function mapUserToApiResponse(user: User) {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+  };
+}
+
+export function mapUserForDisplay(user: User) {
+  return {
+    id: user.id,
+    fullName: `${user.firstName} ${user.lastName}`,
+    email: user.email,
+    role: user.role.name,
+    isAdmin: user.administrator !== null,
+  };
+}
+
+export function mapUserForSelect(user: User) {
+  return {
+    value: user.id,
+    label: `${user.firstName} ${user.lastName} (${user.email})`,
+    role: user.role.name,
+  };
+}
+```
+
+## **Import Patterns**
+
+- **Use barrel exports** from the index file when importing multiple mappers
+- **Import specific mappers** directly when only using one
+- **Consistent import style** across the application
+
+```typescript
+// ✅ DO: Import from index for multiple mappers
+import { 
+  mapUserToApiResponse, 
+  mapRoleToApiResponse,
+  mapApartmentToApiResponse 
+} from "@/lib/mappers";
+
+// ✅ DO: Direct import for single mapper
+import { mapUserToApiResponse } from "@/lib/mappers/user.mapper";
+
+// ❌ DON'T: Mix import styles in the same file
+import { mapUserToApiResponse } from "@/lib/mappers";
+import { mapRoleToApiResponse } from "@/lib/mappers/role.mapper";
+```
+
+## **API Endpoint Usage**
+
+- **Always use mappers** in API endpoints instead of inline transformations
+- **Import mappers** at the top of the file
+- **Use descriptive mapper names** that indicate the transformation purpose
+
+```typescript
+// ✅ DO: Use mappers in API endpoints
+import { mapUsersToApiResponse } from "@/lib/mappers/user.mapper";
+
+export async function GET(req: NextRequest) {
+  const users = await UserService.getAllUsers();
+  
+  return NextResponse.json({
+    users: mapUsersToApiResponse(users),
+  });
+}
+
+// ❌ DON'T: Inline mapping in API endpoints
+export async function GET(req: NextRequest) {
+  const users = await UserService.getAllUsers();
+  
+  return NextResponse.json({
+    users: users.map(user => ({
+      id: user.id,
+      firstName: user.firstName,
+      // ... inline transformation
+    })),
+  });
+}
+```
+
+## **Type Safety**
+
+- **Define input types** for mapper functions
+- **Export mapper types** when they might be reused
+- **Use consistent return types** across similar mappers
+
+```typescript
+// ✅ DO: Type-safe mappers
+import type { User, Role } from "@prisma/client";
+
+export type UserWithRole = User & { role: Role };
+
+export function mapUserToApiResponse(user: UserWithRole) {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: {
+      id: user.role.id,
+      name: user.role.name,
+    },
+  };
+}
+
+// Export the return type for reuse
+export type UserApiResponse = ReturnType<typeof mapUserToApiResponse>;
+```
+
+## **Mapper Composition**
+
+- **Reuse mappers** within other mappers when appropriate
+- **Create helper functions** for common transformations
+- **Avoid deep nesting** in mapper functions
+
+```typescript
+// ✅ DO: Compose mappers
+import { mapRoleToApiResponse } from "./role.mapper";
+
+export function mapUserToApiResponse(user: UserWithRole) {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: mapRoleToApiResponse(user.role), // Reuse role mapper
+  };
+}
+
+// ✅ DO: Helper functions for common transformations
+function formatFullName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`;
+}
+
+export function mapUserForDisplay(user: User) {
+  return {
+    id: user.id,
+    fullName: formatFullName(user.firstName, user.lastName),
+    email: user.email,
+  };
+}
+```
+
+## **Error Handling**
+
+- **Handle null/undefined values** gracefully
+- **Provide default values** when appropriate
+- **Document edge cases** in comments
+
+```typescript
+// ✅ DO: Handle edge cases
+export function mapUserToApiResponse(user: UserWithRole | null) {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone || null, // Handle optional fields
+    apartmentCount: user.owner?.apartments?.length || 0, // Safe navigation
+    floor: user.apartment?.floor ?? 0, // Default values for nullable fields
+  };
+}
+```
+
+## **Testing Mappers**
+
+- **Write unit tests** for complex mappers
+- **Test edge cases** (null values, empty arrays)
+- **Verify output structure** matches expected API contracts
+
+```typescript
+// ✅ DO: Test mappers
+describe('mapUserToApiResponse', () => {
+  it('should map user correctly', () => {
+    const user = createMockUser();
+    const result = mapUserToApiResponse(user);
+    
+    expect(result).toEqual({
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      // ... expected structure
+    });
+  });
+
+  it('should handle null user', () => {
+    const result = mapUserToApiResponse(null);
+    expect(result).toBeNull();
+  });
+});
+```
+
+## **Performance Considerations**
+
+- **Avoid unnecessary computations** in mappers
+- **Use memoization** for expensive transformations if needed
+- **Keep mappers pure** (no side effects)
+
+```typescript
+// ✅ DO: Pure, efficient mappers
+export function mapUserToApiResponse(user: User) {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    // Avoid expensive operations here
+  };
+}
+
+// ❌ DON'T: Side effects or expensive operations
+export function mapUserToApiResponse(user: User) {
+  // Don't make API calls or database queries
+  const additionalData = await fetchUserData(user.id);
+  
+  return {
+    id: user.id,
+    // ...
+  };
+}
+```
+
+## **Documentation**
+
+- **Add JSDoc comments** to explain mapper purpose
+- **Document input/output types** clearly
+- **Include usage examples** for complex mappers
+
+```typescript
+/**
+ * Maps a user with role and profile data to a safe API response format.
+ * Excludes sensitive information like passwords and internal IDs.
+ * 
+ * @param user - User object with role and profile relations
+ * @returns Formatted user data suitable for API responses
+ * 
+ * @example
+ * ```typescript
+ * const user = await getUserWithRole(userId);
+ * const apiResponse = mapUserToApiResponse(user);
+ * ```
+ */
+export function mapUserToApiResponse(user: UserWithRoleAndProfile) {
+  // Implementation
+}
+```
+
+## **Common Patterns**
+
+- **Consistent field naming** across all mappers
+- **Standard date formatting** using consistent utilities
+- **Uniform error response structure** for failed mappings
+- **Floor display logic** for Romanian apartment buildings (0 = "Parter")
+
+```typescript
+// ✅ DO: Consistent patterns
+export function mapUserToApiResponse(user: User) {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    createdAt: user.createdAt, // Keep consistent date format
+    updatedAt: user.updatedAt,
+  };
+}
+
+export function mapApartmentForDisplay(apartment: Apartment) {
+  const floorDisplay = apartment.floor === 0 ? "Parter" : `Etaj ${apartment.floor}`;
+  
+  return {
+    id: apartment.id,
+    number: apartment.number,
+    floorDisplay, // Consistent floor display logic
+    createdAt: apartment.createdAt, // Same date format pattern
+  };
+}
+```
+
+## **Grouping and Aggregation**
+
+- **Create specialized mappers** for grouping operations
+- **Handle null values** in grouping keys
+- **Use string keys** for Record types to avoid TypeScript issues
+
+```typescript
+// ✅ DO: Safe grouping with string keys
+export function groupApartmentsByFloor(apartments: ApartmentWithBuilding[]) {
+  const mapped = mapApartmentsForDisplay(apartments);
+  
+  return mapped.reduce((groups, apartment) => {
+    const floor = apartment.floor ?? 0; // Handle null values
+    const floorKey = floor.toString(); // Convert to string for safe indexing
+    if (!groups[floorKey]) {
+      groups[floorKey] = [];
+    }
+    groups[floorKey].push(apartment);
+    return groups;
+  }, {} as Record<string, ReturnType<typeof mapApartmentForDisplay>[]>);
+}
+```

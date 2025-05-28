@@ -1,0 +1,446 @@
+---
+description: Create or use api calls
+globs: 
+alwaysApply: false
+---
+# API Calls with React Query & Axios
+
+All API calls must use React Query for data fetching and state management, combined with Axios for HTTP requests. This ensures consistent error handling, caching, and loading states across the application.
+
+## **Required Setup**
+
+- **Use React Query hooks** for all data fetching operations
+- **Use Axios instance** from `@/lib/axios` for HTTP requests
+- **Create custom hooks** in `src/hooks/api/` for reusable API operations
+- **Follow naming conventions** for hooks and API functions
+
+## **Hook Structure & Naming**
+
+### **Query Hooks (GET requests)**
+```typescript
+// ✅ DO: Use React Query for GET requests
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/axios";
+
+export function useBuildings(params?: BuildingsQueryParams) {
+  return useQuery({
+    queryKey: ["buildings", params],
+    queryFn: async () => {
+      const response = await api.get("/buildings", { params });
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useBuilding(id: string) {
+  return useQuery({
+    queryKey: ["buildings", id],
+    queryFn: async () => {
+      const response = await api.get(`/buildings/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+```
+
+### **Mutation Hooks (POST, PUT, DELETE)**
+```typescript
+// ✅ DO: Use React Query mutations for write operations
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/axios";
+
+export function useCreateBuilding() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: CreateBuildingRequest) => {
+      const response = await api.post("/buildings", data);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch buildings list
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    },
+  });
+}
+
+export function useUpdateBuilding() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateBuildingRequest }) => {
+      const response = await api.put(`/buildings/${id}`, data);
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      // Invalidate specific building and buildings list
+      queryClient.invalidateQueries({ queryKey: ["buildings", id] });
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    },
+  });
+}
+
+export function useDeleteBuilding() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.delete(`/buildings/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    },
+  });
+}
+```
+
+## **File Organization**
+
+### **Hook Files Structure**
+```typescript
+// src/hooks/api/use-buildings.ts
+export function useBuildings() { /* ... */ }
+export function useBuilding(id: string) { /* ... */ }
+export function useCreateBuilding() { /* ... */ }
+export function useUpdateBuilding() { /* ... */ }
+export function useDeleteBuilding() { /* ... */ }
+
+// src/hooks/api/use-apartments.ts
+export function useApartments() { /* ... */ }
+export function useApartment(id: string) { /* ... */ }
+export function useApartmentsByBuilding(buildingId: string) { /* ... */ }
+
+// src/hooks/api/index.ts - Barrel exports
+export * from "./use-buildings";
+export * from "./use-apartments";
+export * from "./use-users";
+```
+
+## **Component Usage Patterns**
+
+### **Loading States**
+```typescript
+// ✅ DO: Handle loading states properly
+function BuildingsList() {
+  const { data: buildings, isLoading, error } = useBuildings();
+
+  if (isLoading) {
+    return <BuildingsListSkeleton />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
+
+  return (
+    <div>
+      {buildings?.map(building => (
+        <BuildingCard key={building.id} building={building} />
+      ))}
+    </div>
+  );
+}
+```
+
+### **Mutations with Loading States**
+```typescript
+// ✅ DO: Use mutations with proper loading and error handling
+function CreateBuildingForm() {
+  const createBuilding = useCreateBuilding();
+
+  const onSubmit = async (data: CreateBuildingRequest) => {
+    try {
+      await createBuilding.mutateAsync(data);
+      toast.success("Clădirea a fost creată cu succes");
+      onClose();
+    } catch (error) {
+      toast.error("Eroare la crearea clădirii");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* Form fields */}
+      <Button 
+        type="submit" 
+        disabled={createBuilding.isPending}
+      >
+        {createBuilding.isPending ? "Se creează..." : "Creează"}
+      </Button>
+    </form>
+  );
+}
+```
+
+## **Query Key Conventions**
+
+- **Use consistent query key patterns** for easy invalidation
+- **Include relevant parameters** in query keys for proper caching
+- **Use hierarchical structure** for related data
+
+```typescript
+// ✅ DO: Consistent query key patterns
+const queryKeys = {
+  buildings: ["buildings"] as const,
+  buildingsList: (params?: BuildingsQueryParams) => ["buildings", params] as const,
+  building: (id: string) => ["buildings", id] as const,
+  buildingApartments: (id: string) => ["buildings", id, "apartments"] as const,
+  
+  apartments: ["apartments"] as const,
+  apartment: (id: string) => ["apartments", id] as const,
+  apartmentsByBuilding: (buildingId: string) => ["apartments", "building", buildingId] as const,
+};
+
+// Usage in hooks
+export function useBuilding(id: string) {
+  return useQuery({
+    queryKey: queryKeys.building(id),
+    queryFn: async () => {
+      const response = await api.get(`/buildings/${id}`);
+      return response.data;
+    },
+  });
+}
+```
+
+## **Error Handling**
+
+### **Global Error Handling**
+```typescript
+// ✅ DO: Use consistent error handling
+import { AxiosError } from "axios";
+
+function handleApiError(error: unknown) {
+  if (error instanceof AxiosError) {
+    const message = error.response?.data?.message || error.message;
+    toast.error(message);
+  } else {
+    toast.error("A apărut o eroare neașteptată");
+  }
+}
+
+// In mutations
+export function useCreateBuilding() {
+  return useMutation({
+    mutationFn: createBuildingFn,
+    onError: handleApiError,
+  });
+}
+```
+
+### **Component Error Boundaries**
+```typescript
+// ✅ DO: Handle errors in components
+function BuildingDetails({ id }: { id: string }) {
+  const { data: building, error, isLoading } = useBuilding(id);
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Eroare</AlertTitle>
+        <AlertDescription>
+          Nu s-au putut încărca detaliile clădirii.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // ... rest of component
+}
+```
+
+## **Cache Management**
+
+### **Optimistic Updates**
+```typescript
+// ✅ DO: Use optimistic updates for better UX
+export function useUpdateBuilding() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: updateBuildingFn,
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["buildings", id] });
+      
+      // Snapshot previous value
+      const previousBuilding = queryClient.getQueryData(["buildings", id]);
+      
+      // Optimistically update
+      queryClient.setQueryData(["buildings", id], (old: any) => ({
+        ...old,
+        ...data,
+      }));
+      
+      return { previousBuilding };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousBuilding) {
+        queryClient.setQueryData(["buildings", variables.id], context.previousBuilding);
+      }
+    },
+    onSettled: (_, __, { id }) => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ["buildings", id] });
+    },
+  });
+}
+```
+
+## **TypeScript Integration**
+
+### **Type-Safe API Responses**
+```typescript
+// ✅ DO: Define proper types for API responses
+interface BuildingApiResponse {
+  success: boolean;
+  data: Building[];
+  message?: string;
+}
+
+interface CreateBuildingRequest {
+  name: string;
+  address: string;
+  floors: number;
+  apartmentsPerFloor: number;
+}
+
+export function useBuildings() {
+  return useQuery<BuildingApiResponse>({
+    queryKey: ["buildings"],
+    queryFn: async () => {
+      const response = await api.get<BuildingApiResponse>("/buildings");
+      return response.data;
+    },
+  });
+}
+```
+
+## **Performance Optimizations**
+
+### **Stale Time Configuration**
+```typescript
+// ✅ DO: Configure appropriate stale times
+export function useBuildings() {
+  return useQuery({
+    queryKey: ["buildings"],
+    queryFn: fetchBuildings,
+    staleTime: 5 * 60 * 1000, // 5 minutes for relatively static data
+  });
+}
+
+export function useWaterReadings() {
+  return useQuery({
+    queryKey: ["water-readings"],
+    queryFn: fetchWaterReadings,
+    staleTime: 30 * 1000, // 30 seconds for frequently changing data
+  });
+}
+```
+
+### **Selective Invalidation**
+```typescript
+// ✅ DO: Use selective invalidation instead of invalidating everything
+export function useCreateApartment() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: createApartmentFn,
+    onSuccess: (newApartment) => {
+      // Only invalidate related queries
+      queryClient.invalidateQueries({ 
+        queryKey: ["apartments"] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ["buildings", newApartment.buildingId, "apartments"] 
+      });
+      
+      // Don't invalidate unrelated data like users, roles, etc.
+    },
+  });
+}
+```
+
+## **Anti-Patterns to Avoid**
+
+```typescript
+// ❌ DON'T: Use fetch or other HTTP clients
+const response = await fetch("/api/buildings");
+const data = await response.json();
+
+// ❌ DON'T: Make API calls directly in components without React Query
+useEffect(() => {
+  api.get("/buildings").then(setBuildings);
+}, []);
+
+// ❌ DON'T: Use useState for server state
+const [buildings, setBuildings] = useState([]);
+const [loading, setLoading] = useState(false);
+
+// ❌ DON'T: Forget to handle loading and error states
+const { data } = useBuildings();
+return <div>{data.map(...)}</div>; // data might be undefined
+
+// ❌ DON'T: Use inconsistent query keys
+useQuery({ queryKey: ["buildings"] });
+useQuery({ queryKey: ["building-list"] }); // Inconsistent naming
+
+// ❌ DON'T: Forget to invalidate related queries after mutations
+useMutation({
+  mutationFn: createBuilding,
+  // Missing onSuccess to invalidate queries
+});
+```
+
+## **Testing Patterns**
+
+```typescript
+// ✅ DO: Mock React Query in tests
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+};
+
+test("useBuildings returns buildings data", async () => {
+  const { result } = renderHook(() => useBuildings(), {
+    wrapper: createWrapper(),
+  });
+
+  await waitFor(() => {
+    expect(result.current.isSuccess).toBe(true);
+  });
+
+  expect(result.current.data).toBeDefined();
+});
+```
+
+## **Best Practices Summary**
+
+- **Always use React Query** for server state management
+- **Use Axios instance** from `@/lib/axios` for HTTP requests
+- **Create reusable hooks** in `src/hooks/api/` directory
+- **Handle loading, error, and success states** properly
+- **Use consistent query key patterns** for easy cache management
+- **Implement optimistic updates** for better user experience
+- **Configure appropriate stale times** based on data volatility
+- **Use selective query invalidation** to avoid unnecessary refetches
+- **Type all API responses and requests** with TypeScript
+- **Test hooks with proper React Query setup**

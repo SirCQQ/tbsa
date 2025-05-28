@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -7,7 +9,16 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Droplets } from "lucide-react";
-import type { SafeUser } from "@/types/auth";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 type ConsumptionData = {
   month: string;
@@ -15,12 +26,28 @@ type ConsumptionData = {
   average: number;
 };
 
-type ConsumptionChartProps = {
-  user: SafeUser;
-};
+export function ConsumptionChart() {
+  const { user, hasPermission } = useAuth();
 
-export function ConsumptionChart({ user }: ConsumptionChartProps) {
-  const isAdmin = user.role === "ADMINISTRATOR";
+  if (!user) return null;
+
+  // Use permissions instead of role checks
+  const isAdmin = hasPermission("buildings:read:all");
+  const canViewReadings =
+    hasPermission("water_readings:read:own") ||
+    hasPermission("water_readings:read:all");
+
+  if (!canViewReadings) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground">
+            Nu aveți permisiuni pentru a vizualiza graficul de consum.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Mock data - în realitate ar veni din API
   const mockData: ConsumptionData[] = [
@@ -65,56 +92,24 @@ export function ConsumptionChart({ user }: ConsumptionChartProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Mini Chart */}
-        <div className="flex items-end justify-between h-16 sm:h-20 gap-1 sm:gap-2 px-1">
-          {mockData.map((data, index) => {
-            const height = (data.consumption / maxConsumption) * 100;
-            const avgHeight = (data.average / maxConsumption) * 100;
-            const isCurrentMonth = index === mockData.length - 1;
-            const trend =
-              index > 0
-                ? data.consumption - mockData[index - 1].consumption
-                : 0;
-            const trendPercentage =
-              index > 0 ? (trend / mockData[index - 1].consumption) * 100 : 0;
-
-            return (
-              <div
-                key={data.month}
-                className="flex flex-col items-center flex-1 group cursor-pointer"
-                title={`${data.month}: ${data.consumption} m³ (Media: ${data.average} m³)`}
-              >
-                <div className="relative w-full flex items-end justify-center h-12 sm:h-16">
-                  {/* Average line */}
-                  <div
-                    className="absolute w-full border-t border-dashed border-gray-300 dark:border-gray-600 opacity-50 group-hover:opacity-80 transition-opacity duration-200"
-                    style={{ bottom: `${avgHeight * 0.75}%` }}
-                  />
-                  {/* Consumption bar */}
-                  <div
-                    className={`w-3 sm:w-4 rounded-t transition-all duration-300 group-hover:scale-110 group-active:scale-95 ${
-                      isCurrentMonth
-                        ? "bg-primary hover:bg-primary/80"
-                        : trend > 0
-                        ? "bg-destructive hover:bg-destructive/80"
-                        : "bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-500"
-                    }`}
-                    style={{ height: `${height * 0.75}%` }}
-                  />
-
-                  {/* Tooltip on hover/touch */}
-                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                    {data.consumption} m³
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-2 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
-                  </div>
-                </div>
-                <span className="text-xs sm:text-sm text-muted-foreground mt-1 group-hover:text-foreground transition-colors duration-200">
-                  {data.month}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={mockData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip
+              formatter={(value: number) => [`${value} m³`, "Consum"]}
+              labelFormatter={(label: string) => `Luna: ${label}`}
+            />
+            <Line
+              type="monotone"
+              dataKey="consumption"
+              stroke="#8884d8"
+              strokeWidth={2}
+              dot={{ fill: "#8884d8" }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
 
         {/* Current Stats */}
         <div className="space-y-2 sm:space-y-3">

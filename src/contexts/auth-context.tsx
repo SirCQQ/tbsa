@@ -4,7 +4,7 @@ import React, { createContext, useContext } from "react";
 import { useSession, useLogin, useLogout } from "@/hooks/use-auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { SafeUser } from "@/types/auth";
-import type { UserRole } from "@prisma/client/wasm";
+import { PermissionString } from "@/lib/constants";
 
 type AuthContextType = {
   user: SafeUser | null;
@@ -17,7 +17,8 @@ type AuthContextType = {
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  hasRole: (role: UserRole) => boolean;
+  hasPermission: (permission: PermissionString) => boolean;
+  hasAnyPermission: (permissions: PermissionString[]) => boolean;
   clearError: () => void;
 };
 
@@ -84,8 +85,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await refetch();
   };
 
-  const hasRole = (role: UserRole): boolean => {
-    return user?.role === role;
+  const hasPermission = (permission: PermissionString): boolean => {
+    return user?.permissions?.includes(permission) || false;
+  };
+
+  const hasAnyPermission = (permissions: PermissionString[]): boolean => {
+    return permissions.some((permission) => hasPermission(permission));
   };
 
   const clearError = () => {
@@ -101,7 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     logout,
     refreshUser,
-    hasRole,
+    hasPermission,
+    hasAnyPermission,
     clearError,
   };
 
@@ -121,10 +127,10 @@ export function useAuth() {
 // Higher-order component for protected routes
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
-  requiredRole?: UserRole
+  requiredPermissions?: PermissionString[]
 ) {
   return function AuthenticatedComponent(props: P) {
-    const { isAuthenticated, isLoading, hasRole, user } = useAuth();
+    const { isAuthenticated, isLoading, hasAnyPermission, user } = useAuth();
 
     if (isLoading) {
       return (
@@ -142,7 +148,7 @@ export function withAuth<P extends object>(
       return null;
     }
 
-    if (requiredRole && !hasRole(requiredRole)) {
+    if (requiredPermissions && !hasAnyPermission(requiredPermissions)) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
@@ -153,7 +159,7 @@ export function withAuth<P extends object>(
               You don&apos;t have permission to access this page.
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              Required role: {requiredRole}, Your role: {user?.role}
+              Required permissions: {requiredPermissions.join(", ")}
             </p>
           </div>
         </div>

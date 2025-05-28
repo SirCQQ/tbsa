@@ -1,0 +1,135 @@
+---
+description: Instaling packages or running commands from package.json
+globs: 
+alwaysApply: false
+---
+# Yarn Package Manager
+
+This project uses **yarn** as the package manager. Always use yarn commands instead of npm.
+
+## **Required Commands**
+
+- **Install dependencies**: `yarn` or `yarn install`
+- **Add dependencies**: `yarn add <package>`
+- **Add dev dependencies**: `yarn add -D <package>`
+- **Remove dependencies**: `yarn remove <package>`
+- **Run scripts**: `yarn <script-name>`
+- **Update dependencies**: `yarn upgrade`
+
+## **Forbidden Commands**
+
+- ❌ **Never use**: `npm install`, `npm add`, `npm remove`
+- ❌ **Never use**: `npm run <script>`
+- ❌ **Never create**: `package-lock.json`
+
+## **Project Scripts**
+
+Use yarn to run project scripts:
+
+```bash
+# ✅ DO: Use yarn for scripts
+yarn dev          # Start development server
+yarn build        # Build for production
+yarn start        # Start production server
+yarn lint         # Run linting
+yarn test         # Run tests
+yarn changeset    # Create changeset for versioning
+
+# ❌ DON'T: Use npm
+npm run dev       # Wrong!
+npm start         # Wrong!
+```
+
+## **Dependency Management**
+
+### Adding Dependencies
+
+```bash
+# ✅ DO: Add runtime dependencies
+yarn add react-query
+yarn add @tanstack/react-query
+yarn add recharts
+
+# ✅ DO: Add development dependencies
+yarn add -D @types/node
+yarn add -D eslint
+yarn add -D typescript
+
+# ❌ DON'T: Use npm
+npm install react-query  # Wrong!
+```
+
+### Removing Dependencies
+
+```bash
+# ✅ DO: Remove with yarn
+yarn remove unused-package
+
+# ❌ DON'T: Use npm
+npm uninstall unused-package  # Wrong!
+```
+
+## **Lock File Management**
+
+- **Always commit**: `yarn.lock`
+- **Never commit**: `package-lock.json`
+- **Never delete**: `yarn.lock` (unless regenerating intentionally)
+
+## **CI/CD Considerations**
+
+- Use `yarn install --frozen-lockfile` in CI environments
+- Ensure `yarn.lock` is always up to date
+- Cache `node_modules` and yarn cache in CI
+
+## **Troubleshooting**
+
+### Clear Cache
+```bash
+yarn cache clean
+```
+
+### Reinstall Dependencies
+```bash
+rm -rf node_modules yarn.lock
+yarn install
+```
+
+### Check for Outdated Packages
+```bash
+yarn outdated
+```
+
+## **Best Practices**
+
+1. **Always use yarn** for any package management operation
+2. **Commit yarn.lock** with every dependency change
+3. **Use exact versions** for critical dependencies when needed
+4. **Regular updates** using `yarn upgrade` or `yarn upgrade-interactive`
+5. **Check for vulnerabilities** using `yarn audit`
+
+## **Documentation References**
+
+- [Yarn Documentation](mdc:https:/yarnpkg.com/getting-started)
+- [Yarn CLI Commands](mdc:https:/yarnpkg.com/cli)
+- [Yarn Workspaces](mdc:https:/yarnpkg.com/features/workspaces) (if using monorepo)
+
+## **Integration with Other Tools**
+
+### Package.json Scripts
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  }
+}
+```
+
+### IDE Integration
+- Configure your IDE to use yarn for package management
+- Set yarn as the default package manager in VS Code/Cursor settings
+
+---
+
+**Remember**: This project is configured to use yarn. Always use yarn commands for consistency and to avoid conflicts between package managers.

@@ -1,0 +1,225 @@
+---
+description: TypeScript guidelines emphasizing the use of types over interfaces
+globs: **/*.ts, **/*.tsx
+alwaysApply: true
+---
+# TypeScript Guidelines
+
+## **Prefer Types Over Interfaces**
+
+- **Use `type` declarations instead of `interface` declarations**
+- **Types are more flexible and composable than interfaces**
+- **Consistent with modern TypeScript best practices**
+
+### **When to Use Types**
+
+```typescript
+// ✅ DO: Use type for object shapes
+type UserProps = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+// ✅ DO: Use type for component props
+type CreateRoleModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: CreateRoleFormData) => void;
+  isLoading: boolean;
+  availablePermissions: Permission[];
+};
+
+// ✅ DO: Use type for form data with Zod inference
+type CreateRoleFormData = z.infer<typeof createRoleSchema>;
+
+// ✅ DO: Use type for union types
+type ApartmentRole = "OWNER" | "CO_OWNER" | "TENANT" | "MANAGER" | "FAMILY";
+
+// ✅ DO: Use type for mapped types
+type ApartmentPermissions = Record<ApartmentRole, Permission[]>;
+
+// ❌ DON'T: Use interface for simple object shapes
+interface UserProps {
+  id: string;
+  name: string;
+  email: string;
+}
+```
+
+### **Type Composition Patterns**
+
+```typescript
+// ✅ DO: Use intersection types for composition
+type BaseEntity = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type User = BaseEntity & {
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+type UserWithRole = User & {
+  role: Role;
+};
+
+// ✅ DO: Use utility types for transformations
+type CreateUserInput = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+type UpdateUserInput = Partial<Pick<User, 'firstName' | 'lastName'>>;
+type UserApiResponse = Pick<User, 'id' | 'firstName' | 'lastName' | 'email'>;
+```
+
+### **Component Props Patterns**
+
+```typescript
+// ✅ DO: Define component props with type
+type SubmitReadingModalProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+// ✅ DO: Extend HTML element props when needed
+type ButtonProps = React.ComponentProps<'button'> & {
+  variant?: 'primary' | 'secondary';
+  size?: 'sm' | 'md' | 'lg';
+};
+
+// ✅ DO: Generic types for reusable components
+type ControlledInputProps<T extends FieldValues> = {
+  name: Path<T>;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  helperText?: string;
+} & Omit<React.ComponentProps<typeof Input>, 'name'>;
+```
+
+### **API Response Types**
+
+```typescript
+// ✅ DO: Define API response types
+type InviteCodesResponse = {
+  inviteCodes: InviteCode[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+type ApiError = {
+  error: string;
+  message?: string;
+  details?: Record<string, string[]>;
+};
+
+// ✅ DO: Use discriminated unions for different response states
+type ApiResponse<T> = 
+  | { success: true; data: T }
+  | { success: false; error: ApiError };
+```
+
+### **Function Types**
+
+```typescript
+// ✅ DO: Define function types
+type EventHandler<T = void> = (event: T) => void;
+type AsyncHandler<T, R> = (data: T) => Promise<R>;
+
+type FormSubmitHandler = (data: FormData) => void | Promise<void>;
+type ModalStateHandler = (open: boolean) => void;
+
+// ✅ DO: Use function types for callbacks
+type CreateRoleModalProps = {
+  onSubmit: (data: { name: string; description: string; permissionIds: string[] }) => void;
+  onClose: () => void;
+};
+```
+
+### **Migration from Interfaces**
+
+When converting existing interfaces to types:
+
+```typescript
+// ❌ BEFORE: Interface
+interface Permission {
+  id: string;
+  resource: string;
+  action: string;
+  scope: string | null;
+}
+
+// ✅ AFTER: Type
+type Permission = {
+  id: string;
+  resource: string;
+  action: string;
+  scope: string | null;
+};
+
+// ❌ BEFORE: Interface extending
+interface CreateRoleModalProps extends BaseModalProps {
+  availablePermissions: Permission[];
+}
+
+// ✅ AFTER: Type intersection
+type CreateRoleModalProps = BaseModalProps & {
+  availablePermissions: Permission[];
+};
+```
+
+### **Exception Cases**
+
+**Only use `interface` when:**
+
+1. **Declaration Merging is Required** (rare in application code)
+```typescript
+// Only when you need to extend external library types
+interface Window {
+  customProperty: string;
+}
+```
+
+2. **Extending Classes** (prefer composition over inheritance)
+```typescript
+// Rare case - prefer composition
+interface Serializable {
+  serialize(): string;
+}
+```
+
+### **Import/Export Patterns**
+
+```typescript
+// ✅ DO: Use type-only imports when importing only types
+import type { User, CreateUserInput } from '@/types/user';
+import type { ComponentProps } from 'react';
+
+// ✅ DO: Export types explicitly
+export type { Permission, CreateRoleModalProps };
+
+// ✅ DO: Re-export types from index files
+// src/types/index.ts
+export type * from './user';
+export type * from './apartment';
+export type * from './permission';
+```
+
+## **Benefits of Using Types**
+
+1. **More Flexible**: Types support unions, intersections, and conditional types
+2. **Better Composition**: Easier to combine and transform types
+3. **Consistent Syntax**: Same syntax for all type definitions
+4. **Better Tooling**: Better IntelliSense and error messages
+5. **Future-Proof**: Aligns with TypeScript evolution and community practices
+
+## **Migration Strategy**
+
+1. **New Code**: Always use `type` for new definitions
+2. **Existing Code**: Convert `interface` to `type` when modifying files
+3. **Gradual Migration**: No need to convert everything at once
+4. **Testing**: Ensure type conversions don't break existing functionality
+
+Follow these guidelines to maintain consistent, flexible, and modern TypeScript code throughout the application.

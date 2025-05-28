@@ -19,15 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -41,6 +32,10 @@ import {
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
+import { ControlledSelect } from "@/components/ui/inputs/form/controlled-select";
+import { ControlledTextarea } from "@/components/ui/inputs/form/controlled-textarea";
+import { SelectItem as FormSelectItem } from "@/components/ui/inputs/form-select";
 
 const formSchema = z.object({
   meterType: z.string().min(1, "Selectează tipul de contor"),
@@ -128,54 +123,27 @@ export function SubmitReadingModal({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
+            <ControlledSelect
               name="meterType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tip Contor</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selectează tipul de contor" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {meterTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              label="Tip Contor"
+              placeholder="Selectează tipul de contor"
+              required
+            >
+              {meterTypes.map((type) => (
+                <FormSelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </FormSelectItem>
+              ))}
+            </ControlledSelect>
 
-            <FormField
-              control={form.control}
+            <ControlledInput
               name="currentReading"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Citirea Curentă</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Ex: 1234.56"
-                      type="number"
-                      step="0.01"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Introdu valoarea afișată pe contor
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Citirea Curentă"
+              placeholder="Ex: 1234.56"
+              type="number"
+              step="0.01"
+              helperText="Introdu valoarea afișată pe contor"
+              required
             />
 
             <FormField
@@ -257,26 +225,12 @@ export function SubmitReadingModal({
               </p>
             </div>
 
-            <FormField
-              control={form.control}
+            <ControlledTextarea
               name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observații (Opțional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Adaugă observații despre citire..."
-                      className="resize-none"
-                      rows={3}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Orice informații suplimentare despre citire
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Observații (Opțional)"
+              placeholder="Adaugă observații despre citire..."
+              helperText="Orice informații suplimentare despre citire"
+              rows={3}
             />
 
             <DialogFooter className="gap-2 sm:gap-0">

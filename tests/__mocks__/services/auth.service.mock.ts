@@ -8,31 +8,16 @@ import type {
 import type { ApiResponse } from "../../../src/types/api";
 
 // Mock user data factories
-export const createMockSafeUser = (
-  role: "ADMINISTRATOR" | "OWNER" = "OWNER"
-): SafeUser => ({
+export const createMockSafeUser = (): SafeUser => ({
   id: faker.string.uuid(),
   firstName: faker.person.firstName(),
   lastName: faker.person.lastName(),
   email: faker.internet.email(),
   phone: faker.phone.number(),
-  role,
   createdAt: faker.date.past(),
-  administrator:
-    role === "ADMINISTRATOR"
-      ? {
-          id: faker.string.uuid(),
-          userId: faker.string.uuid(),
-        }
-      : null,
-  owner:
-    role === "OWNER"
-      ? {
-          id: faker.string.uuid(),
-          userId: faker.string.uuid(),
-          apartments: [],
-        }
-      : null,
+  administrator: null,
+  owner: null,
+  ownerId: null,
 });
 
 export const createMockLoginRequest = (): LoginRequest => ({
@@ -47,7 +32,6 @@ export const createMockRegisterRequest = (): RegisterRequest => ({
   password: faker.internet.password({ length: 12 }),
   confirmPassword: faker.internet.password({ length: 12 }),
   phone: faker.phone.number(),
-  role: faker.helpers.arrayElement(["ADMINISTRATOR", "OWNER"]),
 });
 
 export const createMockJWTPayload = (
@@ -55,7 +39,8 @@ export const createMockJWTPayload = (
 ): JWTPayload => ({
   userId: faker.string.uuid(),
   email: faker.internet.email(),
-  role,
+  permissions:
+    role === "ADMINISTRATOR" ? ["buildings:read:all"] : ["apartments:read:own"],
   administratorId: role === "ADMINISTRATOR" ? faker.string.uuid() : undefined,
   ownerId: role === "OWNER" ? faker.string.uuid() : undefined,
 });

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/services/auth-server.service";
 import { createAuthError } from "@/lib/auth-errors";
 import { AuthErrorKey } from "@/types/api";
 import { BuildingsService } from "@/services/buildings.service";
+import { requirePermission } from "@/lib/auth";
 
 // GET /api/buildings - List all buildings with pagination
 export async function GET(request: NextRequest) {
@@ -13,8 +14,14 @@ export async function GET(request: NextRequest) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Only administrators can list buildings
-    if (user.role !== "ADMINISTRATOR") {
+    // Check permission using JWT
+    try {
+      await requirePermission({
+        resource: "buildings",
+        action: "read",
+        scope: "all",
+      });
+    } catch (error) {
       return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 
@@ -68,8 +75,14 @@ export async function POST(request: NextRequest) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Only administrators can create buildings
-    if (user.role !== "ADMINISTRATOR") {
+    // Check permission using JWT
+    try {
+      await requirePermission({
+        resource: "buildings",
+        action: "create",
+        scope: "all",
+      });
+    } catch (error) {
       return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 

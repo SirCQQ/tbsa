@@ -1,0 +1,316 @@
+---
+description: Related to auth, credentials and security
+globs: 
+alwaysApply: false
+---
+# JWT Permissions System
+
+Guidelines for implementing and using the JWT-based permissions system that stores user permissions directly in the JWT token for fast validation.
+
+## **Permission Structure**
+
+- **Format:** `resource:action:scope`
+- **Resources:** `buildings`, `apartments`, `users`, `water_readings`, `invite_codes`, `roles`, `admin_grant`
+- **Actions:** `read`, `create`, `update`, `delete`
+- **Scopes:** `all`, `own`, `building`, `null`
+
+## **Available Permission Functions**
+
+### **Basic Permission Checks**
+
+```typescript
+import { hasPermission, hasAnyPermission, hasAllPermissions } from "@/lib/auth";
+
+// Check single permission
+const canRead = await hasPermission({
+  resource: "buildings",
+  action: "read", 
+  scope: "all"
+});
+
+// Check if user has any of multiple permissions
+const hasAccess = await hasAnyPermission([
+  { resource: "buildings", action: "read", scope: "all" },
+  { resource: "buildings", action: "read", scope: "own" }
+]);
+
+// Check if user has all permissions
+const hasFullAccess = await hasAllPermissions([
+  { resource: "buildings", action: "read", scope: "all" },
+  { resource: "buildings", action: "update", scope: "all" }
+]);
+```
+
+### **Required Permission Checks (Throws Errors)**
+
+```typescript
+import { requirePermission, requireAnyPermission } from "@/lib/auth";
+
+// Require specific permission or throw error
+try {
+  await requirePermission({
+    resource: "buildings",
+    action: "create",
+    scope: "all"
+  });
+  // User has permission, continue
+} catch (error) {
+  return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
+}
+
+// Require any of multiple permissions
+try {
+  await requireAnyPermission([
+    { resource: "apartments", action: "read", scope: "all" },
+    { resource: "apartments", action: "read", scope: "building" }
+  ]);
+} catch (error) {
+  return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
+}
+```
+
+## **API Route Implementation**
+
+### **Standard Pattern**
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/services/auth-server.service";
+import { requirePermission } from "@/lib/auth";
+import { createAuthError } from "@/lib/auth-errors";
+import { AuthErrorKey } from "@/types/api";
+
+export async function GET(request: NextRequest) {
+  try {
+    // 1. Check authentication
+    const { user, isAuthenticated } = await getCurrentUser();
+    if (!isAuthenticated || !user) {
+      return createAuthError(AuthErrorKey.MISSING_TOKEN);
+    }
+
+    // 2. Check permissions using JWT
+    try {
+      await requirePermission({
+        resource: "buildings",
+        action: "read",
+        scope: "all"
+      });
+    } catch (error) {
+      return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
+    }
+
+    // 3. Business logic
+    // ... your code here
+
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    console.error("API Error:", error);
+    return createAuthError(AuthErrorKey.INTERNAL_ERROR);
+  }
+}
+```
+
+### **Multiple Permission Checks**
+
+```typescript
+// For endpoints that need different permissions based on scope
+export async function GET(request: NextRequest) {
+  const { user, isAuthenticated } = await getCurrentUser();
+  if (!isAuthenticated || !user) {
+    return createAuthError(AuthErrorKey.MISSING_TOKEN);
+  }
+
+  // Check if user can read all buildings OR their own buildings
+  const canReadAll = await hasPermission({
+    resource: "buildings",
+    action: "read",
+    scope: "all"
+  });
+
+  const canReadOwn = await hasPermission({
+    resource: "buildings", 
+    action: "read",
+    scope: "own"
+  });
+
+  if (!canReadAll && !canReadOwn) {
+    return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
+  }
+
+  // Filter results based on permissions
+  const buildings = canReadAll 
+    ? await getAllBuildings()
+    : await getUserBuildings(user.id);
+
+  return NextResponse.json({ success: true, data: buildings });
+}
+```
+
+## **Permission Utilities**
+
+### **Get User Data from JWT**
+
+```typescript
+import { getUserPermissions, getUserRole } from "@/lib/auth";
+
+// Get all user permissions
+const permissions = await getUserPermissions(); // string[]
+
+// Get user role
+const role = await getUserRole(); // UserRole | null
+```
+
+## **Common Permission Patterns**
+
+### **Resource-Specific Permissions**
+
+```typescript
+// Buildings
+await requirePermission({ resource: "buildings", action: "read", scope: "all" });
+await requirePermission({ resource: "buildings", action: "create", scope: "all" });
+await requirePermission({ resource: "buildings", action: "update", scope: "own" });
+
+// Apartments  
+await requirePermission({ resource: "apartments", action: "read", scope: "building" });
+await requirePermission({ resource: "apartments", action: "update", scope: "own" });
+
+// Users
+await requirePermission({ resource: "users", action: "read", scope: "all" });
+await requirePermission({ resource: "users", action: "update", scope: "own" });
+
+// Water readings
+await requirePermission({ resource: "water_readings", action: "create", scope: "own" });
+await requirePermission({ resource: "water_readings", action: "read", scope: "building" });
+
+// Roles (Admin only)
+await requirePermission({ resource: "roles", action: "create", scope: "all" });
+await requirePermission({ resource: "admin_grant", action: "create", scope: "all" });
+```
+
+### **Hierarchical Permission Checks**
+
+```typescript
+// Check from most specific to least specific
+const hasSpecificAccess = await hasAnyPermission([
+  { resource: "apartments", action: "read", scope: "own" },      // Most specific
+  { resource: "apartments", action: "read", scope: "building" }, // Building level
+  { resource: "apartments", action: "read", scope: "all" }       // Global access
+]);
+```
+
+## **Error Handling**
+
+### **Standard Error Responses**
+
+```typescript
+// Permission denied
+return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
+
+// Not authenticated
+return createAuthError(AuthErrorKey.MISSING_TOKEN);
+
+// Invalid token
+return createAuthError(AuthErrorKey.INVALID_TOKEN);
+```
+
+### **Custom Permission Errors**
+
+```typescript
+try {
+  await requirePermission({ resource: "buildings", action: "delete", scope: "all" });
+} catch (error) {
+  return NextResponse.json({
+    error: "You don't have permission to delete buildings",
+    code: "PERMISSION_DENIED",
+    requiredPermission: "buildings:delete:all"
+  }, { status: 403 });
+}
+```
+
+## **Performance Considerations**
+
+- **✅ DO:** Use JWT permissions for fast validation without database calls
+- **✅ DO:** Cache permission checks within the same request when possible
+- **✅ DO:** Use `requirePermission` for cleaner error handling
+- **❌ DON'T:** Make database calls to check permissions when JWT data is available
+- **❌ DON'T:** Check permissions multiple times for the same operation
+
+## **Security Best Practices**
+
+- **Always validate authentication first** before checking permissions
+- **Use specific scopes** rather than broad permissions when possible
+- **Log permission denials** for security auditing
+- **Validate resource ownership** for `own` scope permissions
+- **Check building access** for `building` scope permissions
+
+## **Role-Based Defaults**
+
+### **SUPER_ADMIN**
+- Has all permissions automatically
+- No need to check specific permissions (but still recommended for clarity)
+
+### **ADMINISTRATOR** 
+- Buildings: all scopes for CRUD operations
+- Apartments: all and building scopes
+- Users: read, create, update (all scope)
+- Water readings: all and building scopes
+- Invite codes: all and building scopes
+- Roles: read only
+- Admin grant: can grant admin role
+
+### **OWNER**
+- Apartments: read own
+- Users: read and update own
+- Water readings: read, create, update own
+- Invite codes: read building
+
+### **BASIC_USER**
+- Users: read and update own
+- Minimal permissions for basic functionality
+
+## **Testing Permissions**
+
+```typescript
+// Test with different user roles
+describe("Buildings API", () => {
+  it("should allow ADMINISTRATOR to read buildings", async () => {
+    const response = await request(app)
+      .get("/api/buildings")
+      .set("Cookie", adminCookie);
+    
+    expect(response.status).toBe(200);
+  });
+
+  it("should deny OWNER access to buildings", async () => {
+    const response = await request(app)
+      .get("/api/buildings") 
+      .set("Cookie", ownerCookie);
+    
+    expect(response.status).toBe(403);
+  });
+});
+```
+
+## **Migration from Role-Based Checks**
+
+### **Before (Role-based)**
+```typescript
+if (user.role !== "ADMINISTRATOR") {
+  return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
+}
+```
+
+### **After (Permission-based)**
+```typescript
+try {
+  await requirePermission({
+    resource: "buildings",
+    action: "read", 
+    scope: "all"
+  });
+} catch (error) {
+  return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
+}
+```
+
+This provides more granular control and allows for custom roles with specific permissions.
