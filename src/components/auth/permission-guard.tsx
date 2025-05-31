@@ -1,36 +1,48 @@
 "use client";
 
 import { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { PermissionString } from "@/lib/constants";
 
 interface PermissionGuardProps {
-  permission: PermissionString;
+  permissions: PermissionString[];
+  requireAll?: boolean; // true = AND logic, false = OR logic (default: false)
   children: ReactNode;
   fallback?: ReactNode;
   showLoading?: boolean;
   requireAuth?: boolean;
+  withRedirect?: boolean;
+  redirectTo?: string;
 }
 
 export function PermissionGuard({
-  permission,
+  permissions,
+  requireAll = false,
   children,
   fallback = null,
   showLoading = false,
   requireAuth = true,
+  withRedirect = false,
+  redirectTo = "/dashboard",
 }: PermissionGuardProps) {
   const {
-    user,
     isAuthenticated,
     isLoading: authLoading,
     hasPermission,
+    hasAnyPermission,
+    user,
   } = useAuth();
+  const router = useRouter();
 
   // Dacă requireAuth este true și utilizatorul nu este autentificat
   if (requireAuth && !isAuthenticated && !authLoading) {
+    if (withRedirect) {
+      router.push("/auth/login");
+      return null;
+    }
     return <>{fallback}</>;
   }
-
   // Afișează loading dacă este necesar
   if (authLoading && showLoading) {
     return (
@@ -40,10 +52,30 @@ export function PermissionGuard({
     );
   }
 
-  // Verifică permisiunea direct din context (JWT)
-  if (!hasPermission(permission)) {
+  // Dacă nu sunt permisiuni specificate, permite accesul
+  if (!permissions || permissions.length === 0) {
+    return <>{children}</>;
+  }
+
+  // Verifică permisiunile
+  let hasRequiredPermissions = false;
+
+  if (requireAll) {
+    // AND logic - toate permisiunile trebuie să fie prezente
+    hasRequiredPermissions = permissions.every((perm) => hasPermission(perm));
+  } else {
+    // OR logic - cel puțin o permisiune trebuie să fie prezentă
+    hasRequiredPermissions = hasAnyPermission(permissions);
+  }
+
+  if (!hasRequiredPermissions) {
+    if (withRedirect) {
+      router.push(redirectTo);
+      return null;
+    }
     return <>{fallback}</>;
   }
+  console.log(permissions, user?.permissions);
 
   return <>{children}</>;
 }

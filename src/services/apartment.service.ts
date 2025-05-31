@@ -6,6 +6,7 @@ import {
   createServiceSuccess,
 } from "@/types/api";
 import { Apartment, Building, User, Prisma } from "@prisma/client/wasm";
+import { PermissionService } from "./permission.service";
 
 export type ApartmentWithRelations = Apartment & {
   building: Pick<Building, "id" | "name" | "address">;
@@ -29,9 +30,9 @@ export class ApartmentService {
   static async getApartments(
     query: ApartmentQuery,
     tenantContext?: {
+      userId: string;
       administratorId?: string;
       ownerId?: string;
-      role?: string;
     }
   ): Promise<
     ApiResponse<{
@@ -52,18 +53,26 @@ export class ApartmentService {
       // Build where clause with tenant isolation
       const where: Prisma.ApartmentWhereInput = {};
 
-      // Apply tenant context
-      if (
-        tenantContext?.role === "ADMINISTRATOR" &&
-        tenantContext.administratorId
-      ) {
-        // Administrators can only see apartments in their buildings
-        where.building = {
-          administratorId: tenantContext.administratorId,
-        };
-      } else if (tenantContext?.role === "OWNER" && tenantContext.ownerId) {
-        // Owners can only see their own apartments
-        where.ownerId = tenantContext.ownerId;
+      // Apply tenant context based on permissions
+      if (tenantContext?.userId) {
+        const hasAdminPermission = await PermissionService.hasPermission(
+          tenantContext.userId,
+          { resource: "buildings", action: "read", scope: "own" }
+        );
+        const hasOwnerPermission = await PermissionService.hasPermission(
+          tenantContext.userId,
+          { resource: "apartments", action: "read", scope: "own" }
+        );
+
+        if (hasAdminPermission && tenantContext.administratorId) {
+          // Administrators can only see apartments in their buildings
+          where.building = {
+            administratorId: tenantContext.administratorId,
+          };
+        } else if (hasOwnerPermission && tenantContext.ownerId) {
+          // Owners can only see their own apartments
+          where.ownerId = tenantContext.ownerId;
+        }
       }
 
       // Apply filters
@@ -148,24 +157,32 @@ export class ApartmentService {
   static async getApartmentById(
     id: string,
     tenantContext?: {
+      userId: string;
       administratorId?: string;
       ownerId?: string;
-      role?: string;
     }
   ): Promise<ApiResponse<ApartmentDetails>> {
     try {
       // Build where clause with tenant isolation
       const where: Prisma.ApartmentWhereInput = { id };
 
-      if (
-        tenantContext?.role === "ADMINISTRATOR" &&
-        tenantContext.administratorId
-      ) {
-        where.building = {
-          administratorId: tenantContext.administratorId,
-        };
-      } else if (tenantContext?.role === "OWNER" && tenantContext.ownerId) {
-        where.ownerId = tenantContext.ownerId;
+      if (tenantContext?.userId) {
+        const hasAdminPermission = await PermissionService.hasPermission(
+          tenantContext.userId,
+          { resource: "buildings", action: "read", scope: "own" }
+        );
+        const hasOwnerPermission = await PermissionService.hasPermission(
+          tenantContext.userId,
+          { resource: "apartments", action: "read", scope: "own" }
+        );
+
+        if (hasAdminPermission && tenantContext.administratorId) {
+          where.building = {
+            administratorId: tenantContext.administratorId,
+          };
+        } else if (hasOwnerPermission && tenantContext.ownerId) {
+          where.ownerId = tenantContext.ownerId;
+        }
       }
 
       const apartment = await prisma.apartment.findFirst({
@@ -210,7 +227,7 @@ export class ApartmentService {
    */
   static async createApartment(
     data: ApartmentInput,
-    tenantContext?: { administratorId?: string; role?: string }
+    tenantContext?: { userId: string; administratorId?: string }
   ): Promise<ApiResponse<Apartment>> {
     try {
       // Verify building exists and user has access
@@ -278,7 +295,7 @@ export class ApartmentService {
   static async updateApartment(
     id: string,
     data: Partial<ApartmentInput>,
-    tenantContext?: { administratorId?: string; role?: string }
+    tenantContext?: { userId: string; administratorId?: string }
   ): Promise<ApiResponse<Apartment>> {
     try {
       // Check if apartment exists and user has access
@@ -365,7 +382,7 @@ export class ApartmentService {
    */
   static async deleteApartment(
     id: string,
-    tenantContext?: { administratorId?: string; role?: string }
+    tenantContext?: { userId: string; administratorId?: string }
   ): Promise<ApiResponse<{ message: string }>> {
     try {
       // Check if apartment exists and user has access
@@ -385,7 +402,7 @@ export class ApartmentService {
       if (readingsCount > 0) {
         return createServiceError(
           "CONSTRAINT_VIOLATION",
-          `Nu se poate șterge apartamentul. Există ${readingsCount} citiri asociate. Ștergeți mai întâi citirile.`
+          "Nu se poate șterge apartamentul deoarece are citiri de apă asociate"
         );
       }
 
@@ -394,7 +411,7 @@ export class ApartmentService {
       });
 
       return createServiceSuccess({
-        message: "Apartamentul a fost șters cu succes",
+        message: "Apartament șters cu succes",
       });
     } catch (error) {
       console.error("Error deleting apartment:", error);
@@ -406,14 +423,14 @@ export class ApartmentService {
   }
 
   /**
-   * Get apartments for a specific building
+   * Get apartments by building ID
    */
   static async getApartmentsByBuilding(
     buildingId: string,
-    tenantContext?: { administratorId?: string; role?: string }
+    tenantContext?: { userId: string; administratorId?: string }
   ): Promise<ApiResponse<ApartmentWithRelations[]>> {
     try {
-      // Verify building access
+      // Verify building exists and user has access
       const buildingAccess = await this.checkBuildingAccess(
         buildingId,
         tenantContext
@@ -462,9 +479,9 @@ export class ApartmentService {
    * Get apartment statistics
    */
   static async getApartmentStats(tenantContext?: {
+    userId: string;
     administratorId?: string;
     ownerId?: string;
-    role?: string;
   }): Promise<
     ApiResponse<{
       total: number;
@@ -474,33 +491,37 @@ export class ApartmentService {
     }>
   > {
     try {
+      // Build where clause with tenant isolation
       const where: Prisma.ApartmentWhereInput = {};
 
-      if (
-        tenantContext?.role === "ADMINISTRATOR" &&
-        tenantContext.administratorId
-      ) {
-        where.building = {
-          administratorId: tenantContext.administratorId,
-        };
-      } else if (tenantContext?.role === "OWNER" && tenantContext.ownerId) {
-        where.ownerId = tenantContext.ownerId;
+      if (tenantContext?.userId) {
+        const hasAdminPermission = await PermissionService.hasPermission(
+          tenantContext.userId,
+          { resource: "buildings", action: "read", scope: "own" }
+        );
+        const hasOwnerPermission = await PermissionService.hasPermission(
+          tenantContext.userId,
+          { resource: "apartments", action: "read", scope: "own" }
+        );
+
+        if (hasAdminPermission && tenantContext.administratorId) {
+          where.building = {
+            administratorId: tenantContext.administratorId,
+          };
+        } else if (hasOwnerPermission && tenantContext.ownerId) {
+          where.ownerId = tenantContext.ownerId;
+        }
       }
 
       const [total, occupied, withReadings] = await Promise.all([
         prisma.apartment.count({ where }),
         prisma.apartment.count({
-          where: {
-            ...where,
-            ownerId: { not: null },
-          },
+          where: { ...where, ownerId: { not: null } },
         }),
         prisma.apartment.count({
           where: {
             ...where,
-            waterReadings: {
-              some: {},
-            },
+            waterReadings: { some: {} },
           },
         }),
       ]);
@@ -523,82 +544,94 @@ export class ApartmentService {
   }
 
   /**
-   * Helper method to check building access
+   * Check if user has access to a building
    */
   private static async checkBuildingAccess(
     buildingId: string,
-    tenantContext?: { administratorId?: string; role?: string }
+    tenantContext?: { userId: string; administratorId?: string }
   ): Promise<ApiResponse<Building>> {
     try {
+      if (!tenantContext?.userId) {
+        return createServiceError("UNAUTHORIZED", "Acces neautorizat");
+      }
+
+      const hasPermission = await PermissionService.hasPermission(
+        tenantContext.userId,
+        { resource: "buildings", action: "read", scope: "own" }
+      );
+
+      if (!hasPermission) {
+        return createServiceError("FORBIDDEN", "Acces interzis");
+      }
+
       const where: Prisma.BuildingWhereInput = { id: buildingId };
 
-      if (
-        tenantContext?.role === "ADMINISTRATOR" &&
-        tenantContext.administratorId
-      ) {
+      if (tenantContext.administratorId) {
         where.administratorId = tenantContext.administratorId;
       }
 
       const building = await prisma.building.findFirst({ where });
 
       if (!building) {
-        return createServiceError(
-          "NOT_FOUND",
-          "Clădirea nu a fost găsită sau nu aveți acces la ea"
-        );
+        return createServiceError("NOT_FOUND", "Clădirea nu a fost găsită");
       }
 
       return createServiceSuccess(building);
     } catch (error) {
       console.error("Error checking building access:", error);
-      return createServiceError(
-        "INTERNAL_ERROR",
-        "Eroare la verificarea accesului la clădire"
-      );
+      return createServiceError("INTERNAL_ERROR", "Eroare de verificare");
     }
   }
 
   /**
-   * Helper method to check apartment access
+   * Check if user has access to an apartment
    */
   private static async checkApartmentAccess(
     apartmentId: string,
     tenantContext?: {
+      userId: string;
       administratorId?: string;
       ownerId?: string;
-      role?: string;
     }
   ): Promise<ApiResponse<Apartment>> {
     try {
+      if (!tenantContext?.userId) {
+        return createServiceError("UNAUTHORIZED", "Acces neautorizat");
+      }
+
+      const hasAdminPermission = await PermissionService.hasPermission(
+        tenantContext.userId,
+        { resource: "buildings", action: "read", scope: "own" }
+      );
+      const hasOwnerPermission = await PermissionService.hasPermission(
+        tenantContext.userId,
+        { resource: "apartments", action: "read", scope: "own" }
+      );
+
+      if (!hasAdminPermission && !hasOwnerPermission) {
+        return createServiceError("FORBIDDEN", "Acces interzis");
+      }
+
       const where: Prisma.ApartmentWhereInput = { id: apartmentId };
 
-      if (
-        tenantContext?.role === "ADMINISTRATOR" &&
-        tenantContext.administratorId
-      ) {
+      if (hasAdminPermission && tenantContext.administratorId) {
         where.building = {
           administratorId: tenantContext.administratorId,
         };
-      } else if (tenantContext?.role === "OWNER" && tenantContext.ownerId) {
+      } else if (hasOwnerPermission && tenantContext.ownerId) {
         where.ownerId = tenantContext.ownerId;
       }
 
       const apartment = await prisma.apartment.findFirst({ where });
 
       if (!apartment) {
-        return createServiceError(
-          "NOT_FOUND",
-          "Apartamentul nu a fost găsit sau nu aveți acces la el"
-        );
+        return createServiceError("NOT_FOUND", "Apartamentul nu a fost găsit");
       }
 
       return createServiceSuccess(apartment);
     } catch (error) {
       console.error("Error checking apartment access:", error);
-      return createServiceError(
-        "INTERNAL_ERROR",
-        "Eroare la verificarea accesului la apartament"
-      );
+      return createServiceError("INTERNAL_ERROR", "Eroare de verificare");
     }
   }
 }

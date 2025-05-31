@@ -1,9 +1,9 @@
-import type { UserWithRoleAndProfile } from "@/services/permission.service";
+import type { UserWithRoleAndProfile } from "@/types/permission";
 
 /**
  * Maps a user with role and profile to a safe API response format
  */
-export function mapUserToApiResponse(user: UserWithRoleAndProfile) {
+function mapUserToApiResponse(user: UserWithRoleAndProfile) {
   return {
     id: user.id,
     firstName: user.firstName,
@@ -27,31 +27,4 @@ export function mapUserToApiResponse(user: UserWithRoleAndProfile) {
  */
 export function mapUsersToApiResponse(users: UserWithRoleAndProfile[]) {
   return users.map(mapUserToApiResponse);
-}
-
-/**
- * Maps user data for display purposes (excludes sensitive info)
- */
-export function mapUserForDisplay(user: UserWithRoleAndProfile) {
-  return {
-    id: user.id,
-    fullName: `${user.firstName} ${user.lastName}`,
-    email: user.email,
-    role: user.role.name,
-    isAdmin: user.administrator !== null,
-    isOwner: user.owner !== null,
-    apartmentCount: user.owner?.apartments?.length || 0,
-    createdAt: user.createdAt,
-  };
-}
-
-/**
- * Maps user data for select/dropdown components
- */
-export function mapUserForSelect(user: UserWithRoleAndProfile) {
-  return {
-    value: user.id,
-    label: `${user.firstName} ${user.lastName} (${user.email})`,
-    role: user.role.name,
-  };
 }

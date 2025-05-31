@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useCallback } from "react";
 import { useSession, useLogin, useLogout } from "@/hooks/use-auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { SafeUser } from "@/types/auth";
@@ -33,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     showLoginSuccess,
     showLogoutSuccess,
     showAuthError,
-    showRoleBasedWelcome,
     showLoadingFeedback,
   } = useAuthFeedback();
 
@@ -50,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (result.user) {
         showLoginSuccess(result.user);
-        showRoleBasedWelcome(result.user);
       }
 
       // Refetch session data
@@ -81,12 +79,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshUser = async () => {
-    await refetch();
-  };
+  const refreshUser = useCallback(
+    async (_user?: SafeUser) => {
+      await refetch();
+    },
+    [refetch]
+  );
 
   const hasPermission = (permission: PermissionString): boolean => {
-    return user?.permissions?.includes(permission) || false;
+    if (!user?.permissions) return false;
+
+    // Parse the permission string
+    const [resource, action, scope] = permission.split(":");
+
+    // Check exact match first
+    if (user.permissions.includes(permission)) {
+      return true;
+    }
+
+    // Apply hierarchical logic
+    if (scope === "own") {
+      // If checking for "own", also accept "building" and "all"
+      const buildingMatch =
+        `${resource}:${action}:building` as PermissionString;
+      const allMatch = `${resource}:${action}:all` as PermissionString;
+      return (
+        user.permissions.includes(buildingMatch) ||
+        user.permissions.includes(allMatch)
+      );
+    }
+
+    if (scope === "building") {
+      // If checking for "building", also accept "all"
+      const allMatch = `${resource}:${action}:all` as PermissionString;
+      return user.permissions.includes(allMatch);
+    }
+
+    // For null scope or "all" scope, only exact match is accepted
+    return false;
   };
 
   const hasAnyPermission = (permissions: PermissionString[]): boolean => {
@@ -130,7 +160,7 @@ export function withAuth<P extends object>(
   requiredPermissions?: PermissionString[]
 ) {
   return function AuthenticatedComponent(props: P) {
-    const { isAuthenticated, isLoading, hasAnyPermission, user } = useAuth();
+    const { isAuthenticated, isLoading, hasAnyPermission } = useAuth();
 
     if (isLoading) {
       return (

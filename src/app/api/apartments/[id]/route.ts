@@ -46,8 +46,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Get tenant context from headers
     const tenantContext = TenantService.getTenantContext(request);
 
-    // Only administrators can update apartments
-    if (tenantContext?.role !== "ADMINISTRATOR") {
+    // Only users with apartment update permissions can update apartments
+    if (
+      !tenantContext ||
+      !TenantService.hasPermission(tenantContext, "apartments:update:all")
+    ) {
       return NextResponse.json(
         { error: "Nu aveți permisiunea să modificați apartamente" },
         { status: 403 }
@@ -107,8 +110,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Get tenant context from headers
     const tenantContext = TenantService.getTenantContext(request);
 
-    // Only administrators can delete apartments
-    if (tenantContext?.role !== "ADMINISTRATOR") {
+    // Only users with apartment delete permissions can delete apartments
+    if (
+      !tenantContext ||
+      !TenantService.hasPermission(tenantContext, "apartments:delete:all")
+    ) {
       return NextResponse.json(
         { error: "Nu aveți permisiunea să ștergeți apartamente" },
         { status: 403 }

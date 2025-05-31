@@ -113,7 +113,7 @@ export type SafeUser = Omit<
   User,
   "password" | "updatedAt" | "role" | "roleId"
 > & {
-  permissions?: PermissionString[]; // Add permissions for client-side checks
+  permissions: PermissionString[]; // Add permissions for client-side checks
   ownerId?: string | null; // Add ownerId for backward compatibility
 };
 

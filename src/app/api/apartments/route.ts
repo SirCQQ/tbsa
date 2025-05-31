@@ -54,8 +54,11 @@ export async function POST(request: NextRequest) {
     // Get tenant context from headers
     const tenantContext = TenantService.getTenantContext(request);
 
-    // Only administrators can create apartments
-    if (tenantContext?.role !== "ADMINISTRATOR") {
+    // Only users with apartment creation permissions can create apartments
+    if (
+      !tenantContext ||
+      !TenantService.hasPermission(tenantContext, "apartments:create:all")
+    ) {
       return NextResponse.json(
         { error: "Nu aveți permisiunea să creați apartamente" },
         { status: 403 }

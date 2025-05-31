@@ -1,9 +1,7 @@
 // Central type exports
-export * from "./entities";
 
 // Auth types - explicit exports to avoid conflicts
 export type {
-  UserRole,
   Permission as JWTPermission, // Rename to avoid conflict with permissions system
   User,
   AuthResponse,
@@ -22,21 +20,13 @@ export type {
 } from "./auth";
 
 export * from "./api";
-export * from "./validations";
 
 // Permissions types - explicit exports to avoid conflicts
 export type {
   Permission, // This is the main Permission type for the permissions system
   PermissionsByResource,
-  ExtractResource,
-  ExtractAction,
-  ExtractScope,
-  PermissionCheckResult,
-  PermissionContext,
-  RolePermissions,
-  PermissionValidation,
-  UserPermissions,
   PermissionCheck,
+  UserPermissions,
 } from "./permissions";
 
 export {

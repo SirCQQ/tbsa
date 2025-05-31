@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
       await requirePermission({
         resource: "buildings",
         action: "read",
-        scope: "all",
+        scope: "own",
       });
-    } catch (error) {
+    } catch (_error) {
       return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 
@@ -80,9 +80,9 @@ export async function POST(request: NextRequest) {
       await requirePermission({
         resource: "buildings",
         action: "create",
-        scope: "all",
+        scope: "own",
       });
-    } catch (error) {
+    } catch (_error) {
       return createAuthError(AuthErrorKey.INSUFFICIENT_PERMISSIONS);
     }
 

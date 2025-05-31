@@ -46,22 +46,3 @@ export function mapPermissionToApiResponse(permission: Permission) {
 export function mapPermissionsToApiResponse(permissions: Permission[]) {
   return permissions.map(mapPermissionToApiResponse);
 }
-
-/**
- * Maps role for select/dropdown components
- */
-export function mapRoleForSelect(role: Role) {
-  return {
-    value: role.id,
-    label: role.name,
-    description: role.description,
-    isSystem: role.isSystem,
-  };
-}
-
-/**
- * Maps roles for select/dropdown components
- */
-export function mapRolesForSelect(roles: Role[]) {
-  return roles.map(mapRoleForSelect);
-}

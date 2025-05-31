@@ -1,17 +1,17 @@
-import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { SafeUser, JWTPayload } from "@/types/auth";
 import { prisma } from "@/lib/prisma";
+import { PermissionService } from "@/services/permission.service";
 import {
-  PermissionService,
-  type PermissionResource,
-  type PermissionAction,
-  type PermissionScope,
-} from "@/services/permission.service";
+  PermissionResource,
+  PermissionAction,
+  PermissionScope,
+} from "@prisma/client/wasm";
 
 const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-secret-key"
+  process.env.JWT_SECRET || "your-secret-key"
 );
 
 export type AuthResult = {

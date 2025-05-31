@@ -1,83 +1,56 @@
-"use client";
-
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Home, ArrowLeft, Building2 } from "lucide-react";
-import { Header } from "@/components/landing/header";
+import { Home, ArrowLeft, Search } from "lucide-react";
 
 export default function NotFound() {
-  const router = useRouter();
-
-  const handleGoBack = () => {
-    router.back();
-  };
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-background dark:to-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-6">
-              {/* Icon */}
-              <div className="flex justify-center">
-                <div className="relative">
-                  <Building2 className="h-16 w-16 text-blue-600 dark:text-blue-400" />
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
-                    !
-                  </div>
-                </div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="text-center p-8">
+          {/* 404 Number */}
+          <div className="text-8xl font-bold text-blue-600 mb-4">404</div>
 
-              {/* Error Code */}
-              <div>
-                <h1 className="text-6xl font-bold text-foreground mb-2">404</h1>
-                <h2 className="text-xl font-semibold text-foreground mb-2">
-                  Pagina nu a fost găsită
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Ne pare rău, dar pagina pe care o căutați nu există sau a fost
-                  mutată.
-                </p>
-              </div>
+          {/* Error Message */}
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+            Pagina nu a fost găsită
+          </h1>
 
-              {/* Actions */}
-              <div className="space-y-3">
-                <Button asChild className="w-full">
-                  <Link href="/">
-                    <Home className="mr-2 h-4 w-4" />
-                    Înapoi la pagina principală
-                  </Link>
-                </Button>
+          <p className="text-gray-600 mb-8">
+            Ne pare rău, dar pagina pe care o căutați nu există sau a fost
+            mutată.
+          </p>
 
-                <Button
-                  variant="outline"
-                  onClick={handleGoBack}
-                  className="w-full"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Înapoi la pagina anterioară
-                </Button>
-              </div>
-
-              {/* Additional Help */}
-              <div className="pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-2">
-                  Dacă problema persistă, contactați administratorul:
-                </p>
-                <Link
-                  href="mailto:admin@tbsa.ro"
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-xs underline"
-                >
-                  admin@tbsa.ro
-                </Link>
-              </div>
+          {/* Search Icon */}
+          <div className="flex justify-center mb-8">
+            <div className="p-4 bg-blue-100 rounded-full">
+              <Search className="h-8 w-8 text-blue-600" />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <Button asChild className="w-full">
+              <Link href="/dashboard">
+                <Home className="h-4 w-4 mr-2" />
+                Înapoi la Dashboard
+              </Link>
+            </Button>
+
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Pagina Principală
+              </Link>
+            </Button>
+          </div>
+
+          {/* Help Text */}
+          <p className="text-sm text-gray-500 mt-6">
+            Dacă problema persistă, vă rugăm să contactați administratorul.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

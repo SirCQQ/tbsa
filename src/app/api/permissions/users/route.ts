@@ -3,7 +3,7 @@ import { PermissionService } from "@/services/permission.service";
 import { getCurrentUser } from "@/services/auth-server.service";
 import { mapUsersToApiResponse } from "@/lib/mappers/user.mapper";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Get current user
     const { user: currentUser, isAuthenticated } = await getCurrentUser();

@@ -1,73 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import type { Permission, Role } from "@prisma/client";
+import type { Role } from "@prisma/client/wasm";
 import { PermissionString } from "@/lib/constants";
-
-export type PermissionResource =
-  | "buildings"
-  | "apartments"
-  | "users"
-  | "water_readings"
-  | "invite_codes"
-  | "roles"
-  | "admin_grant";
-
-export type PermissionAction = "read" | "create" | "update" | "delete";
-
-export type PermissionScope = "all" | "own" | "building" | null;
-
-export type PermissionCheck = {
-  resource: PermissionResource;
-  action: PermissionAction;
-  scope?: PermissionScope;
-};
-
-export type UserPermissions = {
-  userId: string;
-  roleName: string;
-  permissions: Permission[];
-};
-
-export type UserWithRole = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string | null;
-  createdAt: Date;
-  role: {
-    id: string;
-    name: string;
-    description: string | null;
-  };
-};
-
-export type UserWithRoleAndProfile = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string | null;
-  createdAt: Date;
-  role: {
-    id: string;
-    name: string;
-    description: string | null;
-    isSystem: boolean;
-  };
-  administrator: {
-    id: string;
-  } | null;
-  owner: {
-    id: string;
-    apartments: {
-      id: string;
-      number: string;
-      building: {
-        name: string;
-      };
-    }[];
-  } | null;
-};
+import type {
+  Permission,
+  PermissionCheck,
+  UserWithRole,
+  UserWithRoleAndProfile,
+  RoleWithPermissions,
+  UserPermissions,
+} from "@/types/permission";
 
 export class PermissionService {
   /**
@@ -105,30 +46,14 @@ export class PermissionService {
   }
 
   /**
-   * Check if a user has a specific permission
+   * Check if user has a specific permission with hierarchical logic
+   * Hierarchy: all > building > own
    */
   static async hasPermission(
     userId: string,
     check: PermissionCheck
   ): Promise<boolean> {
-    const userPermissions = await this.getUserPermissions(userId);
-
-    if (!userPermissions) {
-      return false;
-    }
-
-    // SUPER_ADMIN has all permissions
-    if (userPermissions.roleName === "SUPER_ADMIN") {
-      return true;
-    }
-
-    // Check if user has the specific permission
-    return userPermissions.permissions.some(
-      (permission) =>
-        permission.resource === check.resource &&
-        permission.action === check.action &&
-        (check.scope === undefined || permission.scope === check.scope)
-    );
+    return this.hasPermissionWithHierarchy(userId, check);
   }
 
   /**
@@ -187,15 +112,6 @@ export class PermissionService {
       return [];
     }
 
-    // SUPER_ADMIN gets all permissions
-    if (userPermissions.roleName === "SUPER_ADMIN") {
-      const allPermissions = await this.getAllPermissions();
-      return allPermissions.map(
-        (p) =>
-          `${p.resource}:${p.action}:${p.scope || "null"}` as PermissionString
-      );
-    }
-
     // Convert permissions to string format
     return userPermissions.permissions.map(
       (p) =>
@@ -204,16 +120,92 @@ export class PermissionService {
   }
 
   /**
-   * Check if user has permission using permission strings array
+   * Check if user has permission using permission strings array with hierarchical logic
+   * Hierarchy: all > building > own
    */
   static hasPermissionFromString(
     permissions: string[],
     check: PermissionCheck
   ): boolean {
-    const permissionString = `${check.resource}:${check.action}:${
-      check.scope || "null"
-    }`;
-    return permissions.includes(permissionString);
+    const { resource, action, scope } = check;
+
+    // Check exact match first
+    const exactMatch = `${resource}:${action}:${scope || "null"}`;
+    console.log({ exactMatch });
+    if (permissions.includes(exactMatch)) {
+      return true;
+    }
+    // Apply hierarchical logic
+    if (scope === "own") {
+      // If checking for "own", also accept "building" and "all"
+      const buildingMatch = `${resource}:${action}:building`;
+      const allMatch = `${resource}:${action}:all`;
+      return (
+        permissions.includes(buildingMatch) || permissions.includes(allMatch)
+      );
+    }
+
+    if (scope === "building") {
+      // If checking for "building", also accept "all"
+      const allMatch = `${resource}:${action}:all`;
+      return permissions.includes(allMatch);
+    }
+
+    // For null scope or "all" scope, only exact match is accepted
+    return false;
+  }
+
+  /**
+   * Check if user has permission with hierarchical logic
+   * Hierarchy: all > building > own
+   */
+  static async hasPermissionWithHierarchy(
+    userId: string,
+    check: PermissionCheck
+  ): Promise<boolean> {
+    const userPermissions = await this.getUserPermissions(userId);
+
+    if (!userPermissions) {
+      return false;
+    }
+
+    const { resource, action, scope } = check;
+
+    // Check exact match first
+    const exactMatch = userPermissions.permissions.some(
+      (permission) =>
+        permission.resource === resource &&
+        permission.action === action &&
+        permission.scope === scope
+    );
+
+    if (exactMatch) {
+      return true;
+    }
+
+    // Apply hierarchical logic
+    if (scope === "own") {
+      // If checking for "own", also accept "building" and "all"
+      return userPermissions.permissions.some(
+        (permission) =>
+          permission.resource === resource &&
+          permission.action === action &&
+          (permission.scope === "building" || permission.scope === "all")
+      );
+    }
+
+    if (scope === "building") {
+      // If checking for "building", also accept "all"
+      return userPermissions.permissions.some(
+        (permission) =>
+          permission.resource === resource &&
+          permission.action === action &&
+          permission.scope === "all"
+      );
+    }
+
+    // For null scope or "all" scope, only exact match is accepted
+    return false;
   }
 
   /**
@@ -407,9 +399,7 @@ export class PermissionService {
   /**
    * Get all roles with their permissions
    */
-  static async getAllRoles(): Promise<
-    (Role & { permissions: Permission[] })[]
-  > {
+  static async getAllRoles(): Promise<RoleWithPermissions[]> {
     const roles = await prisma.role.findMany({
       include: {
         permissions: {
@@ -503,7 +493,7 @@ export class PermissionService {
   }
 
   /**
-   * Get all users with their roles (SUPER_ADMIN and ADMINISTRATOR only)
+   * Get all users with their roles (requires users:read:all permission)
    */
   static async getAllUsersWithRoles(
     requesterId: string

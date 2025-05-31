@@ -42,7 +42,6 @@ enum PermissionResource {
   water_readings
   invite_codes
   roles
-  administrators
   admin_grant
 }
 

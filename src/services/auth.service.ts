@@ -212,6 +212,11 @@ export class AuthService {
         },
       });
 
+      // Get user permissions
+      const userPermissions = await PermissionService.getUserPermissionStrings(
+        user.id
+      );
+
       // Prepare safe user data
       const safeUser: SafeUser = {
         id: user.id,
@@ -223,6 +228,7 @@ export class AuthService {
         administrator: user.administrator,
         owner: user.owner,
         ownerId: null,
+        permissions: userPermissions,
       };
 
       return {
@@ -296,6 +302,11 @@ export class AuthService {
         return createServiceError(AuthErrorKey.INVALID_CREDENTIALS);
       }
 
+      // Get user permissions for JWT
+      const userPermissions = await PermissionService.getUserPermissionStrings(
+        user.id
+      );
+
       // Prepare safe user data
       const safeUser: SafeUser = {
         id: user.id,
@@ -307,12 +318,8 @@ export class AuthService {
         administrator: user.administrator,
         owner: user.owner,
         ownerId: user.owner?.id || null,
+        permissions: userPermissions,
       };
-
-      // Get user permissions for JWT
-      const userPermissions = await PermissionService.getUserPermissionStrings(
-        user.id
-      );
 
       // If fingerprint is provided, use enhanced session management
       if (fingerprint) {
@@ -418,6 +425,11 @@ export class AuthService {
         );
       }
 
+      // Get user permissions
+      const userPermissions = await PermissionService.getUserPermissionStrings(
+        user.id
+      );
+
       // Prepare user data for response (exclude password)
       const userData: SafeUser = {
         id: user.id,
@@ -429,6 +441,7 @@ export class AuthService {
         administrator: user.administrator,
         owner: user.owner,
         ownerId: user.owner?.id || null,
+        permissions: userPermissions,
       };
 
       return {

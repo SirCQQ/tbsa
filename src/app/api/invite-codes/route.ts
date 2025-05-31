@@ -10,7 +10,7 @@ import { AuthErrorKey } from "@/types/api";
  * GET /api/invite-codes
  * Get all invite codes for the authenticated administrator
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { user, isAuthenticated } = await AuthServerService.getCurrentUser();
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Check permission instead of role
+    // Check permission using current method signature
     const hasPermission = await AuthServerService.hasPermission(
       "invite_codes",
       "read",
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       return createAuthError(AuthErrorKey.MISSING_TOKEN);
     }
 
-    // Check permission instead of role
+    // Check permission using current method signature
     const hasPermission = await AuthServerService.hasPermission(
       "invite_codes",
       "create",

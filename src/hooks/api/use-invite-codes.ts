@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { api } from "@/lib/axios";
 import type {
   CreateInviteCodeInput,
-  UseInviteCodeInput,
   InviteCodeWithDetails,
 } from "@/types/invite-codes.types";
 
@@ -53,10 +52,8 @@ export function useInviteCodes(administratorId?: string) {
 export function useCreateInviteCode() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (
-      data: CreateInviteCodeInput
-    ): Promise<InviteCodeWithDetails> => {
+  const createInviteCode = useMutation({
+    mutationFn: async (data: CreateInviteCodeInput) => {
       const response = await api.post<InviteCodeResponse>(
         "/invite-codes",
         data
@@ -66,7 +63,7 @@ export function useCreateInviteCode() {
       }
       return response.data.data!;
     },
-    onSuccess: (result, variables, context) => {
+    onSuccess: (_result, _variables, _context) => {
       toast.success("Cod de invitație creat cu succes!");
       // Invalidate and refetch invite codes
       queryClient.invalidateQueries({
@@ -78,6 +75,8 @@ export function useCreateInviteCode() {
       toast.error(error.message || "Eroare la crearea codului de invitație");
     },
   });
+
+  return createInviteCode;
 }
 
 /**
@@ -99,7 +98,7 @@ export function useRedeemInviteCode() {
       }
       return response.data.data!;
     },
-    onSuccess: (result, variables) => {
+    onSuccess: (_result, _variables) => {
       toast.success("Apartament adăugat cu succes!");
       // Invalidate apartments query to refresh the list
       queryClient.invalidateQueries({

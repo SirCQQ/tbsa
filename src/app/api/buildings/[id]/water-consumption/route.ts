@@ -21,7 +21,7 @@ export async function GET(
     const canViewConsumption = await hasPermission({
       resource: "water_readings",
       action: "read",
-      scope: "all",
+      scope: "building",
     });
 
     if (!canViewConsumption) {

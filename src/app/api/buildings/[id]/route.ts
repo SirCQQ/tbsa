@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const canViewBuildings = await hasPermission({
       resource: "buildings",
       action: "read",
-      scope: "all",
+      scope: "own",
     });
 
     if (!canViewBuildings) {
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const canUpdateBuildings = await hasPermission({
       resource: "buildings",
       action: "update",
-      scope: "all",
+      scope: "own",
     });
 
     if (!canUpdateBuildings) {
@@ -160,7 +160,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const canDeleteBuildings = await hasPermission({
       resource: "buildings",
       action: "delete",
-      scope: "all",
+      scope: "own",
     });
 
     if (!canDeleteBuildings) {

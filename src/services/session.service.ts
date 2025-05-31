@@ -7,6 +7,7 @@ import {
   RefreshTokenPayload,
   SessionFingerprint,
 } from "../types/auth";
+import { PermissionService } from "./permission.service";
 
 // Create secret keys for JWT
 const accessSecret = new TextEncoder().encode(
@@ -98,7 +99,7 @@ export class SessionService {
       const accessTokenPayload: JWTPayload = {
         userId,
         email: user.email,
-        permissions: [], // Will be populated by PermissionService
+        permissions: await PermissionService.getUserPermissionStrings(userId),
         sessionId,
         fingerprint: fingerprintHash,
         administratorId: user.administrator?.id,
@@ -187,7 +188,9 @@ export class SessionService {
       const accessTokenPayload: JWTPayload = {
         userId: session.user.id,
         email: session.user.email,
-        permissions: [], // Will be populated by PermissionService
+        permissions: await PermissionService.getUserPermissionStrings(
+          session.user.id
+        ),
         sessionId: session.id,
         fingerprint: currentFingerprintHash,
         administratorId: session.user.administrator?.id,

@@ -7,7 +7,7 @@ import {
   mapRoleToApiResponse,
 } from "@/lib/mappers/role.mapper";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Get current user
     const { user: currentUser, isAuthenticated } = await getCurrentUser();
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Check if user can view roles (only SUPER_ADMIN and ADMINISTRATOR)
+    // Check if user can view roles (requires roles:read:all permission)
     const canViewRoles = await PermissionService.hasPermission(currentUser.id, {
       resource: "roles",
       action: "read",
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user can create roles (only SUPER_ADMIN)
+    // Check if user can create roles (requires roles:create:all permission)
     const canCreateRoles = await PermissionService.hasPermission(
       currentUser.id,
       {
@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
     if (!canCreateRoles) {
       return NextResponse.json(
         {
-          error: "Insufficient permissions. Only SUPER_ADMIN can create roles.",
+          error:
+            "Insufficient permissions. Only users with roles:create:all permission can create roles.",
         },
         { status: 403 }
       );

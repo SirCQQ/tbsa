@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth-context";
-import { User, Settings, LogOut, Shield, Building2, Home } from "lucide-react";
+import { User, Settings, LogOut, Shield, Home } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -24,8 +24,8 @@ export function UserNav() {
     return null;
   }
 
-  // Use permissions instead of role checks
-  const isAdmin = hasPermission("buildings:read:all");
+  // Use permissions instead of role checks - consistent with other UI components
+  const isAdmin = hasPermission("buildings:read:own");
   const isOwner = hasPermission("apartments:read:own");
 
   const handleLogout = async () => {

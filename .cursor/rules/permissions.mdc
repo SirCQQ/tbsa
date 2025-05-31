@@ -13,22 +13,55 @@ Guidelines for implementing granular permissions and access control throughout t
   - Wrap UI elements that require specific permissions
   - Use fallback prop for alternative content when permission is denied
   - Enable showLoading for better UX during permission checks
+  - Use withRedirect only for page-level protection, not for UI elements
+  - Support single or multiple permissions with AND/OR logic
 
 ```typescript
 import { PermissionGuard } from "@/components/auth/permission-guard";
 
-// ✅ DO: Wrap buttons/actions with permission checks
+// ✅ DO: Single permission check
 <PermissionGuard 
-  permission="roles:create:all"
+  permissions={["roles:create:all"]}
   fallback={<p className="text-muted-foreground">Nu ai permisiunea să creezi roluri</p>}
   showLoading={true}
 >
   <Button onClick={createRole}>Creează Rol</Button>
 </PermissionGuard>
 
-// ✅ DO: Use for entire sections
-<PermissionGuard permission="users:read:all">
-  <UsersManagementSection />
+// ✅ DO: Multiple permissions with OR logic (default)
+<PermissionGuard 
+  permissions={["buildings:read:all", "apartments:read:own"]}
+  fallback={<p>Nu ai acces la această secțiune</p>}
+>
+  <BuildingsSection />
+</PermissionGuard>
+
+// ✅ DO: Multiple permissions with AND logic
+<PermissionGuard 
+  permissions={["roles:create:all", "users:update:all"]}
+  requireAll={true}
+  fallback={<p>Ai nevoie de ambele permisiuni</p>}
+>
+  <AdminPanel />
+</PermissionGuard>
+
+// ✅ DO: No permissions required (empty array allows access)
+<PermissionGuard permissions={[]}>
+  <PublicContent />
+</PermissionGuard>
+
+// ✅ DO: Complex admin check
+<PermissionGuard 
+  permissions={[
+    "buildings:read:all",
+    "apartments:read:all", 
+    "users:read:all"
+  ]}
+  requireAll={true}
+  withRedirect={true}
+  redirectTo="/dashboard"
+>
+  <SuperAdminPage />
 </PermissionGuard>
 
 // ❌ DON'T: Check permissions manually in components
@@ -36,6 +69,139 @@ const hasPermission = await checkUserPermission("roles:create:all");
 if (hasPermission) {
   return <Button>Creează Rol</Button>;
 }
+```
+
+## **PermissionGuard Props**
+
+- **permissions**: Required. Array of permission strings to check (empty array allows access)
+- **requireAll**: Optional. Logic for multiple permissions - true = AND, false = OR (default: false)
+- **children**: Required. The content to render when permission is granted
+- **fallback**: Optional. Content to show when permission is denied (default: null)
+- **showLoading**: Optional. Show loading spinner during auth checks (default: false)
+- **requireAuth**: Optional. Require user to be authenticated (default: true)
+- **withRedirect**: Optional. Redirect user when permission is denied (default: false)
+- **redirectTo**: Optional. URL to redirect to when withRedirect is true (default: "/dashboard")
+
+## **Permission Logic Examples**
+
+```typescript
+// OR Logic (requireAll = false) - User needs ANY of these permissions
+<PermissionGuard 
+  permissions={["water_readings:read:own", "water_readings:read:all"]}
+  requireAll={false} // default
+>
+  <WaterReadingsChart />
+</PermissionGuard>
+
+// AND Logic (requireAll = true) - User needs ALL of these permissions
+<PermissionGuard 
+  permissions={["roles:create:all", "roles:update:all", "roles:delete:all"]}
+  requireAll={true}
+>
+  <FullRoleManagement />
+</PermissionGuard>
+
+// Single permission - Array with one element
+<PermissionGuard permissions={["buildings:create:all"]}>
+  <CreateBuildingButton />
+</PermissionGuard>
+
+// No permissions required - Empty array
+<PermissionGuard permissions={[]}>
+  <PublicContent />
+</PermissionGuard>
+```
+
+## **Common Permission Patterns**
+
+```typescript
+// Admin or Owner access
+<PermissionGuard 
+  permissions={["buildings:read:all", "apartments:read:own"]}
+  fallback={<AccessDeniedMessage />}
+>
+  <DashboardContent />
+</PermissionGuard>
+
+// Full admin access required
+<PermissionGuard 
+  permissions={[
+    "users:read:all",
+    "roles:read:all", 
+    "buildings:read:all"
+  ]}
+  requireAll={true}
+  withRedirect={true}
+>
+  <AdminDashboard />
+</PermissionGuard>
+
+// Reading permissions (any scope)
+<PermissionGuard 
+  permissions={[
+    "water_readings:read:own",
+    "water_readings:read:building", 
+    "water_readings:read:all"
+  ]}
+>
+  <ReadingsDisplay />
+</PermissionGuard>
+```
+
+## **When to Use withRedirect**
+
+- **Page-level protection**: Use withRedirect for entire pages or major sections
+- **Navigation protection**: Use withRedirect when user shouldn't see the page at all
+- **Admin-only pages**: Use withRedirect for pages that require specific roles
+
+```typescript
+// ✅ DO: Page-level protection with redirect
+export default function AdminPage() {
+  return (
+    <PermissionGuard 
+      permission="admin_grant:create:all"
+      withRedirect={true}
+      redirectTo="/dashboard"
+    >
+      <AdminDashboard />
+    </PermissionGuard>
+  );
+}
+
+// ✅ DO: Major section protection with redirect
+<PermissionGuard 
+  permission="roles:read:all"
+  withRedirect={true}
+  redirectTo="/dashboard"
+  fallback={<div>Redirecting...</div>}
+>
+  <RoleManagementPanel />
+</PermissionGuard>
+```
+
+## **When NOT to Use withRedirect**
+
+- **Small UI elements**: Buttons, links, form fields
+- **Optional features**: Features that enhance UX but aren't critical
+- **Conditional content**: Content that can be hidden without disrupting the page
+
+```typescript
+// ✅ DO: Hide UI elements without redirect
+<div className="flex space-x-2">
+  <PermissionGuard permission="roles:create:all">
+    <Button onClick={createRole}>
+      <Plus className="h-4 w-4 mr-2" />
+      Creează Rol
+    </Button>
+  </PermissionGuard>
+  
+  <PermissionGuard permission="users:update:all">
+    <Button variant="outline" onClick={assignRoles}>
+      <UserCheck className="h-4 w-4 mr-2" />
+      Atribuie Roluri
+    </Button>
+  </PermissionGuard>
+</div>
 ```
 
 ## **Permission Hooks Usage**

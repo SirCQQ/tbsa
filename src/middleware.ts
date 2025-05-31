@@ -1,28 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-import {
-  createAuthError,
-  getJWTErrorType,
-  auditAuthEvent,
-} from "@/lib/auth-errors";
+import { createAuthError, auditAuthEvent } from "@/lib/auth-errors";
 import { AuthErrorKey } from "@/types/api";
 import { SessionService } from "@/services/session.service";
+import { PermissionService } from "@/services/permission.service";
 import { SessionFingerprint } from "@/types/auth";
-import { UserRole } from "@/types/auth";
+import { PermissionString, parsePermissionString } from "@/lib/constants";
+import { jwtVerify } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "your-secret-key"
-);
+// JWT secret for verification (same as in SessionService)
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const accessSecret = new TextEncoder().encode(JWT_SECRET);
 
-// Define protected routes and their required roles
+// Define protected routes and their required permissions
 const protectedRoutes = {
-  "/api/buildings": ["ADMINISTRATOR"] as const,
-  "/api/apartments": ["ADMINISTRATOR", "OWNER"] as const,
-  "/api/invite-codes": ["ADMINISTRATOR", "OWNER"] as const,
-  "/dashboard": ["ADMINISTRATOR", "OWNER"] as const,
-  "/dashboard/admin": ["ADMINISTRATOR"] as const,
-  "/dashboard/apartments": ["ADMINISTRATOR", "OWNER"] as const,
-  "/admin": ["ADMINISTRATOR"] as const,
+  "/api/buildings": [
+    "buildings:read:all",
+    "buildings:create:all",
+  ] as PermissionString[],
+  "/api/apartments": [
+    "apartments:read:all",
+    "apartments:read:own",
+  ] as PermissionString[],
+  "/api/invite-codes": [
+    "invite_codes:read:all",
+    "invite_codes:create:all",
+  ] as PermissionString[],
+  "/dashboard": [
+    "buildings:read:all",
+    "apartments:read:own",
+  ] as PermissionString[], // Any user with basic permissions
+  "/dashboard/admin": [
+    "buildings:read:all",
+    "roles:read:all",
+  ] as PermissionString[], // Admin-specific permissions
+  "/admin": ["admin_grant:create:all"] as PermissionString[], // Super admin permissions
 } as const;
 
 // Public routes that don't require authentication
@@ -34,6 +45,7 @@ const publicRoutes = [
   "/",
   "/login",
   "/register",
+  // Note: /dashboard is NOT in public routes - it's protected
 ];
 
 /**
@@ -66,32 +78,78 @@ interface CustomJWTPayload {
   exp: number;
 }
 
+/**
+ * Check if user has any of the required permissions for a route using hierarchical logic
+ */
+function hasRequiredPermissions(
+  userPermissions: string[],
+  requiredPermissions: PermissionString[]
+): boolean {
+  return requiredPermissions.some((permission) => {
+    // Parse the permission string to PermissionCheck object
+    const parsed = parsePermissionString(permission);
+    const permissionCheck = {
+      resource: parsed.resource,
+      action: parsed.action,
+      scope: parsed.scope || undefined, // Convert null to undefined
+    };
+
+    console.log({ permissionCheck });
+    // Use hierarchical permission checking
+    return PermissionService.hasPermissionFromString(
+      userPermissions,
+      permissionCheck
+    );
+  });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  console.log(`Middleware executing for: ${pathname}`);
+  console.log(`🔍 Middleware executing for: ${pathname}`);
 
   const clientIP = getClientIP(request);
   const userAgent = request.headers.get("user-agent") || "";
 
   // Allow public routes
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  if (
+    publicRoutes.some((route) => {
+      // Special case for root route - exact match only
+      if (route === "/") {
+        return pathname === "/";
+      }
+      // For other routes, use startsWith
+      return pathname.startsWith(route);
+    })
+  ) {
+    console.log(`✅ Public route allowed: ${pathname}`);
     return NextResponse.next();
   }
 
   // Check if this is a protected route
-  const protectedRoute = Object.keys(protectedRoutes).find((route) =>
+  const protectedRouteEntry = Object.entries(protectedRoutes).find(([route]) =>
     pathname.startsWith(route)
   );
 
-  if (!protectedRoute) {
+  // If it's not a protected route, allow it to pass through
+  // This allows 404 pages and other unprotected routes to work
+  if (!protectedRouteEntry) {
+    console.log(`🔓 Unprotected route allowed: ${pathname}`);
     return NextResponse.next();
   }
+
+  const [protectedRoute, requiredPermissions] = protectedRouteEntry;
+  console.log(
+    `🔒 Protected route detected: ${pathname} -> ${protectedRoute}, requires: ${requiredPermissions.join(
+      ", "
+    )}`
+  );
 
   // Get auth token from cookies
   const authToken = request.cookies.get("auth-token")?.value;
 
   if (!authToken) {
+    console.log(`❌ No auth token found for: ${pathname}`);
     // For dashboard routes, redirect to login instead of returning JSON error
     if (pathname.startsWith("/dashboard")) {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -108,54 +166,31 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  try {
-    // Create current session fingerprint
-    const currentFingerprint: SessionFingerprint = {
-      userAgent,
-      ipAddress: clientIP || "",
-      acceptLanguage: request.headers.get("accept-language") || "",
-      acceptEncoding: request.headers.get("accept-encoding") || "",
-    };
+  console.log(`🔑 Auth token found, verifying...`);
 
+  try {
+    // Simplified JWT verification for Edge Runtime (no Prisma)
     let payload: CustomJWTPayload;
 
     try {
-      // Try enhanced verification first
-      const enhancedResult = await SessionService.verifyAccessToken(
-        authToken,
-        currentFingerprint
+      // Verify JWT token only (no session validation in middleware)
+      const { payload: jwtPayload } = await jwtVerify(authToken, accessSecret);
+      payload = jwtPayload as unknown as CustomJWTPayload;
+      console.log(`✅ JWT token verified for user: ${payload.email}`);
+    } catch (jwtError) {
+      console.log(`❌ JWT verification failed: ${jwtError}`);
+      // JWT verification failed, redirect to login
+      if (pathname.startsWith("/dashboard")) {
+        return NextResponse.redirect(new URL("/login", request.url));
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid token",
+          error: "Token verification failed",
+        },
+        { status: 401 }
       );
-
-      if (enhancedResult.success && enhancedResult.data) {
-        payload = enhancedResult.data as CustomJWTPayload;
-      } else {
-        throw new Error("Enhanced verification failed");
-      }
-    } catch (enhancedError) {
-      // Fallback to legacy verification for backward compatibility
-      try {
-        const { payload: legacyPayload } = await jwtVerify(
-          authToken,
-          JWT_SECRET
-        );
-        payload = legacyPayload as unknown as CustomJWTPayload;
-      } catch (legacyError) {
-        auditAuthEvent(
-          "token_invalid",
-          undefined,
-          undefined,
-          clientIP,
-          userAgent,
-          { reason: "verification_failed", path: pathname }
-        );
-
-        // For dashboard routes, redirect to login instead of returning JSON error
-        if (pathname.startsWith("/dashboard")) {
-          return NextResponse.redirect(new URL("/login", request.url));
-        }
-
-        return createAuthError(AuthErrorKey.INVALID_TOKEN);
-      }
     }
 
     const userId = payload.userId as string;
@@ -164,20 +199,35 @@ export async function middleware(request: NextRequest) {
     const administratorId = payload.administratorId as string | undefined;
     const ownerId = payload.ownerId as string | undefined;
 
-    // Check if user has required permissions for this route
-    // For now, we'll use a simplified check - if user has any admin permissions, allow admin routes
-    const hasAdminPermissions = permissions.some(
-      (permission) =>
-        permission.includes(":all") || permission.startsWith("admin_grant:")
-    );
+    console.log(`🔍 User permissions: ${permissions.join(", ")}`);
+    console.log(`🔍 Required permissions: ${requiredPermissions.join(", ")}`);
 
-    // Check role-based access for admin routes
-    if (pathname.startsWith("/dashboard/admin")) {
-      if (!hasAdminPermissions) {
-        // Non-admin trying to access admin dashboard
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Check if user has required permissions for this route
+    if (!hasRequiredPermissions(permissions, requiredPermissions)) {
+      console.log("here");
+      console.log(`❌ Insufficient permissions for user: ${email}`);
+      // User doesn't have required permissions
+      if (pathname.startsWith("/dashboard")) {
+        // For dashboard routes, redirect to appropriate dashboard based on permissions
+        if (permissions.some((p) => p.includes("apartments:read:own"))) {
+          return NextResponse.redirect(new URL("/dashboard", request.url));
+        } else {
+          return NextResponse.redirect(new URL("/login", request.url));
+        }
       }
+      console.log("here");
+      // For API routes, return permission denied error
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Insufficient permissions",
+          error: "Permission denied",
+        },
+        { status: 403 }
+      );
     }
+
+    console.log(`✅ Access granted for user: ${email} to ${pathname}`);
 
     // Add user context to headers for API routes
     const response = NextResponse.next();
@@ -192,7 +242,6 @@ export async function middleware(request: NextRequest) {
     if (ownerId) {
       response.headers.set("x-owner-id", ownerId);
     }
-
     return response;
   } catch (error) {
     auditAuthEvent("token_invalid", undefined, undefined, clientIP, userAgent, {

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -13,17 +12,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ControlledInput } from "@/components/ui/inputs";
+import { ControlledInput, FormPasswordInput } from "@/components/ui/inputs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth-context";
 import type { LoginRequest } from "@/types/auth";
-import { AlertCircle, Eye, EyeOff, Building2 } from "lucide-react";
+import { AlertCircle, Building2 } from "lucide-react";
 import { LoginSchema } from "@/schemas/user";
 
 type LoginFormData = LoginRequest;
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { login, isLoading, error, clearError } = useAuth();
 
@@ -35,7 +33,7 @@ export default function LoginPage() {
     },
   });
 
-  const { handleSubmit } = methods;
+  const { handleSubmit, control } = methods;
 
   const onSubmit = async (data: LoginFormData) => {
     clearError();
@@ -50,8 +48,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-background dark:via-background dark:to-blue-900 px-4">
+      <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1))]" />
+
+      <div className="relative w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -91,28 +91,14 @@ export default function LoginPage() {
                 />
 
                 {/* Password Field */}
-                <div className="relative">
-                  <ControlledInput
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    label="Parolă"
-                    placeholder="Introdu parola"
-                    required
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    disabled={isLoading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+                <FormPasswordInput
+                  name="password"
+                  control={control}
+                  label="Parolă"
+                  placeholder="Introdu parola"
+                  required
+                  disabled={isLoading}
+                />
 
                 {/* Error Message - Only show if not using toast notifications */}
                 {error && (

@@ -13,28 +13,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ControlledInput } from "@/components/ui/inputs";
+import { ControlledInput, FormPasswordInput } from "@/components/ui/inputs";
 import { Badge } from "@/components/ui/badge";
 import { useRegister } from "@/hooks/use-auth";
 import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { RegisterRequest, SafeUser } from "@/types/auth";
-import {
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Building2,
-  CheckCircle,
-  UserPlus,
-  Users,
-} from "lucide-react";
+import { AlertCircle, Building2, CheckCircle } from "lucide-react";
 import { RegisterSchema } from "@/schemas/user";
 
 type RegisterFormData = RegisterRequest;
 
 export default function RegisterPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
   const registerMutation = useRegister();
@@ -52,7 +42,7 @@ export default function RegisterPage() {
     },
   });
 
-  const { handleSubmit, setValue, watch } = methods;
+  const { handleSubmit, control } = methods;
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
@@ -83,8 +73,10 @@ export default function RegisterPage() {
 
   if (submitSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 px-4">
-        <Card className="w-full max-w-md shadow-lg">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-background dark:via-background dark:to-blue-900 px-4">
+        <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1))]" />
+
+        <Card className="relative w-full max-w-md shadow-lg">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <CheckCircle className="h-16 w-16 text-green-600 mx-auto" />
@@ -112,8 +104,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-background dark:via-background dark:to-blue-900 px-4 py-8">
+      <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1))]" />
+
+      <div className="relative w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -177,26 +171,22 @@ export default function RegisterPage() {
                 />
 
                 {/* Password Field */}
-                <div className="relative">
-                  <ControlledInput
-                    name="password"
-                    label="Parolă"
-                    type="password"
-                    placeholder="Introduceți parola"
-                    required
-                  />
-                </div>
+                <FormPasswordInput
+                  name="password"
+                  control={control}
+                  label="Parolă"
+                  placeholder="Introduceți parola"
+                  required
+                />
 
                 {/* Confirm Password Field */}
-                <div className="relative">
-                  <ControlledInput
-                    name="confirmPassword"
-                    label="Confirmă parola"
-                    type="password"
-                    placeholder="Confirmați parola"
-                    required
-                  />
-                </div>
+                <FormPasswordInput
+                  name="confirmPassword"
+                  control={control}
+                  label="Confirmă parola"
+                  placeholder="Confirmați parola"
+                  required
+                />
 
                 {/* Error Message */}
                 {registerMutation.error && (
