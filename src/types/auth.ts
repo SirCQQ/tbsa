@@ -1,32 +1,54 @@
 import type {
   User as PrismaUser,
-  Administrator,
-  Owner,
-  Apartment,
-  Building,
   Role,
-} from "@prisma/client";
-import { PermissionString } from "@/lib/constants";
+  UserRole,
+  Permission,
+} from "@prisma/client/wasm";
+import type { PermissionString } from "@/lib/constants";
 
 // Permission type for JWT
-export type Permission = {
-  id: string;
-  resource: string;
-  action: string;
-  scope: string | null;
+export type JWTPayload = {
+  userId: string;
+  email: string;
+  permissions: PermissionString[];
+  administratorId?: string;
+  ownerId?: string;
+  sessionId?: string;
+  fingerprint?: string;
+  iat: number;
+  exp: number;
+};
+
+// Login request type
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+// Register request type
+export type RegisterRequest = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  phone?: string;
 };
 
 // Extended user type with relations for API responses
 export type User = PrismaUser & {
-  role: Role;
-  administrator?: Administrator | null;
-  owner?:
-    | (Owner & {
-        apartments: (Apartment & {
-          building: Pick<Building, "id" | "name" | "readingDeadline">;
-        })[];
-      })
-    | null;
+  organizations: {
+    organization: {
+      id: string;
+      name: string;
+      code: string;
+    };
+  }[];
+  roles: (UserRole & {
+    role: Role & {
+      permissions: Permission[];
+    };
+  })[];
 };
 
 // Authentication response types
@@ -46,32 +68,6 @@ export type AuthError = {
   message: string;
   error: string;
   details?: string[];
-};
-
-// Request types
-export type LoginRequest = {
-  email: string;
-  password: string;
-};
-
-export type RegisterRequest = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  phone?: string;
-};
-
-// JWT types - removed role field, only permissions
-export type JWTPayload = {
-  userId: string;
-  email: string;
-  permissions: PermissionString[]; // Array of permission strings like "buildings:read:all"
-  administratorId?: string;
-  ownerId?: string;
-  sessionId?: string;
-  fingerprint?: string;
 };
 
 // Session types
@@ -108,16 +104,17 @@ export type SessionInfo = {
   userAgent: string;
 };
 
-// Safe user type - completely removed role dependency
-export type SafeUser = Omit<
-  User,
-  "password" | "updatedAt" | "role" | "roleId"
-> & {
-  permissions: PermissionString[]; // Add permissions for client-side checks
-  ownerId?: string | null; // Add ownerId for backward compatibility
+// Safe user type for client-side
+export type SafeUser = Omit<PrismaUser, "password"> & {
+  permissions: PermissionString[];
+  currentOrganization?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
 };
 
-export type UserWithoutPassword = Omit<PrismaUser, "password">;
+export type UserWithoutPassword = Omit<User, "password">;
 
 // Authentication state types
 export type AuthState = {

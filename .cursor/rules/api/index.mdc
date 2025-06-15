@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API Rules
+
+This directory contains rules related to API implementation and data handling:
+
+- **api-calls.mdc**: Guidelines for making API calls and handling responses
+- **mappers.mdc**: Data mapping patterns and best practices

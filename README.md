@@ -1,6 +1,7 @@
 # AquaFlow
 
 # TBSA - Sistema de Gestiune a Consumului de Apă
+
 **The Building Societies Association - Aplicație de Management pentru Asociațiile de Proprietari**
 
 ## 📋 Descrierea Proiectului
@@ -10,6 +11,7 @@ TBSA este o aplicație web modernă pentru gestionarea consumului de apă în ca
 ## 🎯 Obiectivele Aplicației
 
 ### Pentru Administratori
+
 - **Gestionarea multiplelor clădiri** - administrează mai multe asociații de proprietari dintr-un singur cont
 - **Setarea termenelor limită** - configurează deadline-uri flexibile pentru submiterea citirilor lunare
 - **Validarea citirilor** - verifică și aprobă citirile trimise de proprietari
@@ -17,6 +19,7 @@ TBSA este o aplicație web modernă pentru gestionarea consumului de apă în ca
 - **Managementul utilizatorilor** - administrează conturile proprietarilor și apartamentele
 
 ### Pentru Proprietari
+
 - **Trimiterea citirilor** - submitere rapidă și intuitivă a citirilor lunare de apă
 - **Istoric complet** - vizualizează toate citirile anterioare cu detalii de consum
 - **Notificări** - primește reminder-e pentru termenele limită de submitere
@@ -26,6 +29,7 @@ TBSA este o aplicație web modernă pentru gestionarea consumului de apă în ca
 ## 🏗️ Arhitectura Tehnică
 
 ### Stack Tehnologic
+
 - **Frontend**: Next.js 15 cu App Router și TypeScript
 - **UI Components**: Shadcn/ui cu Tailwind CSS pentru design modern
 - **Database**: PostgreSQL cu Prisma ORM (hosted pe NeonDB)
@@ -34,6 +38,7 @@ TBSA este o aplicație web modernă pentru gestionarea consumului de apă în ca
 - **Validation**: Zod pentru validarea robustă a datelor
 
 ### Modelul de Date
+
 - **Users**: Sistem de utilizatori cu roluri (ADMINISTRATOR/OWNER)
 - **Buildings**: Clădiri cu apartamente și configurări personalizabile
 - **Apartments**: Apartamente cu multiple proprietari posibili
@@ -51,6 +56,7 @@ TBSA este o aplicație web modernă pentru gestionarea consumului de apă în ca
 ## 🚀 Status Curent
 
 ✅ **Completat:**
+
 - Arhitectura bazei de date cu Prisma
 - Sistem de validări cu Zod
 - Utilități de autentificare cu bcrypt
@@ -59,6 +65,7 @@ TBSA este o aplicație web modernă pentru gestionarea consumului de apă în ca
 - Theme toggle cu shadcn/ui
 
 🔄 **În Dezvoltare:**
+
 - API endpoints pentru operațiile CRUD
 - Sistem de autentificare cu NextAuth.js
 - Interface utilizator pentru administratori și proprietari
@@ -67,6 +74,7 @@ TBSA este o aplicație web modernă pentru gestionarea consumului de apă în ca
 ## 🎨 Design și UX
 
 Aplicația folosește un design modern și intuitiv bazat pe:
+
 - **Shadcn/ui components** pentru consistență vizuală
 - **Dark/Light theme toggle** pentru confortul utilizatorilor
 - **Responsive design** optimizat pentru desktop și mobile

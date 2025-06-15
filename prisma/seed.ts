@@ -2,7 +2,6 @@ import {
   PrismaClient,
   PermissionResource,
   PermissionAction,
-  PermissionScope,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -42,249 +41,212 @@ async function createRolesAndPermissions() {
     {
       resource: PermissionResource.buildings,
       action: PermissionAction.read,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.buildings,
       action: PermissionAction.read,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.buildings,
       action: PermissionAction.create,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.buildings,
       action: PermissionAction.update,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.buildings,
       action: PermissionAction.update,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.buildings,
       action: PermissionAction.delete,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.buildings,
       action: PermissionAction.delete,
-      scope: PermissionScope.own,
+      
     },
 
     // Apartments
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.read,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.read,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.read,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.create,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.create,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.update,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.update,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.update,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.delete,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.apartments,
       action: PermissionAction.delete,
-      scope: PermissionScope.building,
     },
 
     // Users
     {
       resource: PermissionResource.users,
       action: PermissionAction.read,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.users,
       action: PermissionAction.read,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.users,
       action: PermissionAction.create,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.users,
       action: PermissionAction.update,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.users,
       action: PermissionAction.update,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.users,
       action: PermissionAction.delete,
-      scope: PermissionScope.all,
     },
 
     // Water readings
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.read,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.read,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.read,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.create,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.create,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.create,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.update,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.update,
-      scope: PermissionScope.own,
+      
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.update,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.delete,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.water_readings,
       action: PermissionAction.delete,
-      scope: PermissionScope.building,
     },
 
     // Invite codes
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.read,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.read,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.create,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.create,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.update,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.update,
-      scope: PermissionScope.building,
     },
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.delete,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.invite_codes,
       action: PermissionAction.delete,
-      scope: PermissionScope.building,
     },
 
     // Roles
     {
       resource: PermissionResource.roles,
       action: PermissionAction.read,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.roles,
       action: PermissionAction.create,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.roles,
       action: PermissionAction.update,
-      scope: PermissionScope.all,
     },
     {
       resource: PermissionResource.roles,
       action: PermissionAction.delete,
-      scope: PermissionScope.all,
     },
 
     // Admin grant (ability to grant admin role)
     {
       resource: PermissionResource.admin_grant,
       action: PermissionAction.create,
-      scope: PermissionScope.all,
     },
   ];
 
@@ -344,20 +306,14 @@ async function createRolesAndPermissions() {
     (p) =>
       (p.resource === "buildings" &&
         ["read", "create", "update", "delete"].includes(p.action) &&
-        ["all", "own"].includes(p.scope || "")) ||
       (p.resource === "apartments" &&
         ["read", "create", "update", "delete"].includes(p.action) &&
-        ["all", "building"].includes(p.scope || "")) ||
       (p.resource === "users" &&
         ["read", "create", "update"].includes(p.action) &&
-        ["all"].includes(p.scope || "")) ||
       (p.resource === "water_readings" &&
         ["read", "create", "update", "delete"].includes(p.action) &&
-        ["all", "building"].includes(p.scope || "")) ||
       (p.resource === "invite_codes" &&
         ["read", "create", "update", "delete"].includes(p.action) &&
-        ["all", "building"].includes(p.scope || "")) ||
-      (p.resource === "roles" && p.action === "read" && p.scope === "all") ||
       (p.resource === "admin_grant" && p.action === "create")
   );
 
@@ -375,16 +331,12 @@ async function createRolesAndPermissions() {
     (p) =>
       (p.resource === "apartments" &&
         p.action === "read" &&
-        p.scope === "own") ||
       (p.resource === "users" &&
         ["read", "update"].includes(p.action) &&
-        p.scope === "own") ||
       (p.resource === "water_readings" &&
         ["read", "create", "update"].includes(p.action) &&
-        p.scope === "own") ||
       (p.resource === "invite_codes" &&
         p.action === "read" &&
-        p.scope === "building")
   );
 
   for (const permission of ownerPermissions) {
@@ -401,7 +353,6 @@ async function createRolesAndPermissions() {
     (p) =>
       p.resource === "users" &&
       ["read", "update"].includes(p.action) &&
-      p.scope === "own"
   );
 
   for (const permission of basicPermissions) {

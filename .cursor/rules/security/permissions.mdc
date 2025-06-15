@@ -1,0 +1,266 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Permission System
+
+Guidelines for implementing and using the JWT-based permission system.
+
+## **Permission Format**
+
+- **Structure:** `resource:action`
+- **Example:** `buildings:read`, `users:create`
+
+### **Resources**
+- `users` - User management
+- `organizations` - Organization management
+- `buildings` - Building management
+- `apartments` - Apartment management
+- `water_readings` - Water reading management
+- `water_meters` - Water meter management
+- `water_bills` - Water bill management
+- `reading_notifications` - Reading notification management
+- `roles` - Role management
+- `permissions` - Permission management
+- `invite_codes` - Invite code management
+- `admin_grant` - Admin grant management
+
+### **Actions**
+- `read` - View/list resources
+- `create` - Create new resources
+- `update` - Modify existing resources
+- `delete` - Remove resources
+
+## **Permission Check Functions**
+
+```typescript
+import { hasPermission, hasAnyPermission, hasAllPermissions } from "@/lib/auth";
+
+// Single permission check
+const canReadBuildings = await hasPermission("buildings:read");
+
+// Check multiple permissions (ANY)
+const canManageUsers = await hasAnyPermission([
+  "users:create",
+  "users:update"
+]);
+
+// Check multiple permissions (ALL)
+const isFullAdmin = await hasAllPermissions([
+  "users:create",
+  "users:update",
+  "users:delete"
+]);
+```
+
+## **PermissionGuard Component**
+
+```typescript
+import { PermissionGuard } from "@/components/auth/permission-guard";
+
+// Basic usage
+<PermissionGuard permission="buildings:read">
+  <BuildingsList />
+</PermissionGuard>
+
+// With fallback content
+<PermissionGuard 
+  permission="users:create"
+  fallback={<AccessDeniedMessage />}
+>
+  <CreateUserForm />
+</PermissionGuard>
+
+// Multiple permissions (ANY)
+<PermissionGuard 
+  permissions={["buildings:read", "apartments:read"]}
+  requireAll={false}
+>
+  <DashboardContent />
+</PermissionGuard>
+
+// Multiple permissions (ALL)
+<PermissionGuard 
+  permissions={["roles:create", "roles:update"]}
+  requireAll={true}
+>
+  <RoleManagement />
+</PermissionGuard>
+```
+
+## **API Route Protection**
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/auth";
+
+export async function GET(request: NextRequest) {
+  try {
+    // Verify permission
+    await requirePermission("buildings:read");
+    
+    // Continue with route logic
+    const buildings = await prisma.building.findMany();
+    return NextResponse.json(buildings);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 }
+    );
+  }
+}
+```
+
+## **Default Role Permissions**
+
+### SUPER_ADMIN
+- Has all permissions by default
+- No explicit permission checks needed
+- Should still use PermissionGuard for consistency
+
+### ADMINISTRATOR
+```typescript
+const adminPermissions = [
+  "buildings:read",
+  "buildings:create",
+  "buildings:update",
+  "buildings:delete",
+  "users:read",
+  "users:create",
+  "users:update",
+  "roles:read",
+  "water_readings:read",
+  "water_readings:create",
+  "water_readings:update",
+  "water_readings:delete"
+];
+```
+
+### OWNER
+```typescript
+const ownerPermissions = [
+  "apartments:read",
+  "users:read",
+  "users:update",
+  "water_readings:read",
+  "water_readings:create",
+  "water_readings:update"
+];
+```
+
+### TENANT
+```typescript
+const tenantPermissions = [
+  "apartments:read",
+  "water_readings:read",
+  "water_readings:create"
+];
+```
+
+## **Best Practices**
+
+1. **Permission Naming**
+   - Use lowercase for resources and actions
+   - Use underscores for multi-word resources
+   - Be consistent with naming conventions
+
+2. **Permission Checks**
+   - Always use PermissionGuard for UI elements
+   - Use requirePermission for API routes
+   - Cache permission checks when possible
+
+3. **Error Handling**
+   - Provide meaningful error messages
+   - Use proper HTTP status codes
+   - Log permission denials
+
+4. **Security**
+   - Validate permissions server-side
+   - Never trust client-side checks alone
+   - Regularly audit permission assignments
+
+5. **Performance**
+   - Use JWT for fast permission checks
+   - Cache permission results
+   - Minimize database queries
+
+## **Testing**
+
+```typescript
+describe("Permission System", () => {
+  it("should allow access with correct permission", async () => {
+    const user = await createTestUser([
+      "buildings:read"
+    ]);
+    
+    const result = await hasPermission("buildings:read");
+    expect(result).toBe(true);
+  });
+
+  it("should deny access without permission", async () => {
+    const user = await createTestUser([]);
+    
+    const result = await hasPermission("buildings:read");
+    expect(result).toBe(false);
+  });
+});
+```
+
+## **Common Patterns**
+
+### Checking Multiple Related Permissions
+```typescript
+// Check if user can fully manage buildings
+const canManageBuildings = await hasAllPermissions([
+  "buildings:read",
+  "buildings:create",
+  "buildings:update",
+  "buildings:delete"
+]);
+```
+
+### Conditional UI Rendering
+```typescript
+<div>
+  <h1>Building Management</h1>
+  
+  <PermissionGuard permission="buildings:read">
+    <BuildingsList />
+  </PermissionGuard>
+  
+  <PermissionGuard permission="buildings:create">
+    <Button onClick={createBuilding}>
+      Add Building
+    </Button>
+  </PermissionGuard>
+  
+  <PermissionGuard 
+    permissions={["buildings:update", "buildings:delete"]}
+    requireAll={true}
+  >
+    <BuildingActions />
+  </PermissionGuard>
+</div>
+```
+
+### API Route Combinations
+```typescript
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Check both read and update permissions
+    await requirePermission("buildings:read");
+    await requirePermission("buildings:update");
+    
+    // Continue with update logic
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 }
+    );
+  }
+}
+```

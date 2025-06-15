@@ -20,6 +20,7 @@ import { useAuthFeedback } from "@/hooks/use-auth-feedback";
 import type { RegisterRequest, SafeUser } from "@/types/auth";
 import { AlertCircle, Building2, CheckCircle } from "lucide-react";
 import { RegisterSchema } from "@/schemas/user";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 
 type RegisterFormData = RegisterRequest;
 
@@ -136,6 +137,21 @@ export default function RegisterPage() {
           </CardHeader>
 
           <CardContent>
+            {/* Google Auth Button */}
+            <GoogleAuthButton mode="register" className="w-full" />
+
+            {/* Separator */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  sau
+                </span>
+              </div>
+            </div>
+
             <FormProvider {...methods}>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 {/* Name Fields */}

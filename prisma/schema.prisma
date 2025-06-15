@@ -13,310 +13,643 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ======= Enums =======
+
+enum UserType {
+  SUPER_ADMIN // Global system administrator
+  ADMINISTRATOR // Organization administrator
+  RESIDENT // Generic resident type
+  OWNER // Property owner
+  TENANT // Property tenant
+}
+
 enum BuildingType {
-  RESIDENTIAL
-  COMMERCIAL
-  MIXED
+  RESIDENTIAL // Residential buildings
+  COMMERCIAL // Commercial buildings
+  MIXED // Mixed-use buildings
 }
 
 enum InviteCodeStatus {
-  ACTIVE
-  USED
-  EXPIRED
-  REVOKED
+  ACTIVE // Code is active and can be used
+  USED // Code has been used
+  EXPIRED // Code has expired
+  REVOKED // Code has been manually revoked
 }
 
 enum ApartmentRole {
-  OWNER // Proprietar principal
-  CO_OWNER // Coproprietar
-  TENANT // Chiriaș
-  MANAGER // Manager (ex: administrator de bloc)
-  FAMILY // Membru al familiei
+  OWNER // Primary property owner
+  CO_OWNER // Co-owner of the property
+  TENANT // Tenant/renter
+  MANAGER // Building manager/administrator
+  FAMILY // Family member
 }
 
-// Permission system enums
-enum PermissionResource {
-  buildings
-  apartments
-  users
-  water_readings
-  invite_codes
-  roles
-  admin_grant
+enum ResourcesEnum {
+  USERS
+  ORGANIZATIONS
+  BUILDINGS
+  APARTMENTS
+  WATER_READINGS
+  WATER_METERS
+  WATER_BILLS
+  READING_NOTIFICATIONS
+  ROLES
+  PERMISSIONS
+  INVITE_CODES
+  ADMIN_GRANT
+  SUBSCRIPTION_PLANS
+  MODULES
+  PLAN_MODULES
+  APARTMENT_RESIDENTS
 }
 
-enum PermissionAction {
-  read
-  create
-  update
-  delete
+enum ActionsEnum {
+  READ
+  CREATE
+  UPDATE
+  DELETE
 }
 
-enum PermissionScope {
-  own
-  all
-  building
+enum PriorityEnum {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }
 
-// Base user model for both administrators and apartment owners
-model User {
-  id        String  @id @default(uuid())
-  email     String  @unique
-  firstName String
-  lastName  String
-  phone     String?
-  password  String
-  roleId    String // Reference to Role model
+// ======= Subscription & Organization Models =======
+
+/// Subscription plan model defining available features and limits
+model SubscriptionPlan {
+  id            String  @id @default(uuid())
+  name          String // Plan name (e.g., "Basic", "Pro")
+  price         Decimal // Monthly price
+  billingPeriod String // Billing frequency (e.g., "monthly", "yearly")
+  features      Json // JSON object containing feature flags
+  maxBuildings  Int? // Maximum number of buildings allowed
+  maxApartments Int? // Maximum number of apartments allowed
 
   // Relations
-  role Role @relation(fields: [roleId], references: [id])
+  organizations Organization[]
+  planModules   PlanModule[]
 
-  // Profile associations (kept for backward compatibility during transition)
-  owner         Owner?         @relation("UserOwner")
-  administrator Administrator? @relation("UserAdministrator")
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  // Session management
-  sessions Session[]
+  @@map("subscription_plans")
+}
 
-  // Invite codes used by this user
-  usedInviteCodes InviteCode[] @relation("InviteCodeUsedBy")
+/// Feature module that can be enabled/disabled per subscription plan
+model Module {
+  id          String  @id @default(uuid())
+  name        String // Module name
+  code        String  @unique // Unique identifier for the module
+  description String? // Module description
+  isActive    Boolean @default(true)
 
-  // Apartment management relationships
-  apartmentManagers ApartmentManager[]
+  // Relations
+  permissions Permission[]
+  planModules PlanModule[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
+  @@map("modules")
+}
+
+/// Junction table between subscription plans and modules
+model PlanModule {
+  id                 String  @id @default(uuid())
+  subscriptionPlanId String
+  moduleId           String
+  isIncluded         Boolean @default(true)
+
+  // Relations
+  module           Module           @relation(fields: [moduleId], references: [id])
+  subscriptionPlan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([subscriptionPlanId, moduleId])
+  @@map("plan_modules")
+}
+
+/// Organization/tenant model for multi-tenant support
+model Organization {
+  id                 String  @id @default(uuid())
+  name               String // Organization name
+  code               String  @unique // Unique identifier/slug
+  description        String? // Organization description
+  subscriptionPlanId String? // Current subscription plan
+
+  // Relations
+  roles            OrganizationRole[]
+  users            UserOrganization[]
+  buildings        Building[]
+  permissions      Permission[] // Custom organization permissions
+  subscriptionPlan SubscriptionPlan?  @relation(fields: [subscriptionPlanId], references: [id])
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([code])
+  @@map("organizations")
+}
+
+// ======= User & Authentication Models =======
+
+/// User model for authentication and profile management
+model User {
+  id         String  @id @default(uuid())
+  email      String  @unique
+  firstName  String
+  lastName   String
+  password   String // Hashed password
+  isActive   Boolean @default(true)
+  isVerified Boolean @default(false)
+
+  // Relations
+  organizations        UserOrganization[]
+  roles                UserRole[]
+  sessions             Session[]
+  apartmentResidents   ApartmentResident[]
+  readingNotifications ReadingNotification[]
+  submittedReadings    WaterReading[]        @relation("SubmittedReadings") // Readings submitted by this user
+  approvedReadings     WaterReading[]        @relation("ApprovedReadings") // Readings approved by this user
+  inviteCodes          InviteCode[] // Invite codes created by this user
+
+  // NextAuth.js fields
+  accounts      Account[]
+  oauthSessions OAuthSession[] @relation("OAuthSessions")
+  emailVerified DateTime?
+  image         String?
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([email])
+  @@index([isActive])
+  @@index([isVerified])
   @@map("users")
 }
 
-// Role model - defines user roles with granular permissions
-model Role {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  description String?
-  isSystem    Boolean @default(false) // true for SUPER_ADMIN, BASIC_USER, ADMINISTRATOR
+/// Session model for managing user authentication sessions
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Relations
-  permissions RolePermission[]
-  users       User[]
-
+  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("roles")
+  @@index([sessionToken])
+  @@index([userId])
+  @@map("sessions")
 }
 
-// Permission model - defines granular permissions
-model Permission {
-  id       String             @id @default(uuid())
-  resource PermissionResource // Using enum instead of String
-  action   PermissionAction // Using enum instead of String
-  scope    PermissionScope? // Using enum instead of String, nullable
+/// Junction table between users and organizations
+model UserOrganization {
+  id             String  @id @default(uuid())
+  userId         String
+  organizationId String
+  permissionId   String? // Direct permission override
 
   // Relations
-  roles RolePermission[]
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  permission   Permission?  @relation(fields: [permissionId], references: [id])
 
+  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Unique constraint to prevent duplicate permissions
-  @@unique([resource, action, scope])
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("user_organizations")
+}
+
+// ======= Permission & Role Models =======
+
+/// Permission model for defining access control
+model Permission {
+  id             String        @id @default(uuid())
+  name           String // Human readable name
+  code           String        @unique // Format: "resource:action" (e.g. "buildings:read")
+  resource       ResourcesEnum
+  action         ActionsEnum
+  description    String?
+  organizationId String? // Null for system permissions
+  moduleId       String? // Associated feature module
+
+  // Relations
+  organization      Organization?      @relation(fields: [organizationId], references: [id])
+  module            Module?            @relation(fields: [moduleId], references: [id])
+  rolePermissions   RolePermission[]
+  userOrganizations UserOrganization[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([resource, action])
+  @@index([resource])
+  @@index([code])
+  @@index([organizationId])
   @@map("permissions")
 }
 
-// Junction table for Role-Permission many-to-many relationship
+/// Role model for grouping permissions
+model Role {
+  id          String  @id @default(uuid())
+  name        String // Role name
+  code        String  @unique // Unique identifier
+  description String? // Role description
+  isSystem    Boolean @default(false) // True for built-in roles
+
+  // Relations
+  organizationRoles OrganizationRole[]
+  userRoles         UserRole[]
+  rolePermissions   RolePermission[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([code])
+  @@map("roles")
+}
+
+/// Junction table between organizations and roles
+model OrganizationRole {
+  id             String @id @default(uuid())
+  organizationId String
+  roleId         String
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  role         Role         @relation(fields: [roleId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, roleId])
+  @@index([organizationId])
+  @@index([roleId])
+  @@map("organization_roles")
+}
+
+/// Junction table between users and roles
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+/// Junction table between roles and permissions
 model RolePermission {
+  id           String @id @default(uuid())
   roleId       String
   permissionId String
 
   // Relations
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
+  // Timestamps
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@id([roleId, permissionId])
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
   @@map("role_permissions")
 }
 
-// Session model for tracking user sessions
-model Session {
-  id          String   @id @default(uuid())
-  userId      String
-  token       String   @unique // JWT token or session identifier
-  fingerprint String // Browser/device fingerprint for security
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// ======= Building & Apartment Models =======
 
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("sessions")
-}
-
-// Administrator model - can manage multiple buildings
-model Administrator {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation("UserAdministrator", fields: [userId], references: [id], onDelete: Cascade)
-
-  // Administrator manages buildings
-  buildings Building[]
-
-  // Administrator creates invite codes
-  inviteCodes InviteCode[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  @@map("administrators")
-}
-
-// Building model - managed by one administrator
+/// Building model for managing properties
 model Building {
-  id              String  @id @default(uuid())
-  name            String
-  address         String
-  city            String
-  postalCode      String?
-  administratorId String
-  readingDeadline Int     @default(25) // Day of month until readings can be submitted
-
-  // Extended building information
-  type            BuildingType @default(RESIDENTIAL)
-  floors          Int? // Number of floors
-  totalApartments Int? // Total number of apartments planned
-  yearBuilt       Int? // Year of construction
-  description     String? // Additional notes/description
-  hasElevator     Boolean      @default(false)
-  hasParking      Boolean      @default(false)
-  hasGarden       Boolean      @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String       @id @default(uuid())
+  name           String // Building name/identifier
+  address        String // Physical address
+  type           BuildingType
+  floors         Int // Number of floors
+  organizationId String
+  description    String? // Additional building details
 
   // Relations
-  administrator Administrator @relation(fields: [administratorId], references: [id], onDelete: Cascade)
-  apartments    Apartment[]
+  organization Organization @relation(fields: [organizationId], references: [id])
+  apartments   Apartment[]
 
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([organizationId])
   @@map("buildings")
 }
 
-// Apartment model - belongs to a building, can have multiple managers
+/// Apartment model for individual units
 model Apartment {
-  id         String  @id @default(uuid())
-  number     String
-  floor      Int?
-  rooms      Int?
-  ownerId    String? // Keep for backward compatibility, but will be deprecated
-  buildingId String
+  id          String  @id @default(uuid())
+  number      String // Apartment number/identifier
+  floor       Int // Floor number
+  buildingId  String
+  isOccupied  Boolean @default(false)
+  surface     Float? // Square meters
+  description String? // Additional apartment details
 
   // Relations
-  owner         Owner?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  building      Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
-  waterReadings WaterReading[]
-  inviteCode    InviteCode?
+  building           Building            @relation(fields: [buildingId], references: [id])
+  waterMeters        WaterMeter[]
+  apartmentResidents ApartmentResident[]
 
-  // New apartment management system
-  managers ApartmentManager[]
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Unique constraint: one apartment number per building
-  @@unique([number, buildingId])
+  @@unique([buildingId, number])
+  @@index([buildingId])
   @@map("apartments")
 }
 
-// Apartment Manager model - allows multiple users to manage an apartment
-model ApartmentManager {
+/// Junction table between apartments and residents with roles
+model ApartmentResident {
   id          String        @id @default(uuid())
   apartmentId String
   userId      String
-  role        ApartmentRole
-  permissions String[] // JSON array of permissions: ["read", "update", "water_readings", "invite_others"]
-  isPrimary   Boolean       @default(false) // Primary manager (usually the owner)
-
-  // Who added this manager
-  addedBy String?
-  addedAt DateTime @default(now())
+  role        ApartmentRole // Relationship to the apartment
+  isActive    Boolean       @default(true)
+  startDate   DateTime      @default(now())
+  endDate     DateTime? // For temporary relationships
 
   // Relations
-  apartment Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apartment Apartment @relation(fields: [apartmentId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  // Unique constraint: one user can have only one role per apartment
-  @@unique([apartmentId, userId])
-  @@map("apartment_managers")
+  @@unique([apartmentId, userId, role])
+  @@index([apartmentId])
+  @@index([userId])
+  @@index([role])
+  @@map("apartment_residents")
 }
 
-// Owner model - can own multiple apartments
-model Owner {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation("UserOwner", fields: [userId], references: [id], onDelete: Cascade)
+// ======= Water Management Models =======
 
-  // Owner has apartments
-  apartments Apartment[]
+/// Water meter model for tracking consumption points
+model WaterMeter {
+  id           String  @id @default(uuid())
+  serialNumber String  @unique // Physical meter serial number
+  apartmentId  String
+  isActive     Boolean @default(true)
+  location     String? // Location description within apartment
+  brand        String? // Meter manufacturer
+  model        String? // Meter model
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  // Relations
+  apartment     Apartment      @relation(fields: [apartmentId], references: [id])
+  waterReadings WaterReading[]
 
-  @@map("owners")
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([apartmentId])
+  @@index([serialNumber])
+  @@map("water_meters")
 }
 
-// Water reading model - monthly water consumption readings
+/// Water reading model for consumption records
 model WaterReading {
-  id          String    @id @default(uuid())
-  apartmentId String
-  day         Int // 1-31
-  month       Int // 1-12
-  year        Int
-  reading     Float // Meter reading value
-  consumption Float? // Calculated automatically (current reading - previous reading)
-  submittedAt DateTime  @default(now())
-  submittedBy String // User ID who submitted the reading
-  isValidated Boolean   @default(false) // Validated by administrator
-  validatedAt DateTime?
-  validatedBy String? // Administrator ID who validated
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime? @updatedAt
+  id            String  @id @default(uuid())
+  waterMeterId  String
+  value         Float // Current meter reading
+  photo         String? // URL to reading photo
+  notes         String? // Additional notes
+  isApproved    Boolean @default(false)
+  approvedById  String? // User who approved the reading
+  submittedById String // User who submitted the reading
 
   // Relations
-  apartment Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  waterMeter          WaterMeter           @relation(fields: [waterMeterId], references: [id])
+  approvedBy          User?                @relation("ApprovedReadings", fields: [approvedById], references: [id])
+  submittedBy         User                 @relation("SubmittedReadings", fields: [submittedById], references: [id])
+  waterBill           WaterBill?
+  readingNotification ReadingNotification?
 
-  @@unique([apartmentId, month, year]) // One reading per apartment per month
+  // Timestamps
+  readingDate DateTime  @default(now()) // When the reading was taken
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([waterMeterId])
+  @@index([approvedById])
+  @@index([submittedById])
+  @@index([readingDate])
   @@map("water_readings")
 }
 
+/// Water bill model for consumption charges
+model WaterBill {
+  id             String    @id @default(uuid())
+  waterReadingId String    @unique
+  amount         Decimal // Bill amount
+  dueDate        DateTime // Payment deadline
+  isPaid         Boolean   @default(false)
+  paidAt         DateTime? // When the bill was paid
+  notes          String? // Additional notes
+
+  // Relations
+  waterReading WaterReading @relation(fields: [waterReadingId], references: [id])
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([waterReadingId])
+  @@index([dueDate])
+  @@index([isPaid])
+  @@map("water_bills")
+}
+
+/// Notification model for reading reminders
+model ReadingNotification {
+  id             String    @id @default(uuid())
+  userId         String // User to notify
+  waterReadingId String    @unique
+  dueDate        DateTime // When the reading should be submitted
+  isRead         Boolean   @default(false)
+  readAt         DateTime? // When the notification was viewed
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id])
+  waterReading WaterReading @relation(fields: [waterReadingId], references: [id])
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId])
+  @@index([waterReadingId])
+  @@index([dueDate])
+  @@index([isRead])
+  @@map("reading_notifications")
+}
+
+// ======= Utility Models =======
+
+/// Invite code model for user registration
 model InviteCode {
-  id          String    @id @default(uuid())
-  code        String    @unique // 6-8 character code
-  apartmentId String    @unique // One code per apartment
-  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  code        String           @unique // Actual invite code
+  email       String // Intended recipient
+  status      InviteCodeStatus @default(ACTIVE)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String // User who created the code
 
-  // Who created the code
-  createdBy     String
-  administrator Administrator @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  // Relations
+  createdBy User @relation(fields: [createdById], references: [id])
 
-  // Status and usage tracking
-  status     InviteCodeStatus @default(ACTIVE)
-  usedBy     String? // User ID who used the code
-  usedByUser User?            @relation("InviteCodeUsedBy", fields: [usedBy], references: [id], onDelete: SetNull)
-  usedAt     DateTime?
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  // Expiration
-  expiresAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  @@index([code])
+  @@index([email])
+  @@index([status])
+  @@index([createdById])
   @@map("invite_codes")
+}
+
+/// Audit log for tracking system changes
+model AuditLog {
+  id         String  @id @default(uuid())
+  userId     String // User who performed the action
+  action     String // Action performed
+  entityType String // Type of entity affected
+  entityId   String // ID of affected entity
+  oldValues  Json? // Previous values
+  newValues  Json? // New values
+  ipAddress  String? // IP address of the user
+  userAgent  String? // Browser/client info
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Email log model for tracking sent emails
+model EmailLog {
+  id             String    @id @default(cuid()) @map("id")
+  recipient      String    @map("recipient")
+  sender         String    @map("sender")
+  subject        String    @map("subject")
+  organizationId String?   @map("organization_id")
+  userId         String?   @map("user_id")
+  template       String?   @map("template")
+  messageId      String?   @map("message_id")
+  status         String    @map("status")
+  errorMessage   String?   @map("error_message")
+  sentAt         DateTime  @default(now()) @map("sent_at")
+  deliveredAt    DateTime? @map("delivered_at")
+  openedAt       DateTime? @map("opened_at")
+  clickedAt      DateTime? @map("clicked_at")
+  bouncedAt      DateTime? @map("bounced_at")
+  complaintAt    DateTime? @map("complaint_at")
+  metadata       Json?     @map("metadata")
+
+  @@index([recipient])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([template])
+  @@index([status])
+  @@index([sentAt])
+  @@map("email_logs")
+}
+
+// NextAuth.js Models
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("oauth_accounts")
+}
+
+model OAuthSession {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation("OAuthSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("oauth_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }

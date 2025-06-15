@@ -1,0 +1,788 @@
+# Property Association Water Reading Management - Cursor Rules
+
+## Developer Profile
+
+**Full Stack Developer** with **15+ years of experience** specializing in modern web technologies and enterprise applications. Currently focused on:
+
+- React ecosystem (React 19, Next.js 15, TypeScript)
+- Node.js backend development with strong database design skills
+- Multi-tenant SaaS architecture and scalable systems
+- Modern development practices (TDD, CI/CD, performance optimization)
+- Experience with PostgreSQL, Prisma ORM, and cloud deployments
+
+**Expectations**: Provide advanced, production-ready solutions with focus on:
+
+- Performance optimization and best practices
+- Security considerations for multi-tenant applications
+- Scalable architecture patterns
+- Clean, maintainable code with proper error handling
+- Modern TypeScript patterns and advanced React hooks
+- Database optimization and efficient queries
+
+## Project Overview
+
+Multi-tenant SaaS application for property associations to manage water readings with self-service portal for residents.
+
+## Technology Stack
+
+### Frontend
+
+- **Framework**: Next.js 15 with App Router (always use app directory)
+- **React**: React 19 (use latest features)
+- **Styling**: Tailwind CSS 4 (use latest syntax and features)
+- **Components**: shadcn/ui components (prefer these over custom components)
+- **TypeScript**: Strict mode enabled
+- **Package Manager**: yarn (NEVER use npm, always use yarn)
+
+### Backend & Database
+
+- **Database**: PostgreSQL 16 with Docker
+- **ORM**: Prisma (use for all database operations)
+- **API**: Next.js API routes with TypeScript
+- **Authentication**: NextAuth.js with JWT
+- **Validation**: Zod for all schemas and validation
+
+### Forms & State
+
+- **Forms**: React Hook Form with Zod resolvers (always use this combination)
+- **State Management**: React Query for server state, Zustand for client state
+- **Date Handling**: date-fns for date operations
+
+### Development Tools
+
+- **Linting**: ESLint with TypeScript rules
+- **Formatting**: Prettier with Tailwind plugin
+- **Git Hooks**: Husky with lint-staged
+- **Type Checking**: TypeScript strict mode
+
+## Coding Standards
+
+### General Rules
+
+1. **Always use TypeScript** - no JavaScript files, strict mode enabled
+2. **Use yarn** for all package management operations (NEVER npm)
+3. **Use Tailwind CSS** classes instead of custom CSS
+4. **Use shadcn/ui components** when available (prefer over custom)
+5. **Use Prisma** for all database operations
+6. **Use React Hook Form + Zod** for all forms (mandatory combination)
+7. **Use Next.js App Router** (app directory structure only)
+8. **Always use types over interfaces** - prefer `type` declarations for better composability
+
+### Developer Preferences
+
+- **Code Style**: Clean, readable, self-documenting code with meaningful variable names
+- **Architecture**: Favor composition over inheritance, functional programming patterns
+- **Error Handling**: Comprehensive error boundaries and graceful degradation
+- **Performance**: Always consider performance implications, lazy loading, memoization
+- **Security**: Security-first approach, input validation, proper authentication
+- **Testing**: Write tests for critical business logic and edge cases
+- **Documentation**: Code should be self-explanatory, add comments for complex logic only
+
+### TypeScript Best Practices
+
+- **Use types over interfaces**: Always prefer `type` declarations for better composability and union types
+- **Leverage Prisma types**: Re-export and extend Prisma-generated types instead of creating custom interfaces
+- **Use union types**: Prefer union types over enums where appropriate
+- **Type composition**: Use intersection types (`&`) for combining types
+- **Strict typing**: Always enable strict mode and avoid `any` type
+
+### File Naming
+
+- Components: PascalCase (e.g., `UserProfile.tsx`)
+- Pages: lowercase with hyphens (e.g., `user-profile/page.tsx`)
+- Utilities: camelCase (e.g., `formatDate.ts`)
+- Types: PascalCase with `.types.ts` suffix
+- API routes: lowercase (e.g., `users/route.ts`)
+
+### Component Structure
+
+```typescript
+// Always use this structure for components
+import { ComponentProps } from 'react'
+import { cn } from '@/lib/utils'
+
+type ComponentNameProps = ComponentProps<'div'> & {
+  // Define props here
+}
+
+export function ComponentName({ 
+  className, 
+  children, 
+  ...props 
+}: ComponentNameProps) {
+  return (
+    <div className={cn('default-classes', className)} {...props}>
+      {children}
+    </div>
+  )
+}
+```
+
+### Form Pattern
+
+```typescript
+// Always use this pattern for forms
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const formSchema = z.object({
+  // Define schema here
+})
+
+type FormData = z.infer<typeof formSchema>
+
+export function FormComponent() {
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      // Set defaults
+    }
+  })
+
+  const onSubmit = async (data: FormData) => {
+    // Handle submission
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        {/* Form fields */}
+      </form>
+    </Form>
+  )
+}
+```
+
+### API Route Pattern
+
+```typescript
+// Always use this pattern for API routes
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+
+const requestSchema = z.object({
+  // Define request schema
+})
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const validatedData = requestSchema.parse(body)
+    
+    // Use Prisma for database operations
+    const result = await prisma.model.create({
+      data: validatedData
+    })
+    
+    return NextResponse.json(result)
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+## Database Rules
+
+### Prisma Schema
+
+- Use camelCase for field names
+- Always include `id`, `createdAt`, `updatedAt` fields
+- Use UUID for primary keys
+- Use proper relationships with foreign keys
+- Include database comments for complex fields
+
+### Multi-Tenant Architecture
+
+- Every tenant-specific model must include `organizationId`
+- Always filter by organization in queries
+- Use Row Level Security (RLS) in PostgreSQL
+
+## UI/UX Standards
+
+### Design System
+
+- **Primary Color**: Use oklch(0.623 0.214 259.815) for primary brand color (vibrant blue shade)
+- **Button Style**: Use `borderRadius="full"` for primary action buttons to create a more fluid, modern look
+- **Gradients**: Use subtle animated gradients for backgrounds with the following properties:
+  - Apply low opacity (30-50%) and large blur effects (blur-3xl) for subtle depth
+  - Use complementary colors that work in both light and dark modes
+  - Implement slow animations (20-30s duration) for subtle movement
+- **Glass Morphism**: Use backdrop blur effects for card components:
+  - `backdrop-blur-md` or `backdrop-blur-xl` with semi-transparent backgrounds
+  - Low opacity borders (10-20%) for subtle definition
+  - Rounded corners (rounded-2xl or rounded-3xl) for softer appearance
+- **Interaction Design**: Add subtle hover effects to interactive elements:
+  - Scale transformations (transform hover:scale-[1.01])
+  - Transition durations between 300-500ms
+  - Shadow enhancements on hover
+
+### Color Usage
+
+- Use `text-primary` instead of hardcoded color values for brand consistency
+- Use semantic color tokens from the theme (primary, secondary, muted, etc.)
+- Ensure sufficient contrast between text and backgrounds (WCAG AA compliance)
+- Use opacity variants for subtle UI elements (bg-white/20, border-white/10)
+
+### Tailwind Usage
+
+- Use Tailwind 4 syntax and features
+- Prefer utility classes over custom CSS
+- Use CSS Grid and Flexbox appropriately
+- Follow mobile-first responsive design
+- Use Tailwind theme colors consistently
+
+### shadcn/ui Components
+
+- Always use shadcn/ui components when available
+- Customize through Tailwind classes, not custom CSS
+- Follow shadcn/ui patterns for new components
+- Use the Button component with appropriate variants and borderRadius prop
+- Use the Card component with glass morphism styles for important UI sections
+
+### Responsive Design
+
+- Mobile-first approach
+- Use Tailwind responsive prefixes (sm:, md:, lg:, xl:)
+- Test on all screen sizes
+- Ensure touch-friendly interfaces
+
+## Performance Rules
+
+### Next.js Optimization
+
+- Use Image component for all images
+- Implement proper loading states
+- Use Suspense boundaries appropriately
+- Optimize bundle size with dynamic imports
+
+### Database Optimization
+
+- Use Prisma include/select appropriately
+- Implement proper indexing
+- Use database relations efficiently
+- Avoid N+1 query problems
+
+## Security Rules
+
+### Authentication & Authorization
+
+- Always validate user permissions
+- Use NextAuth.js for authentication
+- Implement proper session management
+- Validate tenant isolation
+
+### Data Validation
+
+- Use Zod for all input validation
+- Sanitize user inputs
+- Implement rate limiting
+- Use HTTPS in production
+
+## Testing Rules
+
+### Unit Testing
+
+- Test all utility functions
+- Test form validation logic
+- Test API route handlers
+- Use Jest/Vitest for testing
+
+### Integration Testing
+
+- Test user workflows
+- Test multi-tenant isolation
+- Test authentication flows
+- Use Playwright for e2e testing
+
+## Code Organization
+
+### Folder Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Route groups
+│   ├── api/               # API routes
+│   └── globals.css        # Global styles
+├── components/            # React components
+│   ├── ui/               # shadcn/ui components
+│   └── custom/           # Custom components
+├── lib/                  # Utilities and configuration
+│   ├── prisma.ts         # Prisma client
+│   ├── auth.ts           # NextAuth config
+│   └── utils.ts          # Utility functions
+├── types/                # TypeScript type definitions
+└── hooks/                # Custom React hooks
+```
+
+### Import Rules
+
+- Use absolute imports with `@/` prefix
+- Group imports: React, libraries, local
+- Use named exports when possible
+- Keep imports organized and clean
+
+## Environment Setup
+
+### Required Environment Variables
+
+```bash
+# Database
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+
+# Authentication
+NEXTAUTH_SECRET="..."
+NEXTAUTH_URL="..."
+
+# Email (for production)
+EMAIL_SERVER_USER="..."
+EMAIL_SERVER_PASSWORD="..."
+EMAIL_SERVER_HOST="..."
+EMAIL_SERVER_PORT="..."
+EMAIL_FROM="..."
+```
+
+## Commands to Use
+
+### Development
+
+- `yarn dev` - Start development server
+- `yarn build` - Build for production
+- `yarn start` - Start production server
+- `yarn lint` - Run ESLint
+- `yarn lint:fix` - Fix ESLint errors
+- `yarn format` - Format with Prettier
+- `yarn type-check` - Check TypeScript types
+
+### Database
+
+- `yarn prisma generate` - Generate Prisma client
+- `yarn prisma db push` - Push schema changes
+- `yarn prisma studio` - Open Prisma Studio
+- `yarn prisma migrate dev` - Create and apply migration
+
+### Package Management
+
+- `yarn add <package>` - Add dependency
+- `yarn add -D <package>` - Add dev dependency
+- `yarn remove <package>` - Remove dependency
+- `yarn install` - Install dependencies
+
+## API Usage Guidelines
+
+### HTTP Client & React Query Integration
+
+**Always use the provided API layer** - Never make direct HTTP calls. Use the centralized API services and React Query hooks.
+
+#### 1. API Service Functions (Direct API Calls)
+
+```typescript
+// Import the API services
+import { api } from '@/lib/api'
+
+// Use for server-side operations, middleware, or when React Query isn't available
+const organization = await api.organizations.getById('org-id')
+const newUser = await api.users.create(userData)
+```
+
+#### 2. React Query Hooks (Recommended for Components)
+
+```typescript
+// Import the hooks
+import { useOrganizations, useCreateUser, useWaterReadings } from '@/hooks/useApi'
+
+// Queries (GET operations)
+const { data: organizations, isLoading, error } = useOrganizations()
+const { data: readings } = useWaterReadings({ organizationId: 'org-id', status: 'pending' })
+
+// Mutations (POST, PUT, DELETE operations)
+const createUser = useCreateUser({
+  onSuccess: (data) => {
+    toast.success(`User ${data.data.firstName} created successfully`)
+  },
+  onError: (error) => {
+    toast.error(error.message)
+  }
+})
+
+// Usage in component
+const handleCreateUser = (userData: Partial<User>) => {
+  createUser.mutate(userData)
+}
+```
+
+#### 3. Error Handling Patterns
+
+```typescript
+// Hook-level error handling (recommended)
+const { data, error, isError } = useWaterReadings()
+
+if (isError) {
+  return <ErrorMessage message={error.message} />
+}
+
+// Mutation error handling
+const createReading = useCreateWaterReading({
+  onError: (error) => {
+    // Use the provided error utilities
+    if (isValidationError(error)) {
+      const validationErrors = getValidationErrors(error)
+      // Handle validation errors
+    } else {
+      toast.error(getErrorMessage(error))
+    }
+  }
+})
+```
+
+#### 4. Authentication & Multi-Tenant Patterns
+
+```typescript
+// The axios client automatically adds authentication headers
+// Filter by organization for multi-tenant data
+const { data: buildings } = useBuildings({ 
+  organizationId: currentOrganization.id 
+})
+
+// Always include organizationId in mutations for tenant isolation
+const createBuilding = useCreateBuilding({
+  onSuccess: () => {
+    // React Query automatically invalidates related queries
+  }
+})
+
+const handleSubmit = (data: Partial<Building>) => {
+  createBuilding.mutate({
+    ...data,
+    organizationId: currentOrganization.id
+  })
+}
+```
+
+#### 5. Query Keys & Cache Management
+
+```typescript
+// Use the provided queryKeys for manual cache operations
+import { queryKeys } from '@/hooks/useApi'
+import { useQueryClient } from '@tanstack/react-query'
+
+const queryClient = useQueryClient()
+
+// Manual cache invalidation
+queryClient.invalidateQueries({ queryKey: queryKeys.waterReadings.lists() })
+
+// Manual cache updates
+queryClient.setQueryData(
+  queryKeys.organizations.detail(orgId), 
+  updatedOrganization
+)
+
+// Prefetch data
+queryClient.prefetchQuery({
+  queryKey: queryKeys.users.list({ organizationId: 'org-id' }),
+  queryFn: () => api.users.getAll({ organizationId: 'org-id' })
+})
+```
+
+#### 6. Pagination & Filtering
+
+```typescript
+// Use pagination parameters consistently
+const [page, setPage] = useState(1)
+const [search, setSearch] = useState('')
+
+const { data: users, isLoading } = useUsers({
+  page,
+  limit: 20,
+  search,
+  organizationId: currentOrg.id
+})
+
+// Handle pagination
+const handlePageChange = (newPage: number) => {
+  setPage(newPage)
+  // React Query automatically refetches with new parameters
+}
+```
+
+#### 7. Optimistic Updates
+
+```typescript
+// For immediate UI feedback
+const approveReading = useApproveWaterReading({
+  onMutate: async ({ id }) => {
+    // Cancel outgoing refetches
+    await queryClient.cancelQueries({ queryKey: queryKeys.waterReadings.detail(id) })
+    
+    // Snapshot previous value
+    const previousReading = queryClient.getQueryData(queryKeys.waterReadings.detail(id))
+    
+    // Optimistically update
+    queryClient.setQueryData(queryKeys.waterReadings.detail(id), (old: any) => ({
+      ...old,
+      data: { ...old.data, status: 'approved' }
+    }))
+    
+    return { previousReading }
+  },
+  onError: (err, variables, context) => {
+    // Rollback on error
+    if (context?.previousReading) {
+      queryClient.setQueryData(queryKeys.waterReadings.detail(variables.id), context.previousReading)
+    }
+  }
+})
+```
+
+#### 8. Loading States & Skeletons
+
+```typescript
+// Always handle loading states properly
+const { data: readings, isLoading, isError } = useWaterReadings()
+
+if (isLoading) {
+  return <WaterReadingsSkeleton />
+}
+
+if (isError) {
+  return <ErrorBoundary fallback={<WaterReadingsError />} />
+}
+
+// For mutations, use the pending state
+const createReading = useCreateWaterReading()
+
+return (
+  <Button 
+    onClick={() => createReading.mutate(data)}
+    disabled={createReading.isPending}
+  >
+    {createReading.isPending ? <LoadingSpinner /> : 'Submit Reading'}
+  </Button>
+)
+```
+
+#### 9. Form Integration Patterns
+
+```typescript
+// Combine with React Hook Form for seamless form handling
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+
+const createUser = useCreateUser({
+  onSuccess: () => {
+    form.reset()
+    router.push('/users')
+  },
+  onError: (error) => {
+    if (isValidationError(error)) {
+      const errors = getValidationErrors(error)
+      Object.entries(errors).forEach(([field, messages]) => {
+        form.setError(field as keyof FormData, { 
+          message: messages[0] 
+        })
+      })
+    }
+  }
+})
+
+const onSubmit = (data: FormData) => {
+  createUser.mutate(data)
+}
+```
+
+#### 10. Environment-Specific Configurations
+
+```typescript
+// The API client is already configured for different environments
+// Development: uses /api routes
+// Production: uses NEXT_PUBLIC_API_URL environment variable
+
+// No additional configuration needed in components
+// Just use the hooks and API functions as documented
+```
+
+### API Usage Rules
+
+1. **Never bypass the API layer** - Always use `api.*` functions or React Query hooks
+2. **Always handle loading states** - Use `isLoading`, `isPending` for UX
+3. **Always handle errors** - Use provided error utilities and show user feedback
+4. **Use React Query hooks in components** - Prefer hooks over direct API calls
+5. **Include organizationId** - Always filter by organization for multi-tenant isolation
+6. **Use optimistic updates** - For better UX on mutations
+7. **Leverage query keys** - Use provided query keys for cache management
+8. **Handle validation errors** - Use `isValidationError` and `getValidationErrors`
+9. **Show loading skeletons** - Use skeleton components during data fetching
+10. **Use proper TypeScript** - Leverage Prisma types and API response types
+
+### Common Anti-Patterns to Avoid
+
+❌ **Don't do this:**
+
+```typescript
+// Direct fetch calls
+const response = await fetch('/api/users')
+
+// Bypassing error handling
+const { data } = useUsers() // No error handling
+
+// Manual loading states
+const [loading, setLoading] = useState(false)
+
+// Ignoring multi-tenancy
+const { data } = useBuildings() // Missing organizationId
+```
+
+✅ **Do this instead:**
+
+```typescript
+// Use the provided hooks
+const { data, isLoading, error } = useUsers({ organizationId })
+
+// Proper error handling
+if (error) return <ErrorMessage message={error.message} />
+if (isLoading) return <LoadingSkeleton />
+
+// Multi-tenant aware
+const { data: buildings } = useBuildings({ organizationId: currentOrg.id })
+```
+
+## Key Principles
+
+1. **Multi-Tenant First**: Always consider tenant isolation
+2. **Type Safety**: Use TypeScript strictly
+3. **Performance**: Optimize for speed and efficiency
+4. **Security**: Validate everything, trust nothing
+5. **Maintainability**: Write clean, readable code
+6. **User Experience**: Mobile-first, accessible design
+7. **Consistency**: Follow established patterns
+8. **Testing**: Test critical paths and edge cases
+9. **API Consistency**: Always use the centralized API layer
+10. **Cache Efficiency**: Leverage React Query's intelligent caching
+
+## When Adding New Features
+
+1. Update database schema with Prisma
+2. Create Zod validation schemas
+3. Build API routes with proper error handling
+4. Create UI with shadcn/ui components
+5. Add form handling with React Hook Form
+6. Implement proper TypeScript types
+7. Add tests for critical functionality
+8. Update documentation
+
+## Common Patterns to Follow
+
+### Error Handling
+
+```typescript
+try {
+  // Operation
+} catch (error) {
+  console.error('Error context:', error)
+  return NextResponse.json(
+    { error: 'User-friendly message' },
+    { status: 500 }
+  )
+}
+```
+
+### Loading States
+
+```typescript
+const [isLoading, setIsLoading] = useState(false)
+
+// Show loading spinner or skeleton
+if (isLoading) return <LoadingSpinner />
+```
+
+### Data Fetching
+
+```typescript
+import { useQuery } from '@tanstack/react-query'
+
+const { data, isLoading, error } = useQuery({
+  queryKey: ['key'],
+  queryFn: fetchFunction
+})
+```
+
+## Communication & Feedback Style
+
+### When Providing Solutions
+
+- **Be Direct**: Skip basic explanations, focus on advanced concepts and edge cases
+- **Show Alternatives**: Present multiple approaches when relevant, with pros/cons
+- **Performance Focus**: Always mention performance implications of suggested solutions
+- **Security Awareness**: Highlight security considerations, especially for multi-tenant features
+- **Real-world Context**: Consider production environments and scalability requirements
+
+### Code Reviews & Suggestions
+
+- **Complete Solutions**: Provide full, working code examples that can be implemented immediately
+- **Best Practices**: Suggest improvements beyond basic functionality
+- **Optimization Opportunities**: Point out potential performance or security improvements
+- **Future-proofing**: Consider maintainability and extensibility in suggestions
+
+### Problem-Solving Approach
+
+- **Systematic Analysis**: Break down complex problems into manageable parts
+- **Error Prevention**: Anticipate potential issues and provide preventive solutions
+- **Debugging Focus**: When fixing issues, explain root causes and prevention strategies
+- **Documentation**: When creating new patterns, explain the reasoning behind architectural decisions
+
+Remember: Consistency is key. Follow these rules religiously to maintain code quality and team productivity.
+
+**Target Audience**: Experienced developers building enterprise-grade, multi-tenant applications.
+
+### Component Customizations
+
+#### Button Component
+
+The Button component has been customized with an additional `borderRadius` prop to provide more flexibility in button styling:
+
+```typescript
+// Button component usage with borderRadius
+<Button 
+  variant="default" 
+  size="lg" 
+  borderRadius="full"
+>
+  Call to Action
+</Button>
+```
+
+Available borderRadius options:
+
+- `default`: Standard rounded corners (rounded-md)
+- `full`: Fully rounded corners (rounded-full)
+- `lg`: Large rounded corners (rounded-lg)
+- `xl`: Extra large rounded corners (rounded-xl)
+- `2xl`: Double extra large rounded corners (rounded-2xl)
+- `none`: No rounded corners
+
+Use `borderRadius="full"` for primary call-to-action buttons to create a more modern, fluid appearance.
+
+#### BackgroundGradient Component
+The BackgroundGradient component provides a subtle animated gradient background that enhances the visual appeal of the application:
+
+```typescript
+// BackgroundGradient component usage
+<BackgroundGradient className="min-h-screen">
+  {children}
+</BackgroundGradient>
+```
+
+Key features:
+- Multiple gradient blobs positioned strategically
+- Subtle animations with long durations for a gentle floating effect
+- Optimized for both light and dark modes
+- Low performance impact using transform animations
+- Z-index management to ensure content remains accessible
+
+Use this component as a wrapper for page content to add visual depth without compromising usability.

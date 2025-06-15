@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -18,12 +19,16 @@ import { useAuth } from "@/contexts/auth-context";
 import type { LoginRequest } from "@/types/auth";
 import { AlertCircle, Building2 } from "lucide-react";
 import { LoginSchema } from "@/schemas/user";
+import { Separator } from "@/components/ui/separator";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 
 type LoginFormData = LoginRequest;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm<LoginFormData>({
     resolver: zodResolver(LoginSchema),
@@ -36,15 +41,19 @@ export default function LoginPage() {
   const { handleSubmit, control } = methods;
 
   const onSubmit = async (data: LoginFormData) => {
-    clearError();
-
-    const result = await login(data.email, data.password);
-
-    if (result.success) {
-      // Redirect to dashboard or home page on successful login
-      router.push("/dashboard");
+    try {
+      setIsLoading(true);
+      setError(null);
+      await login(data.email, data.password);
+      router.push("/");
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Eroare la autentificare"
+      );
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
     }
-    // Error handling is done automatically by the auth context with visual feedback
   };
 
   return (
@@ -62,22 +71,39 @@ export default function LoginPage() {
               </span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Conectează-te</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Bine ai revenit!
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Introdu datele tale pentru a accesa contul
+            Conectează-te pentru a continua
           </p>
         </div>
 
-        {/* Login Form */}
+        {/* Login Card */}
         <Card className="shadow-lg">
           <CardHeader className="space-y-2">
-            <CardTitle className="text-xl text-center">Autentificare</CardTitle>
+            <CardTitle className="text-xl text-center">Conectare</CardTitle>
             <CardDescription className="text-center">
               Introdu datele tale pentru a te conecta
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Google Auth Button */}
+            <GoogleAuthButton mode="login" className="w-full" />
+
+            {/* Separator */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  sau
+                </span>
+              </div>
+            </div>
+
             <FormProvider {...methods}>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 {/* Email Field */}

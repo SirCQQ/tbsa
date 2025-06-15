@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Core Rules
+
+This directory contains the fundamental rules and guidelines for the project:
+
+- **cursor_rules.mdc**: Base rules for working with Cursor IDE
+- **instructions.mdc**: General project instructions and guidelines
+- **nextjs.mdc**: Next.js specific rules and best practices
+- **typescript.mdc**: TypeScript coding standards and patterns
