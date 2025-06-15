@@ -71,7 +71,7 @@ describe("FormTextarea", () => {
     expect(textarea).toHaveValue("Hello world\nMultiple lines");
   });
 
-  it("handles focus and blur events", async () => {
+  it("handles focus and blur-sm events", async () => {
     const user = userEvent.setup();
     const onFocus = jest.fn();
     const onBlur = jest.fn();

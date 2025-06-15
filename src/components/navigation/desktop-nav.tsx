@@ -16,7 +16,7 @@ export function DesktopNav() {
       {/* Logo */}
       <div className="flex items-center">
         <Link href="/" className="flex items-center space-x-3">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+          <div className="h-9 w-9 rounded-lg bg-linear-to-br from-primary to-primary/80 flex items-center justify-center shadow-xs">
             <span className="text-primary-foreground font-bold text-sm">
               TB
             </span>

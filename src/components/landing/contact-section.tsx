@@ -270,7 +270,7 @@ export function ContactSection() {
             </Card>
 
             {/* Quick Stats */}
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
+            <Card className="bg-linear-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
               <CardContent className="p-6">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
                   De ce să ne alegi?

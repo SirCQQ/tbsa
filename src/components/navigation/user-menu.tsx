@@ -60,7 +60,7 @@ export function UserMenu() {
       case "Building Admin":
         return "secondary" as const;
       default:
-        return "outline" as const;
+        return "outline-solid" as const;
     }
   };
 

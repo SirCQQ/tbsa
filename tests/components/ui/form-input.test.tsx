@@ -69,7 +69,7 @@ describe("FormInput", () => {
     expect(input).toHaveValue("Hello world");
   });
 
-  it("handles focus and blur events", async () => {
+  it("handles focus and blur-sm events", async () => {
     const user = userEvent.setup();
     const onFocus = jest.fn();
     const onBlur = jest.fn();

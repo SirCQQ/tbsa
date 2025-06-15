@@ -24,7 +24,7 @@ describe("Button Component", () => {
       const variants = [
         "default",
         "destructive",
-        "outline",
+        "outline-solid",
         "secondary",
         "ghost",
         "link",
@@ -45,7 +45,7 @@ describe("Button Component", () => {
           case "destructive":
             expect(button).toHaveClass("bg-destructive");
             break;
-          case "outline":
+          case "outline-solid":
             expect(button).toHaveClass("border", "border-input");
             break;
           case "secondary":
@@ -179,7 +179,7 @@ describe("Button Component", () => {
 
       const button = screen.getByRole("button", { name: /focus button/i });
       expect(button).toHaveClass(
-        "focus-visible:outline-none",
+        "focus-visible:outline-hidden",
         "focus-visible:ring-1"
       );
     });

@@ -31,9 +31,9 @@ export function NavigationLinks({
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
               "hover:bg-accent hover:text-accent-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
               pathname === link.href
-                ? "bg-accent text-accent-foreground shadow-sm"
+                ? "bg-accent text-accent-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >

@@ -27,7 +27,7 @@ describe("Badge Component", () => {
         "default",
         "secondary",
         "destructive",
-        "outline",
+        "outline-solid",
       ] as const;
 
       variants.forEach((variant) => {
@@ -53,7 +53,7 @@ describe("Badge Component", () => {
               "text-destructive-foreground"
             );
             break;
-          case "outline":
+          case "outline-solid":
             expect(badge).toHaveClass("text-foreground");
             expect(badge).not.toHaveClass("border-transparent");
             break;
@@ -199,7 +199,7 @@ describe("Badge Component", () => {
 
       const badge = screen.getByTestId("focusable-badge");
       expect(badge).toHaveClass(
-        "focus:outline-none",
+        "focus:outline-hidden",
         "focus:ring-2",
         "focus:ring-ring"
       );

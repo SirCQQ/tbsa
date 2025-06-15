@@ -114,7 +114,7 @@ export default function PrivacyPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 py-16">
+        <section className="bg-linear-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 py-16">
           <div className="container mx-auto px-6 lg:px-8">
             <div className="mx-auto max-w-4xl text-center">
               <Badge variant="secondary" className="mb-4">

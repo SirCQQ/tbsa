@@ -87,7 +87,7 @@ export function AboutSection() {
           </div>
 
           <div className="relative">
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
+            <Card className="bg-linear-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
               <CardContent className="p-8">
                 <div className="flex items-center mb-6">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600">

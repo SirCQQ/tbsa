@@ -1,0 +1,272 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Tailwind CSS 4 Guidelines
+
+## Core Principles
+
+1. **Use Tailwind Classes Exclusively**
+   - Avoid custom CSS files
+   - Use Tailwind's utility classes for all styling
+   - Leverage Tailwind's new v4 features
+
+2. **Mobile-First Approach**
+   - Start with mobile styles
+   - Use responsive prefixes (sm:, md:, lg:, xl:, 2xl:)
+   - Test on all breakpoints
+
+## New Tailwind 4 Features
+
+### Color Format (OKLCH)
+
+```typescript
+// ✅ DO: Use OKLCH color format
+<div className="bg-[oklch(0.623_0.214_259.815)]">
+  {/* Modern color space */}
+</div>
+
+// ❌ DON'T: Use older color formats
+<div className="bg-[#4F46E5]">
+  {/* Legacy hex colors */}
+</div>
+```
+
+### Container Queries
+
+```typescript
+// ✅ DO: Use container queries for component-based responsive design
+<div className="@container">
+  <div className="@lg:grid-cols-2 @xl:grid-cols-3">
+    {/* Content */}
+  </div>
+</div>
+
+// ❌ DON'T: Rely solely on viewport queries when container queries are more appropriate
+<div className="md:grid-cols-2 lg:grid-cols-3">
+  {/* Less flexible approach */}
+</div>
+```
+
+### Scroll Timeline Animations
+
+```typescript
+// ✅ DO: Use scroll-driven animations
+<div className="animate-[fade-in] scroll-timeline-[--my-timeline]">
+  {/* Scroll-driven animation */}
+</div>
+
+// ❌ DON'T: Use JavaScript for scroll animations when CSS can handle it
+```
+
+## Layout Patterns
+
+### Flex Layout
+
+```typescript
+// ✅ DO: Use modern flex patterns
+<div className="flex flex-col gap-4 items-start">
+  <div className="flex-1 min-w-0">
+    {/* Content */}
+  </div>
+</div>
+
+// ❌ DON'T: Use margins for spacing between flex items
+<div className="flex flex-col">
+  <div className="mb-4">
+    {/* Content */}
+  </div>
+</div>
+```
+
+### Grid Layout
+
+```typescript
+// ✅ DO: Use modern grid patterns
+<div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4">
+  {/* Auto-fitting grid */}
+</div>
+
+// ❌ DON'T: Use fixed column counts without responsive considerations
+<div className="grid grid-cols-3">
+  {/* Not responsive */}
+</div>
+```
+
+## Component Patterns
+
+### Card Components
+
+```typescript
+// ✅ DO: Use glass morphism effect
+<div className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl">
+  {/* Modern card design */}
+</div>
+
+// ❌ DON'T: Use solid backgrounds without blur effects
+<div className="rounded-lg bg-white shadow">
+  {/* Less modern approach */}
+</div>
+```
+
+### Button Components
+
+```typescript
+// ✅ DO: Use modern button styles
+<button className="rounded-full bg-primary px-4 py-2 text-white shadow-lg 
+                 hover:scale-[1.01] transition-transform duration-300
+                 active:scale-[0.99] disabled:opacity-50">
+  {/* Modern button */}
+</button>
+
+// ❌ DON'T: Use basic button styles
+<button className="rounded bg-blue-500 px-4 py-2">
+  {/* Basic styling */}
+</button>
+```
+
+## Animation Guidelines
+
+### Hover Effects
+
+```typescript
+// ✅ DO: Use subtle, performant hover effects
+<div className="transition-all duration-300 hover:scale-[1.01] hover:shadow-lg">
+  {/* Subtle interaction */}
+</div>
+
+// ❌ DON'T: Use aggressive animations
+<div className="hover:scale-150 duration-100">
+  {/* Too dramatic */}
+</div>
+```
+
+### Loading States
+
+```typescript
+// ✅ DO: Use built-in loading animations
+<div className="animate-pulse bg-gray-200">
+  {/* Loading state */}
+</div>
+
+// ❌ DON'T: Create custom loading animations
+```
+
+## Dark Mode
+
+```typescript
+// ✅ DO: Use dark mode variants
+<div className="bg-white dark:bg-gray-900
+                text-gray-900 dark:text-gray-100">
+  {/* Dark mode ready */}
+</div>
+
+// ❌ DON'T: Ignore dark mode
+<div className="bg-white text-gray-900">
+  {/* Not dark mode compatible */}
+</div>
+```
+
+## Performance Considerations
+
+1. **JIT Compilation**
+   - All classes are compiled just-in-time
+   - Use arbitrary values when needed
+   - Avoid unnecessary class variations
+
+2. **Class Organization**
+   ```typescript
+   // ✅ DO: Group related classes
+   <div className={cn(
+     // Layout
+     "grid grid-cols-2 gap-4",
+     // Typography
+     "text-lg font-medium",
+     // Colors & Effects
+     "bg-white/10 backdrop-blur-xl",
+     // Interactive
+     "hover:scale-[1.01] transition-all",
+     // Responsive
+     "md:grid-cols-3 lg:grid-cols-4"
+   )}>
+   ```
+
+3. **Responsive Design**
+   ```typescript
+   // ✅ DO: Use breakpoint order consistently
+   <div className="flex flex-col gap-4
+                   sm:flex-row
+                   md:gap-6
+                   lg:gap-8
+                   xl:gap-10">
+   ```
+
+## Best Practices
+
+1. **Use `cn()` Utility**
+   ```typescript
+   import { cn } from "@/lib/utils";
+
+   // ✅ DO: Use cn for conditional classes
+   <div className={cn(
+     "base-classes",
+     isActive && "active-classes",
+     className
+   )}>
+   ```
+
+2. **Maintain Consistent Spacing**
+   ```typescript
+   // ✅ DO: Use consistent spacing scale
+   <div className="space-y-4 md:space-y-6 lg:space-y-8">
+   ```
+
+3. **Use Semantic Colors**
+   ```typescript
+   // ✅ DO: Use semantic color tokens
+   <div className="bg-primary text-primary-foreground">
+   ```
+
+4. **Accessibility**
+   ```typescript
+   // ✅ DO: Include accessibility classes
+   <button className="focus:outline-none focus:ring-2 focus:ring-primary">
+   ```
+
+## Common Patterns
+
+### Form Elements
+
+```typescript
+// ✅ DO: Use consistent form styling
+<input className="rounded-lg border border-input bg-background px-3 py-2
+                 focus:outline-none focus:ring-2 focus:ring-primary
+                 disabled:opacity-50" />
+```
+
+### Lists
+
+```typescript
+// ✅ DO: Use modern list styling
+<ul className="divide-y divide-gray-200 dark:divide-gray-800">
+  <li className="py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+```
+
+### Navigation
+
+```typescript
+// ✅ DO: Use consistent navigation patterns
+<nav className="sticky top-0 z-40 backdrop-blur-xl bg-background/80
+                border-b border-border">
+```
+
+Remember:
+- Always use the latest Tailwind 4 features
+- Maintain consistent spacing and color usage
+- Follow mobile-first responsive design
+- Use semantic class naming
+- Leverage container queries for component-based responsiveness
+- Implement proper dark mode support
+- Use OKLCH color format for modern color spaces
+- Apply glass morphism effects where appropriate

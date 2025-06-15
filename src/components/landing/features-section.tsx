@@ -126,7 +126,7 @@ export function FeaturesSection() {
                         key={idx}
                         className="flex items-center text-sm text-muted-foreground"
                       >
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2 shrink-0" />
                         {highlight}
                       </li>
                     ))}
@@ -138,7 +138,7 @@ export function FeaturesSection() {
         </div>
 
         {/* Stats Section */}
-        <div className="mt-20 bg-card rounded-2xl p-8 shadow-sm">
+        <div className="mt-20 bg-card rounded-2xl p-8 shadow-xs">
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">

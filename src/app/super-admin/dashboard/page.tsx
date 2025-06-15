@@ -50,7 +50,7 @@ export default function SuperAdminDashboardPage() {
 
           {/* Critical Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Button className="h-auto p-4 flex flex-col items-center space-y-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+            <Button className="h-auto p-4 flex flex-col items-center space-y-2 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
               <UserCog className="h-6 w-6" />
               <span>Gestionează Admini</span>
             </Button>

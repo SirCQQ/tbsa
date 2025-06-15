@@ -57,8 +57,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-background dark:via-background dark:to-blue-900 px-4">
-      <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1))]" />
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-background to-indigo-50 dark:from-background dark:via-background dark:to-blue-900 px-4">
+      <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:mask-[linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1))]" />
 
       <div className="relative w-full max-w-md">
         {/* Header */}
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 {/* Error Message - Only show if not using toast notifications */}
                 {error && (
                   <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
                     <p className="text-sm text-red-600 dark:text-red-400">
                       {error}
                     </p>

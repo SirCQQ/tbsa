@@ -26,7 +26,7 @@ export function MobileNav() {
     <div className="flex w-full items-center justify-between">
       {/* Logo */}
       <Link href="/" className="flex items-center space-x-3">
-        <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+        <div className="h-9 w-9 rounded-lg bg-linear-to-br from-primary to-primary/80 flex items-center justify-center shadow-xs">
           <span className="text-primary-foreground font-bold text-sm">TB</span>
         </div>
         <span className="font-bold text-xl text-foreground">TBSA</span>

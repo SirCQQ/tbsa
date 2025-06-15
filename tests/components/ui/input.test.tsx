@@ -105,7 +105,7 @@ describe("Input Component", () => {
       expect(onChangeMock).toHaveBeenCalledTimes(11); // "Hello World" = 11 characters
     });
 
-    it("handles focus and blur events", async () => {
+    it("handles focus and blur-sm events", async () => {
       const user = userEvent.setup();
       const onFocusMock = jest.fn();
       const onBlurMock = jest.fn();
