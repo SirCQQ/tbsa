@@ -151,11 +151,11 @@ model Organization {
   subscriptionPlanId String? @map("subscription_plan_id") // Current subscription plan
 
   // Relations
-  roles            OrganizationRole[]
-  users            UserOrganization[]
-  buildings        Building[]
-  permissions      Permission[] // Custom organization permissions
-  subscriptionPlan SubscriptionPlan?  @relation(fields: [subscriptionPlanId], references: [id])
+  roles     OrganizationRole[]
+  users     UserOrganization[]
+  buildings Building[]
+
+  subscriptionPlan SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
 
   // Timestamps
   createdAt DateTime  @default(now()) @map("created_at")
@@ -248,17 +248,14 @@ model UserOrganization {
 
 /// Permission model for defining access control
 model Permission {
-  id             String        @id @default(uuid())
-  name           String // Human readable name
-  code           String        @unique // Format: "resource:action" (e.g. "buildings:read")
-  resource       ResourcesEnum
-  action         ActionsEnum
-  description    String?
-  organizationId String?       @map("organization_id") // Null for system permissions
-  moduleId       String?       @map("module_id") // Associated feature module
+  id          String        @id @default(uuid())
+  name        String // Human readable name
+  code        String        @unique // Format: "resource:action" (e.g. "buildings:read")
+  resource    ResourcesEnum
+  action      ActionsEnum
+  description String?
+  moduleId    String?       @map("module_id") // Associated feature module
 
-  // Relations
-  organization      Organization?      @relation(fields: [organizationId], references: [id])
   module            Module?            @relation(fields: [moduleId], references: [id])
   rolePermissions   RolePermission[]
   userOrganizations UserOrganization[]
@@ -270,7 +267,6 @@ model Permission {
   @@unique([resource, action])
   @@index([resource])
   @@index([code])
-  @@index([organizationId])
   @@map("permissions")
 }
 
@@ -425,7 +421,7 @@ model ApartmentResident {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  @@unique([apartmentId, userId, role])
+  @@unique([apartmentId, userId])
   @@index([apartmentId])
   @@index([userId])
   @@index([role])

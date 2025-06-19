@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { organizationRegistrationSchema } from "@/lib/validations/auth";
-import { formatPhoneNumber } from "@/lib/validations/contact";
+import { sendWelcomeEmail } from "@/lib/email";
 import { z } from "zod";
-import { ActionsEnum, Permission, ResourcesEnum } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,9 +20,6 @@ export async function POST(request: NextRequest) {
       organizationName,
       organizationCode,
       organizationDescription,
-      // phone,
-      // agreeToTerms is validated by schema but not stored
-      // subscriptionPlanId will be used later for subscription selection
     } = validatedData;
 
     // Check if email already exists
@@ -53,22 +49,36 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hash(password, 12);
 
-    // Format phone number if provided
-    // const formattedPhone = phone ? formatPhoneNumber(phone) : undefined;
+    // Get available subscription plans for random assignment
+    // TODO: Update this to allow user selection of subscription plan
+    const availablePlans = await prisma.subscriptionPlan.findMany({
+      where: { deletedAt: null },
+    });
 
-    // Create organization and admin user in a transaction
+    if (availablePlans.length === 0) {
+      return NextResponse.json(
+        { error: "Nu sunt disponibile planuri de abonament" },
+        { status: 500 }
+      );
+    }
+
+    // Select a random subscription plan (for now)
+    const randomPlan =
+      availablePlans[Math.floor(Math.random() * availablePlans.length)];
+
+    // Create organization, user, and assign role in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create organization
+      // Create organization with random subscription
       const organization = await tx.organization.create({
         data: {
           name: organizationName,
           code: organizationCode,
           description: organizationDescription,
-          // subscriptionPlanId will be set later when subscription is selected
+          subscriptionPlanId: randomPlan.id,
         },
       });
 
-      // Create admin user
+      // Create user (not verified initially - will be verified via email)
       const user = await tx.user.create({
         data: {
           email,
@@ -76,113 +86,20 @@ export async function POST(request: NextRequest) {
           lastName,
           password: hashedPassword,
           isActive: true,
-          isVerified: true, // Organization admins are auto-verified
+          isVerified: false, // User needs to verify email
         },
       });
 
-      // Create or get ADMINISTRATOR role (system role)
-      let adminRole = await tx.role.findUnique({
+      // Get the existing global ADMINISTRATOR role (created by seed data)
+      const adminRole = await tx.role.findUnique({
         where: { code: "ADMINISTRATOR" },
       });
 
       if (!adminRole) {
-        adminRole = await tx.role.create({
-          data: {
-            name: "Administrator",
-            code: "ADMINISTRATOR",
-            description: "Administrator organizație cu acces complet",
-            isSystem: true,
-          },
-        });
-
-        // Create default permissions for ADMINISTRATOR role
-        const defaultPermissions: Pick<Permission, "resource" | "action">[] = [
-          { resource: ResourcesEnum.USERS, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.USERS, action: ActionsEnum.CREATE },
-          { resource: ResourcesEnum.USERS, action: ActionsEnum.UPDATE },
-          { resource: ResourcesEnum.USERS, action: ActionsEnum.DELETE },
-          { resource: ResourcesEnum.ORGANIZATIONS, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.ORGANIZATIONS, action: ActionsEnum.UPDATE },
-          { resource: ResourcesEnum.BUILDINGS, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.BUILDINGS, action: ActionsEnum.CREATE },
-          { resource: ResourcesEnum.BUILDINGS, action: ActionsEnum.UPDATE },
-          { resource: ResourcesEnum.BUILDINGS, action: ActionsEnum.DELETE },
-          { resource: ResourcesEnum.APARTMENTS, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.APARTMENTS, action: ActionsEnum.CREATE },
-          { resource: ResourcesEnum.APARTMENTS, action: ActionsEnum.UPDATE },
-          { resource: ResourcesEnum.APARTMENTS, action: ActionsEnum.DELETE },
-          { resource: ResourcesEnum.WATER_READINGS, action: ActionsEnum.READ },
-          {
-            resource: ResourcesEnum.WATER_READINGS,
-            action: ActionsEnum.CREATE,
-          },
-          {
-            resource: ResourcesEnum.WATER_READINGS,
-            action: ActionsEnum.UPDATE,
-          },
-          {
-            resource: ResourcesEnum.WATER_READINGS,
-            action: ActionsEnum.DELETE,
-          },
-          { resource: ResourcesEnum.WATER_METERS, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.WATER_METERS, action: ActionsEnum.CREATE },
-          { resource: ResourcesEnum.WATER_METERS, action: ActionsEnum.UPDATE },
-          { resource: ResourcesEnum.WATER_METERS, action: ActionsEnum.DELETE },
-          { resource: ResourcesEnum.INVITE_CODES, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.INVITE_CODES, action: ActionsEnum.CREATE },
-          { resource: ResourcesEnum.INVITE_CODES, action: ActionsEnum.UPDATE },
-          { resource: ResourcesEnum.INVITE_CODES, action: ActionsEnum.DELETE },
-          { resource: ResourcesEnum.ROLES, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.PERMISSIONS, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.ADMINISTRATOR, action: ActionsEnum.READ },
-          { resource: ResourcesEnum.ADMINISTRATOR, action: ActionsEnum.CREATE },
-          { resource: ResourcesEnum.ADMINISTRATOR, action: ActionsEnum.UPDATE },
-          { resource: ResourcesEnum.ADMINISTRATOR, action: ActionsEnum.DELETE },
-        ];
-
-        // Create permissions for the organization
-        const createdPermissions = await Promise.all(
-          defaultPermissions.map(async (perm) => {
-            return await tx.permission.create({
-              data: {
-                name: `${perm.resource} ${perm.action}`,
-                code: `${perm.resource.toLowerCase()}:${perm.action.toLowerCase()}`,
-                resource: perm.resource as any,
-                action: perm.action as any,
-                description: `Permission to ${perm.action.toLowerCase()} ${perm.resource.toLowerCase()}`,
-                organizationId: organization.id,
-              },
-            });
-          })
-        );
-
-        // Link permissions to the role
-        await Promise.all(
-          createdPermissions.map(async (permission) => {
-            return await tx.rolePermission.create({
-              data: {
-                roleId: adminRole!.id,
-                permissionId: permission.id,
-              },
-            });
-          })
+        throw new Error(
+          "ADMINISTRATOR role not found. Please run database seed first."
         );
       }
-
-      // // Link role to organization
-      // const organizationRole = await tx.organizationRole.upsert({
-      //   where: {
-      //     organizationId_roleId: {
-      //       organizationId: organization.id,
-      //       roleId: adminRole.id,
-      //     },
-      //   },
-      //   create: {
-      //     organizationId: organization.id,
-      //     roleId: adminRole.id,
-      //   },
-      //   update: {},
-      // });
 
       // Link user to organization
       await tx.userOrganization.create({
@@ -192,7 +109,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Assign role to user
+      // Assign ADMINISTRATOR role to user
       await tx.userRole.create({
         data: {
           userId: user.id,
@@ -206,6 +123,11 @@ export async function POST(request: NextRequest) {
           name: organization.name,
           code: organization.code,
           description: organization.description,
+          subscriptionPlan: {
+            id: randomPlan.id,
+            name: randomPlan.name,
+            price: randomPlan.price,
+          },
         },
         user: {
           id: user.id,
@@ -222,13 +144,45 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // Send welcome/confirmation email
+    try {
+      // Generate verification token (simple timestamp-based for now)
+      const verificationToken = Buffer.from(
+        `${result.user.id}:${Date.now()}:${Math.random()}`
+      ).toString("base64url");
+
+      // Save verification token to database
+      await prisma.verificationToken.create({
+        data: {
+          identifier: result.user.email,
+          token: verificationToken,
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        },
+      });
+
+      const emailResult = await sendWelcomeEmail(
+        result.user.email,
+        result.user.firstName,
+        verificationToken
+      );
+
+      console.log(
+        `Welcome email sent to ${result.user.email}:`,
+        emailResult.success
+      );
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+      // Don't fail the registration if email fails - user can still verify later
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Organizația a fost înregistrată cu succes",
+      message:
+        "Înregistrarea a fost completată cu succes. Verificați email-ul pentru confirmarea contului.",
       data: result,
     });
   } catch (error) {
-    console.error("Organization registration error:", error);
+    console.error("Registration error:", error);
 
     // Handle validation errors
     if (error instanceof z.ZodError) {

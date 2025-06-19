@@ -81,6 +81,11 @@ export type OrganizationRegistrationResponse = {
       name: string;
       code: string;
       description?: string;
+      subscriptionPlan: {
+        id: string;
+        name: string;
+        price: string;
+      };
     };
     user: {
       id: string;
