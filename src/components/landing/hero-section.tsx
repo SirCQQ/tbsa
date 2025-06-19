@@ -4,14 +4,17 @@ import { Building2, DropletIcon, Users, TrendingUp } from "lucide-react";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-linear-to-br from-blue-50 via-background to-indigo-50 dark:from-background dark:via-background dark:to-blue-900 py-20 sm:py-32">
+    <section
+      id="hero"
+      className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-background dark:via-background dark:to-blue-900 py-20 sm:py-32"
+    >
       <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:mask-[linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1))]" />
 
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
-            Gestionează{" "}
-            <span className="text-blue-600 dark:text-blue-400">asociația</span>{" "}
+            Gestionează&nbsp;
+            <span className="text-blue-600 dark:text-blue-400">asociația</span>
             de apartamente cu ușurință
           </h1>
 

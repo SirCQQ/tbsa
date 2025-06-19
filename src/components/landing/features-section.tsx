@@ -85,7 +85,10 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="py-20 bg-muted/30">
+    <section
+      id="features"
+      className="py-20 bg-gradient-to-br from-slate-50 via-background to-blue-50 dark:from-slate-900 dark:via-background dark:to-blue-950"
+    >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <Badge variant="secondary" className="mb-4">

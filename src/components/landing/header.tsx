@@ -1,189 +1,124 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { UserNav } from "@/components/auth/user-nav";
-import { Building2, Menu, X, Home, Building } from "lucide-react";
-import { useState } from "react";
-import { useAuth } from "@/contexts/auth-context";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, user, logout, hasPermission } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navigationItems = [
-    { href: "#features", label: "Funcționalități" },
-    { href: "#about", label: "Despre" },
-    { href: "#contact", label: "Contact" },
+    { name: "Acasă", href: "#hero" },
+    { name: "Funcționalități", href: "#features" },
+    { name: "Despre", href: "#about" },
+    { name: "Abonamente", href: "#subscription" },
+    { name: "Contact", href: "#contact" },
   ];
 
-  const handleLogout = async () => {
-    await logout();
-    setIsMenuOpen(false);
-  };
-
-  // Check permissions instead of roles
-  const canAccessApartments = hasPermission("apartments:read:own");
-  const canAccessAdminBuildings = hasPermission("buildings:read:all");
-  const isSuperAdmin = hasPermission("admin_grant:create:all");
-  const isAdmin = hasPermission("buildings:read:all");
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo/App Name - Fixed width for consistent spacing */}
+          <div className="flex items-center space-x-2 flex-shrink-0 w-24 sm:w-32">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">
+                  TB
+                </span>
+              </div>
+              <span className="font-bold text-xl hidden sm:inline-block">
+                TBSA
+              </span>
+            </Link>
           </div>
-          <span className="text-xl font-bold">TBSA</span>
-        </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8">
-          {!isAuthenticated &&
-            navigationItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
-        </nav>
+          {/* Desktop Navigation - Centered */}
+          <nav className="hidden md:flex items-center justify-center flex-1">
+            <div className="flex items-center space-x-8 text-sm font-medium">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="transition-colors  text-foreground/60 hover:text-foreground whitespace-nowrap"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          </nav>
 
-        {/* Right Side - Desktop */}
-        <div className="hidden md:flex items-center space-x-4">
-          <ThemeToggle />
-
-          {isAuthenticated ? (
-            <UserNav />
-          ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/login">Conectează-te</Link>
+          {/* Desktop Actions - Fixed width for balance */}
+          <div className="hidden md:flex items-center justify-end space-x-4 flex-shrink-0 w-24 sm:w-32 lg:w-48">
+            <ThemeToggle />
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/auth/login">Conectează-te</Link>
               </Button>
-              <Button asChild>
-                <Link href="/register">Începe acum</Link>
+              <Button size="sm" borderRadius="full" asChild>
+                <Link href="/auth/register">Începe acum</Link>
               </Button>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
 
-        {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center space-x-2">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </Button>
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center space-x-2">
+            <ThemeToggle />
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-2">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <div className="flex flex-col space-y-4 mt-8">
+                  {/* App Name in Mobile Menu */}
+                  <div className="flex items-center space-x-2 pb-4 border-b">
+                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                      <span className="text-primary-foreground font-bold text-sm">
+                        TB
+                      </span>
+                    </div>
+                    <span className="font-bold text-xl">TBSA</span>
+                  </div>
+
+                  {/* Mobile Navigation Links */}
+                  <nav className="flex flex-col space-y-4">
+                    {navigationItems.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className="text-left text-lg font-medium transition-colors text-foreground/80 hover:text-foreground"
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </nav>
+
+                  {/* Mobile Auth Buttons */}
+                  <div className="flex flex-col space-y-3 pt-4 border-t">
+                    <Button variant="ghost" size="default" asChild>
+                      <Link href="/login" onClick={() => setIsOpen(false)}>
+                        Conectează-te
+                      </Link>
+                    </Button>
+                    <Button size="default" borderRadius="full" asChild>
+                      <Link href="/register" onClick={() => setIsOpen(false)}>
+                        Începe acum
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
-
-      {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <div className="md:hidden border-t bg-background">
-          <div className="container mx-auto px-4 py-4">
-            <nav className="flex flex-col space-y-4">
-              {!isAuthenticated &&
-                navigationItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-
-              {isAuthenticated && user ? (
-                <div className="flex flex-col space-y-2 pt-4 border-t">
-                  <div className="text-sm font-medium">
-                    {user.firstName && user.lastName
-                      ? `${user.firstName} ${user.lastName}`
-                      : user.firstName || user.lastName || user.email}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {user.email} •{" "}
-                    {isSuperAdmin
-                      ? "Super Administrator"
-                      : isAdmin
-                      ? "Administrator"
-                      : "Proprietar"}
-                  </div>
-                  <Button variant="ghost" asChild className="justify-start">
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </Button>
-                  {canAccessApartments && (
-                    <Button variant="ghost" asChild className="justify-start">
-                      <Link
-                        href="/dashboard/apartments"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Home className="mr-2 h-4 w-4" />
-                        Apartamentele Mele
-                      </Link>
-                    </Button>
-                  )}
-                  {canAccessAdminBuildings && (
-                    <Button variant="ghost" asChild className="justify-start">
-                      <Link
-                        href="/dashboard/admin/buildings"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Building className="mr-2 h-4 w-4" />
-                        Managementul Clădirilor
-                      </Link>
-                    </Button>
-                  )}
-                  <Button variant="ghost" asChild className="justify-start">
-                    <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
-                      Profil
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start text-red-600"
-                    onClick={handleLogout}
-                  >
-                    Deconectare
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col space-y-2 pt-4 border-t">
-                  <Button variant="ghost" asChild className="justify-start">
-                    <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                      Conectează-te
-                    </Link>
-                  </Button>
-                  <Button asChild className="justify-start">
-                    <Link href="/register" onClick={() => setIsMenuOpen(false)}>
-                      Începe acum
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </nav>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

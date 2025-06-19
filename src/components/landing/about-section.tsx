@@ -42,7 +42,10 @@ export function AboutSection() {
   ];
 
   return (
-    <section id="about" className="py-20 bg-white dark:bg-gray-800">
+    <section
+      id="about"
+      className="py-20 bg-gradient-to-br from-indigo-50 via-background to-purple-50 dark:from-indigo-950 dark:via-background dark:to-purple-950"
+    >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">

@@ -1,84 +1,317 @@
-import { headers } from "next/headers";
-import { AuthService } from "@/services/auth.service";
-import { PermissionService } from "@/services/permission.service";
-import { type PermissionCheck } from "@/types/permission";
-import { jwtVerify } from "jose";
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { compare } from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import type {
+  PermissionString,
+  RoleString,
+  UserOrganizationWithDetails,
+} from "@/types/next-auth";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "your-secret-key"
-);
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "jwt",
+  },
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/signin",
+  },
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password required");
+        }
 
-export async function getCurrentUser() {
-  const headersList = await headers();
-  const authToken = headersList.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
+        // Find user with all necessary relations
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+          include: {
+            organizations: {
+              include: {
+                organization: true,
+                permission: true,
+              },
+            },
+            roles: {
+              include: {
+                role: {
+                  include: {
+                    rolePermissions: {
+                      include: {
+                        permission: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
 
-  if (!authToken) {
-    throw new Error("No authentication token found");
-  }
+        if (!user) {
+          throw new Error("Invalid credentials");
+        }
 
-  const result = await AuthService.getCurrentUser(authToken);
-  if (!result.success) {
-    throw new Error(result.message || "Failed to get current user");
-  }
+        if (!user.isActive) {
+          throw new Error("Account is disabled");
+        }
 
-  return result.data;
-}
+        // Verify password
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.password
+        );
+        if (!isPasswordValid) {
+          throw new Error("Invalid credentials");
+        }
 
-/**
- * Get JWT payload from auth token
- */
-async function getJWTPayload() {
-  const headersList = await headers();
-  const authToken = headersList.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
+        // Collect all permissions from roles and direct assignments
+        const rolePermissions: PermissionString[] = user.roles.flatMap(
+          (userRole) =>
+            userRole.role.rolePermissions.map((rp) => ({
+              id: rp.permission.id,
+              code: rp.permission.code,
+              name: rp.permission.name,
+              resource: rp.permission.resource,
+              action: rp.permission.action,
+              description: rp.permission.description,
+            }))
+        );
 
-  if (!authToken) {
-    throw new Error("No authentication token found");
-  }
+        const directPermissions: PermissionString[] = user.organizations
+          .filter((org) => org.permission)
+          .map((org) => ({
+            id: org.permission!.id,
+            code: org.permission!.code,
+            name: org.permission!.name,
+            resource: org.permission!.resource,
+            action: org.permission!.action,
+            description: org.permission!.description,
+          }));
 
-  try {
-    const { payload } = await jwtVerify(authToken, JWT_SECRET);
-    return payload;
-  } catch (_error) {
-    throw new Error("Invalid or expired token");
-  }
-}
+        // Combine and deduplicate permissions
+        const allPermissions = [...rolePermissions, ...directPermissions];
+        const uniquePermissions = allPermissions.filter(
+          (permission, index, self) =>
+            index === self.findIndex((p) => p.code === permission.code)
+        );
 
-/**
- * Get user permissions from JWT token
- */
-async function getUserPermissions(): Promise<string[]> {
-  try {
-    const payload = await getJWTPayload();
-    return (payload.permissions as string[]) || [];
-  } catch (_error) {
-    // If token verification fails, return empty permissions
-    return [];
-  }
-}
+        // Map organizations
+        const organizations: UserOrganizationWithDetails[] =
+          user.organizations.map((org) => ({
+            id: org.organization.id,
+            name: org.organization.name,
+            code: org.organization.code,
+            description: org.organization.description,
+          }));
 
-/**
- * Check if user has permission using JWT data
- */
-export async function hasPermission(check: PermissionCheck): Promise<boolean> {
-  const permissions = await getUserPermissions();
+        // Map roles
+        const roles: RoleString[] = user.roles.map((userRole) => ({
+          id: userRole.role.id,
+          code: userRole.role.code,
+          name: userRole.role.name,
+          description: userRole.role.description,
+        }));
 
-  if (!permissions.length) {
-    return false;
-  }
+        return {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isVerified: user.isVerified,
+          permissions: uniquePermissions,
+          organizations,
+          roles,
+          currentOrganizationId: organizations[0]?.id || null,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      // Initial sign in
+      if (user) {
+        token.id = user.id;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.isVerified = user.isVerified || false;
+        token.permissions = user.permissions || [];
+        token.organizations = user.organizations || [];
+        token.roles = user.roles || [];
+        token.currentOrganizationId = user.currentOrganizationId || null;
+      }
 
-  return PermissionService.hasPermissionFromString(permissions, check);
-}
+      // Handle session updates (organization switching, etc.)
+      if (trigger === "update" && session) {
+        if (session.currentOrganizationId) {
+          token.currentOrganizationId = session.currentOrganizationId;
+        }
+      }
 
-/**
- * Require permission or throw error
- */
-export async function requirePermission(check: PermissionCheck): Promise<void> {
-  const hasAccess = await hasPermission(check);
-  if (!hasAccess) {
-    throw new Error(
-      `Permission denied: ${check.resource}:${check.action}:${
-        check.scope || "null"
-      }`
-    );
-  }
-}
+      // Handle Google OAuth users
+      if (token.email && !token.firstName && !token.lastName) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+          include: {
+            organizations: {
+              include: {
+                organization: true,
+                permission: true,
+              },
+            },
+            roles: {
+              include: {
+                role: {
+                  include: {
+                    rolePermissions: {
+                      include: {
+                        permission: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.firstName = dbUser.firstName;
+          token.lastName = dbUser.lastName;
+          token.isVerified = dbUser.isVerified;
+
+          // Get permissions for OAuth user
+          const rolePermissions: PermissionString[] = dbUser.roles.flatMap(
+            (userRole) =>
+              userRole.role.rolePermissions.map((rp) => ({
+                id: rp.permission.id,
+                code: rp.permission.code,
+                name: rp.permission.name,
+                resource: rp.permission.resource,
+                action: rp.permission.action,
+                description: rp.permission.description,
+              }))
+          );
+
+          const directPermissions: PermissionString[] = dbUser.organizations
+            .filter((org) => org.permission)
+            .map((org) => ({
+              id: org.permission!.id,
+              code: org.permission!.code,
+              name: org.permission!.name,
+              resource: org.permission!.resource,
+              action: org.permission!.action,
+              description: org.permission!.description,
+            }));
+
+          const allPermissions = [...rolePermissions, ...directPermissions];
+          const uniquePermissions = allPermissions.filter(
+            (permission, index, self) =>
+              index === self.findIndex((p) => p.code === permission.code)
+          );
+
+          const organizations: UserOrganizationWithDetails[] =
+            dbUser.organizations.map((org) => ({
+              id: org.organization.id,
+              name: org.organization.name,
+              code: org.organization.code,
+              description: org.organization.description,
+            }));
+
+          const roles: RoleString[] = dbUser.roles.map((userRole) => ({
+            id: userRole.role.id,
+            code: userRole.role.code,
+            name: userRole.role.name,
+            description: userRole.role.description,
+          }));
+
+          token.permissions = uniquePermissions;
+          token.organizations = organizations;
+          token.roles = roles;
+          token.currentOrganizationId = organizations[0]?.id || null;
+        }
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.firstName = token.firstName;
+        session.user.lastName = token.lastName;
+        session.user.isVerified = token.isVerified;
+        session.user.permissions = token.permissions;
+        session.user.organizations = token.organizations;
+        session.user.roles = token.roles;
+        session.user.currentOrganizationId = token.currentOrganizationId;
+      }
+      return session;
+    },
+    async signIn({ user, account, profile }) {
+      // Handle Google OAuth sign in
+      if (account?.provider === "google") {
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+          });
+
+          if (!existingUser) {
+            // Extract name from Google profile or user name
+            const googleProfile = profile as any;
+            const firstName =
+              googleProfile?.given_name || user.name?.split(" ")[0] || "";
+            const lastName =
+              googleProfile?.family_name ||
+              user.name?.split(" ").slice(1).join(" ") ||
+              "";
+
+            // Create new user for Google OAuth
+            await prisma.user.create({
+              data: {
+                email: user.email!,
+                firstName,
+                lastName,
+                password: "", // Empty password for OAuth users
+                isVerified: true, // Google accounts are pre-verified
+                emailVerified: new Date(),
+                image: user.image,
+              },
+            });
+          } else {
+            // Update existing user with OAuth info if needed
+            await prisma.user.update({
+              where: { email: user.email! },
+              data: {
+                emailVerified: new Date(),
+                image: user.image,
+                isVerified: true,
+              },
+            });
+          }
+          return true;
+        } catch (error) {
+          console.error("Error in Google sign in callback:", error);
+          return false;
+        }
+      }
+
+      return true;
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
+};

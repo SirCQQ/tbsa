@@ -222,7 +222,7 @@ try {
   return NextResponse.json({
     error: "You don't have permission to delete buildings",
     code: "PERMISSION_DENIED",
-    requiredPermission: "buildings:delete:all"
+    requiredPermission: "buildings:delete"
   }, { status: 403 });
 }
 ```

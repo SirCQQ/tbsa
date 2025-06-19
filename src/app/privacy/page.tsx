@@ -122,7 +122,7 @@ export default function PrivacyPage() {
                 Protecția datelor
               </Badge>
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl">
-                Politica de{" "}
+                Politica de&nbsp;
                 <span className="text-blue-600 dark:text-blue-400">
                   Confidențialitate
                 </span>
@@ -133,7 +133,7 @@ export default function PrivacyPage() {
                 informațiile dvs.
               </p>
               <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                Ultima actualizare:{" "}
+                Ultima actualizare:&nbsp;
                 {new Date().toLocaleDateString("ro-RO", {
                   year: "numeric",
                   month: "long",

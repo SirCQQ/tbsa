@@ -109,7 +109,7 @@ export default function TermsPage() {
                 Documentație legală
               </Badge>
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl">
-                Termeni și{" "}
+                Termeni și&nbsp;
                 <span className="text-blue-600 dark:text-blue-400">
                   Condiții
                 </span>
@@ -119,7 +119,7 @@ export default function TermsPage() {
                 stabilesc drepturile și obligațiile pentru toți utilizatorii.
               </p>
               <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                Ultima actualizare:{" "}
+                Ultima actualizare:&nbsp;
                 {new Date().toLocaleDateString("ro-RO", {
                   year: "numeric",
                   month: "long",

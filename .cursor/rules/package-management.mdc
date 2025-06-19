@@ -1,0 +1,317 @@
+---
+description: Install packages 
+globs: 
+alwaysApply: false
+---
+# Package Management Rules
+
+Guidelines for managing dependencies by checking existing packages before installation.
+
+## **Pre-Installation Checks**
+
+- **Always check package.json first** before installing new dependencies
+- **Review existing dependencies** to avoid duplicates or conflicts
+- **Check for similar functionality** already available in installed packages
+- **Verify version compatibility** with existing packages
+
+## **Package Discovery Process**
+
+1. **Read package.json**: Check both `dependencies` and `devDependencies`
+2. **Search for existing functionality**: Look for packages that might already provide what you need
+3. **Check peer dependencies**: Ensure compatibility with existing packages
+4. **Review lock file**: Check yarn.lock for exact versions
+
+### **Discovery Commands**
+
+```bash
+# Check if package is already installed
+yarn list <package-name>
+
+# View all dependencies
+yarn list --depth=0
+
+# Check for similar packages
+grep -i "<keyword>" package.json
+
+# Check package versions
+yarn outdated
+```
+
+## **Installation Best Practices**
+
+### **Before Installing**
+
+```typescript
+// ✅ DO: Check package.json first
+// Read package.json to see what's already available
+// Look for existing packages that might provide similar functionality
+
+// Example: Before installing date-fns, check if moment or dayjs is already installed
+// Before installing axios, check if fetch wrapper or other HTTP clients exist
+// Before installing lodash, check if ramda or similar utility libraries exist
+```
+
+### **Dependency Categories**
+
+- **Core Dependencies**: Essential for application runtime
+- **Dev Dependencies**: Build tools, testing, linting, types
+- **Peer Dependencies**: Expected to be provided by parent project
+- **Optional Dependencies**: Nice-to-have but not required
+
+### **Version Management**
+
+```bash
+# ✅ DO: Use specific version ranges
+yarn add package-name@^1.2.3
+
+# ✅ DO: Install dev dependencies appropriately
+yarn add -D @types/package-name
+
+# ✅ DO: Check compatibility
+yarn add package-name --check-files
+```
+
+## **Common Checks Before Installing**
+
+### **UI/Component Libraries**
+
+```bash
+# Before installing new UI components, check for:
+grep -E "(shadcn|radix|mui|antd|chakra)" package.json
+grep -E "(tailwind|styled-components|emotion)" package.json
+```
+
+### **State Management**
+
+```bash
+# Before installing state management, check for:
+grep -E "(redux|zustand|jotai|valtio)" package.json
+grep -E "(react-query|swr|apollo)" package.json
+```
+
+### **Form Libraries**
+
+```bash
+# Before installing form libraries, check for:
+grep -E "(react-hook-form|formik|final-form)" package.json
+grep -E "(yup|zod|joi)" package.json
+```
+
+### **Date/Time Libraries**
+
+```bash
+# Before installing date libraries, check for:
+grep -E "(date-fns|moment|dayjs|luxon)" package.json
+```
+
+### **HTTP Clients**
+
+```bash
+# Before installing HTTP clients, check for:
+grep -E "(axios|fetch|ky|got)" package.json
+```
+
+### **Testing Libraries**
+
+```bash
+# Before installing testing tools, check for:
+grep -E "(jest|vitest|cypress|playwright)" package.json
+grep -E "(testing-library|enzyme)" package.json
+```
+
+## **Conflict Prevention**
+
+### **Common Conflicts to Avoid**
+
+- **Multiple CSS-in-JS libraries**: styled-components + emotion
+- **Multiple state managers**: Redux + Zustand for same use case
+- **Multiple form libraries**: react-hook-form + formik
+- **Multiple date libraries**: moment + date-fns
+- **Multiple HTTP clients**: axios + ky for same purpose
+
+### **Compatibility Checks**
+
+```typescript
+// ✅ DO: Check React version compatibility
+// Many packages have specific React version requirements
+
+// ✅ DO: Check TypeScript compatibility
+// Ensure packages have TypeScript support or types available
+
+// ✅ DO: Check Node.js version requirements
+// Some packages require specific Node.js versions
+```
+
+## **Package.json Analysis Commands**
+
+### **Quick Dependency Overview**
+
+```bash
+# List all dependencies
+cat package.json | jq '.dependencies'
+
+# List all dev dependencies
+cat package.json | jq '.devDependencies'
+
+# Count total dependencies
+cat package.json | jq '.dependencies | length'
+
+# Find packages by keyword
+cat package.json | jq '.dependencies | to_entries[] | select(.key | contains("react"))'
+```
+
+### **Dependency Tree Analysis**
+
+```bash
+# Show dependency tree
+yarn list --pattern="<package-name>"
+
+# Check for duplicate packages
+yarn dedupe --check
+
+# Audit for vulnerabilities
+yarn audit
+```
+
+## **Installation Workflow**
+
+### **Step-by-Step Process**
+
+1. **Identify Need**: Clearly define what functionality you need
+2. **Check Existing**: Search package.json for existing solutions
+3. **Evaluate Options**: Compare available packages for the need
+4. **Check Compatibility**: Ensure version and dependency compatibility
+5. **Install Appropriately**: Use correct flags and version specifications
+6. **Update Documentation**: Document the choice and reasoning
+
+### **Decision Matrix**
+
+When choosing between packages, consider:
+
+- **Bundle size impact**
+- **Maintenance status** (last updated, issues, downloads)
+- **TypeScript support**
+- **Community adoption**
+- **License compatibility**
+- **Performance implications**
+
+## **Example Pre-Installation Checks**
+
+### **Authentication Libraries**
+
+```bash
+# Before installing auth libraries, check for:
+grep -E "(next-auth|auth0|firebase|clerk)" package.json
+grep -E "(bcrypt|argon2|scrypt)" package.json
+```
+
+### **Database/ORM**
+
+```bash
+# Before installing database tools, check for:
+grep -E "(prisma|typeorm|sequelize|drizzle)" package.json
+grep -E "(mongoose|pg|mysql)" package.json
+```
+
+### **Build Tools**
+
+```bash
+# Before installing build tools, check for:
+grep -E "(webpack|vite|rollup|parcel)" package.json
+grep -E "(babel|swc|esbuild)" package.json
+```
+
+## **Documentation Requirements**
+
+### **When Installing New Packages**
+
+- **Document the reason** for choosing this specific package
+- **Note alternatives considered** and why they were rejected
+- **Record any configuration needed**
+- **Update relevant documentation** or README files
+
+### **Package Removal**
+
+- **Check for usage** before removing packages
+- **Update imports** and remove unused code
+- **Test thoroughly** after removal
+- **Clean up configuration** files if needed
+
+## **Team Coordination**
+
+### **Communication Guidelines**
+
+- **Discuss major additions** with the team
+- **Consider project guidelines** and established patterns
+- **Document breaking changes** that might affect other developers
+- **Update lockfiles** consistently
+
+### **Code Review Checklist**
+
+When reviewing PRs with new dependencies:
+
+- [ ] **Necessity**: Is this package actually needed?
+- [ ] **Alternatives**: Were existing packages considered?
+- [ ] **Size**: What's the bundle size impact?
+- [ ] **Maintenance**: Is the package actively maintained?
+- [ ] **Security**: Any known vulnerabilities?
+- [ ] **Licensing**: Compatible with project license?
+
+## **Automation and Tools**
+
+### **Helpful Scripts**
+
+```json
+{
+  "scripts": {
+    "deps:check": "yarn outdated",
+    "deps:audit": "yarn audit",
+    "deps:dedupe": "yarn dedupe",
+    "deps:clean": "rm -rf node_modules && yarn install"
+  }
+}
+```
+
+### **VS Code Extensions**
+
+- **npm Intellisense**: Auto-completion for npm modules
+- **Package.json Peek**: Quick view of package info
+- **Dependency Analytics**: Analyze dependency usage
+
+## **Security Considerations**
+
+### **Before Installing Any Package**
+
+- **Check npm audit**: `yarn audit`
+- **Verify package authenticity**: Check publisher and download counts
+- **Review recent updates**: Look for suspicious version bumps
+- **Check GitHub repository**: Verify official source
+
+### **Regular Maintenance**
+
+- **Update dependencies regularly**: But test thoroughly
+- **Monitor security advisories**: Subscribe to npm security notifications
+- **Use tools like Snyk or GitHub Dependabot**: For automated security monitoring
+
+## **Performance Impact**
+
+### **Bundle Size Considerations**
+
+```bash
+# Analyze bundle size impact
+yarn add -D webpack-bundle-analyzer
+
+# Check package size before installing
+npx package-phobia <package-name>
+
+# Use bundle analyzer
+yarn build && yarn analyze
+```
+
+### **Tree Shaking Compatibility**
+
+- **Prefer packages with ESM support** for better tree shaking
+- **Check if package supports selective imports**
+- **Avoid packages that require entire library import**
+
+Remember: **Always check what's already available before adding new dependencies!**

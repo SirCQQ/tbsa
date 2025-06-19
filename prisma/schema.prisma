@@ -61,6 +61,7 @@ enum ResourcesEnum {
   MODULES
   PLAN_MODULES
   APARTMENT_RESIDENTS
+  ADMINISTRATOR
 }
 
 enum ActionsEnum {
@@ -84,19 +85,19 @@ model SubscriptionPlan {
   id            String  @id @default(uuid())
   name          String // Plan name (e.g., "Basic", "Pro")
   price         Decimal // Monthly price
-  billingPeriod String // Billing frequency (e.g., "monthly", "yearly")
+  billingPeriod String  @map("billing_period") // Billing frequency (e.g., "monthly", "yearly")
   features      Json // JSON object containing feature flags
-  maxBuildings  Int? // Maximum number of buildings allowed
-  maxApartments Int? // Maximum number of apartments allowed
+  maxBuildings  Int?    @map("max_buildings") // Maximum number of buildings allowed
+  maxApartments Int?    @map("max_apartments") // Maximum number of apartments allowed
 
   // Relations
   organizations Organization[]
   planModules   PlanModule[]
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("subscription_plans")
 }
@@ -107,16 +108,16 @@ model Module {
   name        String // Module name
   code        String  @unique // Unique identifier for the module
   description String? // Module description
-  isActive    Boolean @default(true)
+  isActive    Boolean @default(true) @map("is_active")
 
   // Relations
   permissions Permission[]
   planModules PlanModule[]
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("modules")
 }
@@ -124,18 +125,18 @@ model Module {
 /// Junction table between subscription plans and modules
 model PlanModule {
   id                 String  @id @default(uuid())
-  subscriptionPlanId String
-  moduleId           String
-  isIncluded         Boolean @default(true)
+  subscriptionPlanId String  @map("subscription_plan_id")
+  moduleId           String  @map("module_id")
+  isIncluded         Boolean @default(true) @map("is_included")
 
   // Relations
   module           Module           @relation(fields: [moduleId], references: [id])
   subscriptionPlan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@unique([subscriptionPlanId, moduleId])
   @@map("plan_modules")
@@ -147,7 +148,7 @@ model Organization {
   name               String // Organization name
   code               String  @unique // Unique identifier/slug
   description        String? // Organization description
-  subscriptionPlanId String? // Current subscription plan
+  subscriptionPlanId String? @map("subscription_plan_id") // Current subscription plan
 
   // Relations
   roles            OrganizationRole[]
@@ -157,9 +158,9 @@ model Organization {
   subscriptionPlan SubscriptionPlan?  @relation(fields: [subscriptionPlanId], references: [id])
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([code])
   @@map("organizations")
@@ -171,11 +172,11 @@ model Organization {
 model User {
   id         String  @id @default(uuid())
   email      String  @unique
-  firstName  String
-  lastName   String
+  firstName  String  @map("first_name")
+  lastName   String  @map("last_name")
   password   String // Hashed password
-  isActive   Boolean @default(true)
-  isVerified Boolean @default(false)
+  isActive   Boolean @default(true) @map("is_active")
+  isVerified Boolean @default(false) @map("is_verified")
 
   // Relations
   organizations        UserOrganization[]
@@ -190,13 +191,13 @@ model User {
   // NextAuth.js fields
   accounts      Account[]
   oauthSessions OAuthSession[] @relation("OAuthSessions")
-  emailVerified DateTime?
+  emailVerified DateTime?      @map("email_verified")
   image         String?
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([email])
   @@index([isActive])
@@ -207,14 +208,14 @@ model User {
 /// Session model for managing user authentication sessions
 model Session {
   id           String   @id @default(uuid())
-  sessionToken String   @unique
-  userId       String
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([sessionToken])
   @@index([userId])
@@ -224,9 +225,9 @@ model Session {
 /// Junction table between users and organizations
 model UserOrganization {
   id             String  @id @default(uuid())
-  userId         String
-  organizationId String
-  permissionId   String? // Direct permission override
+  userId         String  @map("user_id")
+  organizationId String  @map("organization_id")
+  permissionId   String? @map("permission_id") // Direct permission override
 
   // Relations
   user         User         @relation(fields: [userId], references: [id])
@@ -234,8 +235,8 @@ model UserOrganization {
   permission   Permission?  @relation(fields: [permissionId], references: [id])
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, organizationId])
   @@index([userId])
@@ -253,8 +254,8 @@ model Permission {
   resource       ResourcesEnum
   action         ActionsEnum
   description    String?
-  organizationId String? // Null for system permissions
-  moduleId       String? // Associated feature module
+  organizationId String?       @map("organization_id") // Null for system permissions
+  moduleId       String?       @map("module_id") // Associated feature module
 
   // Relations
   organization      Organization?      @relation(fields: [organizationId], references: [id])
@@ -263,8 +264,8 @@ model Permission {
   userOrganizations UserOrganization[]
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([resource, action])
   @@index([resource])
@@ -279,7 +280,7 @@ model Role {
   name        String // Role name
   code        String  @unique // Unique identifier
   description String? // Role description
-  isSystem    Boolean @default(false) // True for built-in roles
+  isSystem    Boolean @default(false) @map("is_system") // True for built-in roles
 
   // Relations
   organizationRoles OrganizationRole[]
@@ -287,9 +288,9 @@ model Role {
   rolePermissions   RolePermission[]
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([code])
   @@map("roles")
@@ -298,16 +299,16 @@ model Role {
 /// Junction table between organizations and roles
 model OrganizationRole {
   id             String @id @default(uuid())
-  organizationId String
-  roleId         String
+  organizationId String @map("organization_id")
+  roleId         String @map("role_id")
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id])
   role         Role         @relation(fields: [roleId], references: [id])
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([organizationId, roleId])
   @@index([organizationId])
@@ -318,16 +319,16 @@ model OrganizationRole {
 /// Junction table between users and roles
 model UserRole {
   id     String @id @default(uuid())
-  userId String
-  roleId String
+  userId String @map("user_id")
+  roleId String @map("role_id")
 
   // Relations
   user User @relation(fields: [userId], references: [id])
   role Role @relation(fields: [roleId], references: [id])
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, roleId])
   @@index([userId])
@@ -338,16 +339,16 @@ model UserRole {
 /// Junction table between roles and permissions
 model RolePermission {
   id           String @id @default(uuid())
-  roleId       String
-  permissionId String
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
 
   // Relations
   role       Role       @relation(fields: [roleId], references: [id])
   permission Permission @relation(fields: [permissionId], references: [id])
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([roleId, permissionId])
   @@index([roleId])
@@ -364,7 +365,7 @@ model Building {
   address        String // Physical address
   type           BuildingType
   floors         Int // Number of floors
-  organizationId String
+  organizationId String       @map("organization_id")
   description    String? // Additional building details
 
   // Relations
@@ -372,9 +373,9 @@ model Building {
   apartments   Apartment[]
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([organizationId])
   @@map("buildings")
@@ -385,8 +386,8 @@ model Apartment {
   id          String  @id @default(uuid())
   number      String // Apartment number/identifier
   floor       Int // Floor number
-  buildingId  String
-  isOccupied  Boolean @default(false)
+  buildingId  String  @map("building_id")
+  isOccupied  Boolean @default(false) @map("is_occupied")
   surface     Float? // Square meters
   description String? // Additional apartment details
 
@@ -396,9 +397,9 @@ model Apartment {
   apartmentResidents ApartmentResident[]
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@unique([buildingId, number])
   @@index([buildingId])
@@ -408,21 +409,21 @@ model Apartment {
 /// Junction table between apartments and residents with roles
 model ApartmentResident {
   id          String        @id @default(uuid())
-  apartmentId String
-  userId      String
+  apartmentId String        @map("apartment_id")
+  userId      String        @map("user_id")
   role        ApartmentRole // Relationship to the apartment
-  isActive    Boolean       @default(true)
-  startDate   DateTime      @default(now())
-  endDate     DateTime? // For temporary relationships
+  isActive    Boolean       @default(true) @map("is_active")
+  startDate   DateTime      @default(now()) @map("start_date")
+  endDate     DateTime?     @map("end_date") // For temporary relationships
 
   // Relations
   apartment Apartment @relation(fields: [apartmentId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@unique([apartmentId, userId, role])
   @@index([apartmentId])
@@ -436,9 +437,9 @@ model ApartmentResident {
 /// Water meter model for tracking consumption points
 model WaterMeter {
   id           String  @id @default(uuid())
-  serialNumber String  @unique // Physical meter serial number
-  apartmentId  String
-  isActive     Boolean @default(true)
+  serialNumber String  @unique @map("serial_number") // Physical meter serial number
+  apartmentId  String  @map("apartment_id")
+  isActive     Boolean @default(true) @map("is_active")
   location     String? // Location description within apartment
   brand        String? // Meter manufacturer
   model        String? // Meter model
@@ -448,9 +449,9 @@ model WaterMeter {
   waterReadings WaterReading[]
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([apartmentId])
   @@index([serialNumber])
@@ -460,13 +461,13 @@ model WaterMeter {
 /// Water reading model for consumption records
 model WaterReading {
   id            String  @id @default(uuid())
-  waterMeterId  String
+  waterMeterId  String  @map("water_meter_id")
   value         Float // Current meter reading
   photo         String? // URL to reading photo
   notes         String? // Additional notes
-  isApproved    Boolean @default(false)
-  approvedById  String? // User who approved the reading
-  submittedById String // User who submitted the reading
+  isApproved    Boolean @default(false) @map("is_approved")
+  approvedById  String? @map("approved_by_id") // User who approved the reading
+  submittedById String  @map("submitted_by_id") // User who submitted the reading
 
   // Relations
   waterMeter          WaterMeter           @relation(fields: [waterMeterId], references: [id])
@@ -476,10 +477,10 @@ model WaterReading {
   readingNotification ReadingNotification?
 
   // Timestamps
-  readingDate DateTime  @default(now()) // When the reading was taken
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  readingDate DateTime  @default(now()) @map("reading_date") // When the reading was taken
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   @@index([waterMeterId])
   @@index([approvedById])
@@ -491,20 +492,20 @@ model WaterReading {
 /// Water bill model for consumption charges
 model WaterBill {
   id             String    @id @default(uuid())
-  waterReadingId String    @unique
+  waterReadingId String    @unique @map("water_reading_id")
   amount         Decimal // Bill amount
-  dueDate        DateTime // Payment deadline
-  isPaid         Boolean   @default(false)
-  paidAt         DateTime? // When the bill was paid
+  dueDate        DateTime  @map("due_date") // Payment deadline
+  isPaid         Boolean   @default(false) @map("is_paid")
+  paidAt         DateTime? @map("paid_at") // When the bill was paid
   notes          String? // Additional notes
 
   // Relations
   waterReading WaterReading @relation(fields: [waterReadingId], references: [id])
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([waterReadingId])
   @@index([dueDate])
@@ -515,20 +516,20 @@ model WaterBill {
 /// Notification model for reading reminders
 model ReadingNotification {
   id             String    @id @default(uuid())
-  userId         String // User to notify
-  waterReadingId String    @unique
-  dueDate        DateTime // When the reading should be submitted
-  isRead         Boolean   @default(false)
-  readAt         DateTime? // When the notification was viewed
+  userId         String    @map("user_id") // User to notify
+  waterReadingId String    @unique @map("water_reading_id")
+  dueDate        DateTime  @map("due_date") // When the reading should be submitted
+  isRead         Boolean   @default(false) @map("is_read")
+  readAt         DateTime? @map("read_at") // When the notification was viewed
 
   // Relations
   user         User         @relation(fields: [userId], references: [id])
   waterReading WaterReading @relation(fields: [waterReadingId], references: [id])
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([userId])
   @@index([waterReadingId])
@@ -545,17 +546,17 @@ model InviteCode {
   code        String           @unique // Actual invite code
   email       String // Intended recipient
   status      InviteCodeStatus @default(ACTIVE)
-  expiresAt   DateTime
-  usedAt      DateTime?
-  createdById String // User who created the code
+  expiresAt   DateTime         @map("expires_at")
+  usedAt      DateTime?        @map("used_at")
+  createdById String           @map("created_by_id") // User who created the code
 
   // Relations
   createdBy User @relation(fields: [createdById], references: [id])
 
   // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([code])
   @@index([email])
@@ -567,17 +568,17 @@ model InviteCode {
 /// Audit log for tracking system changes
 model AuditLog {
   id         String  @id @default(uuid())
-  userId     String // User who performed the action
+  userId     String  @map("user_id") // User who performed the action
   action     String // Action performed
-  entityType String // Type of entity affected
-  entityId   String // ID of affected entity
-  oldValues  Json? // Previous values
-  newValues  Json? // New values
-  ipAddress  String? // IP address of the user
-  userAgent  String? // Browser/client info
+  entityType String  @map("entity_type") // Type of entity affected
+  entityId   String  @map("entity_id") // ID of affected entity
+  oldValues  Json?   @map("old_values") // Previous values
+  newValues  Json?   @map("new_values") // New values
+  ipAddress  String? @map("ip_address") // IP address of the user
+  userAgent  String? @map("user_agent") // Browser/client info
 
   // Timestamps
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([entityType, entityId])
@@ -617,10 +618,10 @@ model EmailLog {
 // NextAuth.js Models
 model Account {
   id                String  @id @default(uuid())
-  userId            String
+  userId            String  @map("user_id")
   type              String
   provider          String
-  providerAccountId String
+  providerAccountId String  @map("provider_account_id")
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
@@ -637,8 +638,8 @@ model Account {
 
 model OAuthSession {
   id           String   @id @default(uuid())
-  sessionToken String   @unique
-  userId       String
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
   expires      DateTime
   user         User     @relation("OAuthSessions", fields: [userId], references: [id], onDelete: Cascade)
 

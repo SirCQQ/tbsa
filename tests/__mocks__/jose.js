@@ -10,7 +10,7 @@ const mockJwtVerify = jest.fn().mockResolvedValue({
   payload: {
     userId: "test-user-id",
     email: "test@example.com",
-    permissions: ["apartments:read:own"],
+    permissions: ["apartments:read"],
     sessionId: "test-session-id",
     fingerprint: "test-fingerprint",
   },

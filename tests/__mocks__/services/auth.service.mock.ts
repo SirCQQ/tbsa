@@ -40,7 +40,7 @@ export const createMockJWTPayload = (
   userId: faker.string.uuid(),
   email: faker.internet.email(),
   permissions:
-    role === "ADMINISTRATOR" ? ["buildings:read:all"] : ["apartments:read:own"],
+    role === "ADMINISTRATOR" ? ["buildings:read"] : ["apartments:read"],
   administratorId: role === "ADMINISTRATOR" ? faker.string.uuid() : undefined,
   ownerId: role === "OWNER" ? faker.string.uuid() : undefined,
 });

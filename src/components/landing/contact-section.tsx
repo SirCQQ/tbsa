@@ -7,18 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Clock, Send, MessageSquare } from "lucide-react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ContactFormSchema, type ContactFormData } from "@/schemas/contact";
-import { useState } from "react";
+import {
+  contactFormSchema,
+  type ContactFormData,
+  formatPhoneNumber,
+} from "@/lib/validations/contact";
 import { ControlledInput, ControlledTextarea } from "@/components/ui/inputs";
+import { useContactForm } from "@/hooks/use-contact";
+import { getErrorMessage, isAxiosError } from "@/lib/axios";
 
 export function ContactSection() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<
-    "idle" | "success" | "error"
-  >("idle");
-
   const methods = useForm<ContactFormData>({
-    resolver: zodResolver(ContactFormSchema),
+    resolver: zodResolver(contactFormSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -29,27 +29,39 @@ export function ContactSection() {
     },
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, reset, setError } = methods;
 
-  const onSubmit = async (data: ContactFormData) => {
-    setIsSubmitting(true);
-    setSubmitStatus("idle");
-
-    try {
-      // Simulate API call - replace with actual endpoint
-      console.log("Contact form data:", data);
-
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      setSubmitStatus("success");
+  const contactMutation = useContactForm({
+    onSuccess: () => {
+      // Reset form on successful submission
       reset();
-    } catch (error) {
-      console.error("Error submitting contact form:", error);
-      setSubmitStatus("error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    },
+    onError: (error) => {
+      // Handle validation errors from server
+      if (isAxiosError(error, 400) && error.response?.data) {
+        const errorData = error.response.data as any;
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          errorData.errors.forEach(
+            (validationError: { field: string; message: string }) => {
+              setError(validationError.field as keyof ContactFormData, {
+                message: validationError.message,
+              });
+            }
+          );
+        }
+      }
+    },
+  });
+
+  const onSubmit = (data: ContactFormData) => {
+    // Format phone number if provided
+    const formattedData = {
+      ...data,
+      phone: data.phone ? formatPhoneNumber(data.phone) : undefined,
+    };
+
+    // Use mutate instead of mutateAsync since we handle success/error in callbacks
+    contactMutation.mutate(formattedData);
   };
 
   const contactMethods = [
@@ -90,7 +102,10 @@ export function ContactSection() {
   ];
 
   return (
-    <section id="contact" className="py-20 bg-gray-50 dark:bg-gray-900">
+    <section
+      id="contact"
+      className="py-20 bg-gradient-to-br from-green-50 via-background to-emerald-50 dark:from-green-950 dark:via-background dark:to-emerald-950"
+    >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center mb-16">
@@ -117,7 +132,7 @@ export function ContactSection() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {submitStatus === "success" && (
+                {contactMutation.isSuccess && (
                   <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                     <p className="text-green-800 dark:text-green-300 font-medium">
                       ✅ Mesajul a fost trimis cu succes! Vă vom răspunde în
@@ -126,10 +141,15 @@ export function ContactSection() {
                   </div>
                 )}
 
-                {submitStatus === "error" && (
+                {contactMutation.isError && (
                   <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <p className="text-red-800 dark:text-red-300 font-medium">
                       ❌ A apărut o eroare. Vă rugăm să încercați din nou.
+                      {contactMutation.error && (
+                        <span className="block text-sm mt-1">
+                          {getErrorMessage(contactMutation.error)}
+                        </span>
+                      )}
                     </p>
                   </div>
                 )}
@@ -184,9 +204,9 @@ export function ContactSection() {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isSubmitting}
+                      disabled={contactMutation.isPending}
                     >
-                      {isSubmitting ? (
+                      {contactMutation.isPending ? (
                         <>
                           <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                           Se trimite...
