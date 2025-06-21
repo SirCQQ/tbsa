@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  contactFormSchema,
-  type ContactFormData,
-} from "@/lib/validations/contact";
+import { contactFormSchema } from "@/lib/validations/contact";
 import { contactService } from "@/services/contact.service";
 import { z } from "zod";
 

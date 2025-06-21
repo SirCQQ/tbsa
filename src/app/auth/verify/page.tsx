@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -9,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
@@ -24,7 +25,7 @@ import { toast } from "sonner";
 
 type VerificationState = "idle" | "success" | "error" | "already-verified";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -131,73 +132,101 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <BackgroundGradient className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        <Card className="backdrop-blur-md  border-white/10">
-          <CardHeader className="text-center space-y-4">
-            <div className="flex justify-center">{getIcon()}</div>
-            <div>
-              <CardTitle className="text-2xl font-bold">
-                {getCardTitle()}
-              </CardTitle>
-              <CardDescription className="text-muted-foreground mt-2">
-                {getCardDescription()}
-              </CardDescription>
-            </div>
-          </CardHeader>
+    <div className="w-full max-w-md space-y-6">
+      <Card className="backdrop-blur-md bg-white/20 border-white/10">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">{getIcon()}</div>
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              {getCardTitle()}
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-2">
+              {getCardDescription()}
+            </CardDescription>
+          </div>
+        </CardHeader>
 
-          <CardContent className="space-y-4">
-            {userEmail && (
-              <div className="text-center text-sm text-muted-foreground">
-                Email: <span className="font-medium">{userEmail}</span>
+        <CardContent className="space-y-4">
+          {userEmail && (
+            <div className="text-center text-sm text-muted-foreground">
+              Email: <span className="font-medium">{userEmail}</span>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 pt-4">
+            {(state === "success" || state === "already-verified") && (
+              <Button asChild borderRadius="full" className="w-full">
+                <Link href="/auth/signin">Conectare</Link>
+              </Button>
+            )}
+
+            {state === "error" && (
+              <div className="space-y-2">
+                <Button
+                  onClick={handleRetry}
+                  variant="outline"
+                  className="w-full"
+                  disabled={verifyEmail.isPending}
+                >
+                  {verifyEmail.isPending
+                    ? "Se încearcă din nou..."
+                    : "Încearcă din nou"}
+                </Button>
+                <Button asChild variant="ghost" className="w-full">
+                  <Link href="/auth/register">Înapoi la înregistrare</Link>
+                </Button>
               </div>
             )}
 
-            <div className="flex flex-col gap-3 pt-4">
-              {(state === "success" || state === "already-verified") && (
-                <Button asChild borderRadius="full" className="w-full">
-                  <Link href="/auth/signin">Conectare</Link>
-                </Button>
-              )}
+            <Button asChild variant="ghost" className="w-full">
+              <Link href="/">Înapoi la pagina principală</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-              {state === "error" && (
-                <div className="space-y-2">
-                  <Button
-                    onClick={handleRetry}
-                    variant="outline"
-                    className="w-full"
-                    disabled={verifyEmail.isPending}
-                  >
-                    {verifyEmail.isPending
-                      ? "Se încearcă din nou..."
-                      : "Încearcă din nou"}
-                  </Button>
-                  <Button asChild variant="ghost" className="w-full">
-                    <Link href="/auth/register">Înapoi la înregistrare</Link>
-                  </Button>
-                </div>
-              )}
-
-              <Button asChild variant="ghost" className="w-full">
-                <Link href="/">Înapoi la pagina principală</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Help text */}
-        <div className="text-center text-sm text-muted-foreground">
-          <p>
-            Probleme cu verificarea?{" "}
-            <Link
-              href="/contact"
-              className="text-primary hover:underline font-medium"
-            >
-              Contactați suportul
-            </Link>
-          </p>
-        </div>
+      {/* Help text */}
+      <div className="text-center text-sm text-muted-foreground">
+        <p>
+          Probleme cu verificarea?{" "}
+          <Link
+            href="/contact"
+            className="text-primary hover:underline font-medium"
+          >
+            Contactați suportul
+          </Link>
+        </p>
       </div>
+    </div>
+  );
+}
+
+function VerifyEmailFallback() {
+  return (
+    <div className="w-full max-w-md space-y-6">
+      <Card className="backdrop-blur-md bg-white/20 border-white/10">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <LoadingSpinner className="h-12 w-12" />
+          </div>
+          <div>
+            <CardTitle className="text-2xl font-bold">Se încarcă...</CardTitle>
+            <CardDescription className="text-muted-foreground mt-2">
+              Vă rugăm să așteptați în timp ce pregătim verificarea.
+            </CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
+    </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <BackgroundGradient className="min-h-screen flex items-center justify-center p-4">
+      <Suspense fallback={<VerifyEmailFallback />}>
+        <VerifyEmailContent />
+      </Suspense>
     </BackgroundGradient>
   );
 }
