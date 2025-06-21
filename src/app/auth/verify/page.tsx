@@ -133,7 +133,7 @@ function VerifyEmailContent() {
 
   return (
     <div className="w-full max-w-md space-y-6">
-      <Card className="backdrop-blur-md bg-white/20 border-white/10">
+      <Card className="backdrop-blur-md  border-white/10">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">{getIcon()}</div>
           <div>
@@ -204,7 +204,7 @@ function VerifyEmailContent() {
 function VerifyEmailFallback() {
   return (
     <div className="w-full max-w-md space-y-6">
-      <Card className="backdrop-blur-md bg-white/20 border-white/10">
+      <Card className="backdrop-blur-md  border-white/10">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <LoadingSpinner className="h-12 w-12" />
