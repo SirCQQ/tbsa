@@ -26,11 +26,11 @@ export function HeroSection() {
 
           <div className="mt-10 flex items-center justify-center gap-x-6">
             <Button asChild size="lg" className="px-8">
-              <Link href="/register">Începe acum</Link>
+              <Link href="/auth/register">Începe acum</Link>
             </Button>
 
             <Button variant="outline" size="lg" asChild>
-              <Link href="/login">Conectează-te</Link>
+              <Link href="/auth/login">Conectează-te</Link>
             </Button>
           </div>
         </div>

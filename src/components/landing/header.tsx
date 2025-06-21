@@ -103,12 +103,15 @@ export function Header() {
                   {/* Mobile Auth Buttons */}
                   <div className="flex flex-col space-y-3 pt-4 border-t">
                     <Button variant="ghost" size="default" asChild>
-                      <Link href="/login" onClick={() => setIsOpen(false)}>
+                      <Link href="/auth/login" onClick={() => setIsOpen(false)}>
                         Conectează-te
                       </Link>
                     </Button>
                     <Button size="default" borderRadius="full" asChild>
-                      <Link href="/register" onClick={() => setIsOpen(false)}>
+                      <Link
+                        href="/auth/register"
+                        onClick={() => setIsOpen(false)}
+                      >
                         Începe acum
                       </Link>
                     </Button>

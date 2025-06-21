@@ -8,8 +8,8 @@ export function Footer() {
   const quickLinks = [
     { href: "#features", label: "Funcționalități" },
     { href: "#about", label: "Despre noi" },
-    { href: "/login", label: "Conectează-te" },
-    { href: "/register", label: "Înregistrează-te" },
+    { href: "/auth/login", label: "Conectează-te" },
+    { href: "/auth/register", label: "Înregistrează-te" },
   ];
 
   const legalLinks = [

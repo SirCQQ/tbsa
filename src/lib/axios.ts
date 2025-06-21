@@ -93,9 +93,9 @@ api.interceptors.response.use(
         // Only redirect if we're in the browser and not already on login page
         if (
           typeof window !== "undefined" &&
-          !window.location.pathname.includes("/login")
+          !window.location.pathname.includes("/auth/login")
         ) {
-          window.location.href = "/login";
+          window.location.href = "/auth/login";
         }
 
         return Promise.reject(refreshError);
