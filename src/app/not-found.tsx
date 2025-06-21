@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Home, ArrowLeft, Search } from "lucide-react";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
 import { Header } from "@/components/landing/header";
+import { Typography } from "@/components/ui/typography";
 
 export default function NotFound() {
   return (
@@ -13,7 +14,9 @@ export default function NotFound() {
         <Card className="w-full max-w-md">
           <CardContent className="text-center p-8">
             {/* 404 Number */}
-            <div className="text-8xl font-bold text-blue-600 mb-4">404</div>
+            <Typography className="text-8xl font-bold  mb-4" gradient="ocean">
+              404
+            </Typography>
 
             {/* Error Message */}
             <h1 className="text-2xl font-semibold text-foreground mb-2">

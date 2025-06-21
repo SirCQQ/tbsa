@@ -45,10 +45,37 @@ type TypographyWeight =
   | "extrabold"
   | "black";
 
+// Gradient variants for text
+type TypographyGradient =
+  | "primary"
+  | "blue"
+  | "green"
+  | "purple"
+  | "cyan"
+  | "red"
+  | "orange"
+  | "yellow"
+  | "pink"
+  | "indigo"
+  | "emerald"
+  | "teal"
+  | "violet"
+  | "rose"
+  | "sky"
+  | "lime"
+  | "amber"
+  | "sunset"
+  | "ocean"
+  | "forest"
+  | "aurora"
+  | "twilight"
+  | "rainbow";
+
 type TypographyProps = {
   variant?: TypographyVariant;
   size?: TypographySize;
   weight?: TypographyWeight;
+  gradient?: TypographyGradient;
   className?: string;
   children: React.ReactNode;
 } & ComponentProps<"div">;
@@ -156,15 +183,64 @@ const weightClasses: Record<TypographyWeight, string> = {
   black: "font-black",
 };
 
+// Gradient classes for text
+const gradientClasses: Record<TypographyGradient, string> = {
+  // Single color gradients
+  primary:
+    "bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent",
+  blue: "bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent",
+  green:
+    "bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent",
+  purple:
+    "bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent",
+  cyan: "bg-gradient-to-r from-cyan-600 to-cyan-400 bg-clip-text text-transparent",
+  red: "bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent",
+  orange:
+    "bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent",
+  yellow:
+    "bg-gradient-to-r from-yellow-600 to-yellow-400 bg-clip-text text-transparent",
+  pink: "bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent",
+  indigo:
+    "bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent",
+  emerald:
+    "bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent",
+  teal: "bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent",
+  violet:
+    "bg-gradient-to-r from-violet-600 to-violet-400 bg-clip-text text-transparent",
+  rose: "bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent",
+  sky: "bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent",
+  lime: "bg-gradient-to-r from-lime-600 to-lime-400 bg-clip-text text-transparent",
+  amber:
+    "bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-transparent",
+
+  // Multi-color themed gradients
+  sunset:
+    "bg-gradient-to-r from-orange-500 via-pink-500 to-red-500 bg-clip-text text-transparent",
+  ocean:
+    "bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 bg-clip-text text-transparent",
+  forest:
+    "bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500 bg-clip-text text-transparent",
+  aurora:
+    "bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 bg-clip-text text-transparent",
+  twilight:
+    "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent",
+  rainbow:
+    "bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent",
+};
+
 export const Typography = forwardRef<HTMLElement, TypographyProps>(
-  ({ variant = "p", size, weight, className, children, ...props }, ref) => {
+  (
+    { variant = "p", size, weight, gradient, className, children, ...props },
+    ref
+  ) => {
     const config = variantConfig[variant];
 
-    // Build className from variant, size, weight, and custom classes
+    // Build className from variant, size, weight, gradient, and custom classes
     const classes = cn(
       config.className,
       size && sizeClasses[size],
       weight && weightClasses[weight],
+      gradient && gradientClasses[gradient],
       className
     );
 
@@ -219,6 +295,25 @@ export const Text = forwardRef<
   Omit<TypographyProps, "variant">
 >((props, ref) => <Typography ref={ref} variant="span" {...props} />);
 Text.displayName = "Text";
+
+// Gradient text convenience components
+export const GradientHeading1 = forwardRef<
+  HTMLHeadingElement,
+  Omit<TypographyProps, "variant"> & { gradient: TypographyGradient }
+>((props, ref) => <Typography ref={ref} variant="h1" {...props} />);
+GradientHeading1.displayName = "GradientHeading1";
+
+export const GradientHeading2 = forwardRef<
+  HTMLHeadingElement,
+  Omit<TypographyProps, "variant"> & { gradient: TypographyGradient }
+>((props, ref) => <Typography ref={ref} variant="h2" {...props} />);
+GradientHeading2.displayName = "GradientHeading2";
+
+export const GradientText = forwardRef<
+  HTMLSpanElement,
+  Omit<TypographyProps, "variant"> & { gradient: TypographyGradient }
+>((props, ref) => <Typography ref={ref} variant="span" {...props} />);
+GradientText.displayName = "GradientText";
 
 export const Small = forwardRef<HTMLElement, Omit<TypographyProps, "variant">>(
   (props, ref) => <Typography ref={ref} variant="small" {...props} />

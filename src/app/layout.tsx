@@ -5,6 +5,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/toaster";
+import {
+  VIEWPORT_POSITIONS,
+  ViewportSizeIndicator,
+} from "@/components/ui/viewport-size-indicator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="ro" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}
       >
         <AuthSessionProvider>
           <QueryProvider>
@@ -42,6 +46,10 @@ export default function RootLayout({
             >
               {children}
               <Toaster />
+              <ViewportSizeIndicator
+                position={VIEWPORT_POSITIONS.bottomLeft}
+                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20"
+              />
             </ThemeProvider>
           </QueryProvider>
         </AuthSessionProvider>

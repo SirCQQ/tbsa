@@ -20,10 +20,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className=" w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/App Name - Fixed width for consistent spacing */}
-          <div className="flex items-center space-x-2 flex-shrink-0 w-24 sm:w-32">
+          <div className="flex items-center space-x-2 flex-shrink-0 w-24 md:w-32">
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">
@@ -37,7 +37,7 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Centered */}
-          <nav className="hidden md:flex items-center justify-center flex-1">
+          <nav className="hidden lg:flex items-center justify-center flex-1 ">
             <div className="flex items-center space-x-8 text-sm font-medium">
               {navigationItems.map((item) => (
                 <Link
@@ -52,7 +52,7 @@ export function Header() {
           </nav>
 
           {/* Desktop Actions - Fixed width for balance */}
-          <div className="hidden md:flex items-center justify-end space-x-4 flex-shrink-0 w-24 sm:w-32 lg:w-48">
+          <div className="hidden lg:flex items-center justify-end space-x-4 flex-shrink-0">
             <ThemeToggle />
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm" asChild>
@@ -65,7 +65,7 @@ export function Header() {
           </div>
 
           {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center space-x-2">
+          <div className="flex lg:hidden items-center space-x-2">
             <ThemeToggle />
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>

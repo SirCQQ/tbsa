@@ -12,6 +12,9 @@ import {
   Large,
   Muted,
   Blockquote,
+  GradientHeading1,
+  GradientHeading2,
+  GradientText,
 } from "@/components/ui/typography";
 import {
   Card,
@@ -223,6 +226,142 @@ export function TypographyDemo() {
         </CardContent>
       </Card>
 
+      {/* Gradient Text Examples */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Gradient Text</CardTitle>
+          <CardDescription>
+            Beautiful gradient text effects using the gradient prop
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Single Color Gradients */}
+          <div className="space-y-4">
+            <Heading3>Single Color Gradients</Heading3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Typography variant="h3" gradient="primary">
+                Primary Gradient
+              </Typography>
+              <Typography variant="h3" gradient="blue">
+                Blue Gradient
+              </Typography>
+              <Typography variant="h3" gradient="green">
+                Green Gradient
+              </Typography>
+              <Typography variant="h3" gradient="purple">
+                Purple Gradient
+              </Typography>
+              <Typography variant="h3" gradient="cyan">
+                Cyan Gradient
+              </Typography>
+              <Typography variant="h3" gradient="red">
+                Red Gradient
+              </Typography>
+              <Typography variant="h3" gradient="orange">
+                Orange Gradient
+              </Typography>
+              <Typography variant="h3" gradient="yellow">
+                Yellow Gradient
+              </Typography>
+              <Typography variant="h3" gradient="pink">
+                Pink Gradient
+              </Typography>
+            </div>
+          </div>
+
+          {/* Themed Gradients */}
+          <div className="space-y-4">
+            <Heading3>Themed Gradients</Heading3>
+            <div className="space-y-3">
+              <GradientHeading1 gradient="sunset">
+                Sunset Gradient - Perfect for warm, welcoming headers
+              </GradientHeading1>
+              <GradientHeading2 gradient="ocean">
+                Ocean Gradient - Cool and refreshing vibes
+              </GradientHeading2>
+              <Typography variant="h2" gradient="forest">
+                Forest Gradient - Natural and organic feeling
+              </Typography>
+              <Typography variant="h2" gradient="aurora">
+                Aurora Gradient - Magical and ethereal
+              </Typography>
+              <Typography variant="h2" gradient="twilight">
+                Twilight Gradient - Mysterious and elegant
+              </Typography>
+              <Typography variant="h2" gradient="rainbow">
+                Rainbow Gradient - Vibrant and playful
+              </Typography>
+            </div>
+          </div>
+
+          {/* Practical Usage */}
+          <div className="space-y-4">
+            <Heading3>Practical Examples</Heading3>
+            <div className="space-y-6">
+              {/* Hero Section Example */}
+              <div className="text-center space-y-2">
+                <GradientHeading1
+                  gradient="aurora"
+                  className="text-4xl lg:text-6xl"
+                >
+                  Bine ai venit la TBSA
+                </GradientHeading1>
+                <Typography
+                  variant="p"
+                  size="lg"
+                  className="text-muted-foreground max-w-2xl mx-auto"
+                >
+                  Gestionează eficient citirile de apă pentru asociația ta cu{" "}
+                  <GradientText gradient="primary">
+                    soluția noastră modernă
+                  </GradientText>
+                </Typography>
+              </div>
+
+              {/* Feature Highlights */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-4 border rounded-lg">
+                  <Typography variant="h3" gradient="blue" className="mb-2">
+                    Automatizare
+                  </Typography>
+                  <Typography
+                    variant="p"
+                    size="sm"
+                    className="text-muted-foreground"
+                  >
+                    Procesare automată a citirilor
+                  </Typography>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <Typography variant="h3" gradient="green" className="mb-2">
+                    Eficiență
+                  </Typography>
+                  <Typography
+                    variant="p"
+                    size="sm"
+                    className="text-muted-foreground"
+                  >
+                    Economisește timp și resurse
+                  </Typography>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <Typography variant="h3" gradient="purple" className="mb-2">
+                    Transparență
+                  </Typography>
+                  <Typography
+                    variant="p"
+                    size="sm"
+                    className="text-muted-foreground"
+                  >
+                    Rapoarte clare și detaliate
+                  </Typography>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Code Examples */}
       <Card>
         <CardHeader>
@@ -243,10 +382,19 @@ export function TypographyDemo() {
 
           <div className="space-y-2">
             <Typography variant="small" weight="medium">
+              With gradient text:
+            </Typography>
+            <Code className="block p-3 bg-muted rounded text-sm">
+              {`<Typography variant="h1" gradient="sunset">Gradient Title</Typography>\n<GradientText gradient="aurora">Inline gradient text</GradientText>`}
+            </Code>
+          </div>
+
+          <div className="space-y-2">
+            <Typography variant="small" weight="medium">
               With custom props:
             </Typography>
             <Code className="block p-3 bg-muted rounded text-sm">
-              {`<Typography \n  variant="h2" \n  size="xl" \n  weight="bold" \n  className="text-primary"\n>\n  Custom heading\n</Typography>`}
+              {`<Typography \n  variant="h2" \n  size="xl" \n  weight="bold" \n  gradient="ocean"\n>\n  Custom gradient heading\n</Typography>`}
             </Code>
           </div>
 
@@ -255,7 +403,7 @@ export function TypographyDemo() {
               Convenience components:
             </Typography>
             <Code className="block p-3 bg-muted rounded text-sm">
-              {`<Heading1>Titlu</Heading1>\n<Paragraph>Text</Paragraph>\n<Lead>Text important</Lead>`}
+              {`<GradientHeading1 gradient="primary">Gradient Title</GradientHeading1>\n<Paragraph>Regular text</Paragraph>\n<GradientText gradient="rainbow">Colorful text</GradientText>`}
             </Code>
           </div>
         </CardContent>
