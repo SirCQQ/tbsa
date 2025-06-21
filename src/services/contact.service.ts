@@ -25,8 +25,8 @@ export class ContactService {
 
   constructor(config?: Partial<ContactServiceConfig>) {
     this.config = {
-      adminEmail: process.env.CONTACT_ADMIN_EMAIL || "gatucristian@gmail.com",
-      fromEmail: process.env.CONTACT_FROM_EMAIL || "onboarding@resend.dev",
+      adminEmail: process.env.CONTACT_ADMIN_EMAIL || "admin@tbsa.ro",
+      fromEmail: process.env.CONTACT_FROM_EMAIL || "contact@tbsa.ro",
       replyToEmail: process.env.CONTACT_REPLY_TO_EMAIL,
       enableUserConfirmation: true,
       enableAdminNotification: true,

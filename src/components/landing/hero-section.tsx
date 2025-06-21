@@ -15,7 +15,7 @@ export function HeroSection() {
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
             Gestionează&nbsp;
             <span className="text-blue-600 dark:text-blue-400">asociația</span>
-            de apartamente cu ușurință
+            &nbsp;de apartamente cu ușurință
           </h1>
 
           <p className="mt-6 text-lg leading-8 text-muted-foreground">

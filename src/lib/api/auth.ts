@@ -54,6 +54,12 @@ export const authApi = {
     const response = await api.get(`/auth/check-organization-code/${code}`);
     return response.data;
   },
+
+  // Verify email with token
+  verifyEmail: async (token: string) => {
+    const response = await api.post("/auth/verify", { token });
+    return response.data;
+  },
 };
 
 // Response types
@@ -145,4 +151,18 @@ export type InviteCodeVerification = {
 export type OrganizationCodeCheck = {
   isAvailable: boolean;
   suggestion?: string;
+};
+
+export type EmailVerificationResponse = {
+  success: true;
+  message: string;
+  data: {
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      isVerified: boolean;
+    };
+  };
 };

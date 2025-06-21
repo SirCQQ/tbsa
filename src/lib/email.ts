@@ -37,7 +37,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Default email configuration
 const defaultConfig: EmailConfig = {
-  from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+  from: process.env.EMAIL_FROM || "contact@tbsa.ro",
   trackOpens: true,
   trackClicks: true,
 };
@@ -201,7 +201,7 @@ export async function sendWelcomeEmail(
   verificationToken: string,
   customConfig?: Partial<EmailConfig>
 ) {
-  const verificationUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${verificationToken}`;
+  const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify?token=${verificationToken}`;
 
   const subject = "Welcome to Property Association Manager - Verify Your Email";
   const html = `

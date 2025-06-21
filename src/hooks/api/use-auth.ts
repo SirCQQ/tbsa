@@ -2,6 +2,8 @@ import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
 import {
   authApi,
   type OrganizationRegistrationResponse,
+  type UserRegistrationResponse,
+  type EmailVerificationResponse,
   type AuthErrorResponse,
 } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/axios";
@@ -32,7 +34,7 @@ export function useRegisterOrganization(
 // User registration mutation hook
 export function useRegisterUser(
   options?: UseMutationOptions<
-    any, // UserRegistrationResponse type would go here
+    UserRegistrationResponse,
     AxiosError<AuthErrorResponse>,
     UserRegistrationData
   >
@@ -41,6 +43,23 @@ export function useRegisterUser(
     mutationFn: (data: UserRegistrationData) => authApi.registerUser(data),
     onError: (error) => {
       console.error("User registration error:", getErrorMessage(error));
+    },
+    ...options,
+  });
+}
+
+// Email verification mutation hook
+export function useVerifyEmail(
+  options?: UseMutationOptions<
+    EmailVerificationResponse,
+    AxiosError<AuthErrorResponse>,
+    string
+  >
+) {
+  return useMutation({
+    mutationFn: (token: string) => authApi.verifyEmail(token),
+    onError: (error) => {
+      console.error("Email verification error:", getErrorMessage(error));
     },
     ...options,
   });
