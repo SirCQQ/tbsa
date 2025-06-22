@@ -54,21 +54,58 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-gradient-x: gradient-x 15s ease infinite;
+  --animate-gradient-xy: gradient-xy 15s ease infinite;
 
   @keyframes accordion-down {
     from {
       height: 0;
     }
+
     to {
       height: var(--radix-accordion-content-height);
     }
   }
+
   @keyframes accordion-up {
     from {
       height: var(--radix-accordion-content-height);
     }
+
     to {
       height: 0;
+    }
+  }
+
+  @keyframes gradient-x {
+
+    0%,
+    100% {
+      transform: translateX(0%);
+    }
+
+    50% {
+      transform: translateX(-100%);
+    }
+  }
+
+  @keyframes gradient-xy {
+
+    0%,
+    100% {
+      transform: translate(0%, 0%);
+    }
+
+    25% {
+      transform: translate(-100%, 0%);
+    }
+
+    50% {
+      transform: translate(-100%, -100%);
+    }
+
+    75% {
+      transform: translate(0%, -100%);
     }
   }
 }
@@ -82,6 +119,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -164,7 +202,8 @@
 
     --sidebar-border: 220 13% 91%;
 
-    --sidebar-ring: 217.2 91.2% 59.8%}
+    --sidebar-ring: 217.2 91.2% 59.8%
+  }
 
   .dark {
 
@@ -230,7 +269,8 @@
 
     --sidebar-border: 240 3.7% 15.9%;
 
-    --sidebar-ring: 217.2 91.2% 59.8%}
+    --sidebar-ring: 217.2 91.2% 59.8%
+  }
 }
 
 

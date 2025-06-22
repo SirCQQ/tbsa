@@ -1,5 +1,15 @@
 import type { DefaultSession } from "next-auth";
 
+// Simplified types - store only codes/IDs instead of full objects
+export type PermissionCode = string; // e.g., "users:read", "buildings:create"
+export type RoleCode = string; // e.g., "ADMIN", "OWNER", "TENANT"
+export type OrganizationReference = {
+  id: string;
+  code: string;
+  name: string; // Keep name for display purposes
+};
+
+// Keep full types for when we need to fetch complete data
 export type PermissionString = {
   id: string;
   code: string;
@@ -30,9 +40,9 @@ declare module "next-auth" {
       firstName: string;
       lastName: string;
       isVerified: boolean;
-      permissions: PermissionString[];
-      organizations: UserOrganizationWithDetails[];
-      roles: RoleString[];
+      permissions: PermissionCode[]; // Simplified: just codes
+      organizations: OrganizationReference[]; // Simplified: minimal data
+      roles: RoleCode[]; // Simplified: just codes
       currentOrganizationId: string | null;
     } & DefaultSession["user"];
   }
@@ -41,9 +51,9 @@ declare module "next-auth" {
     firstName: string;
     lastName: string;
     isVerified?: boolean;
-    permissions: PermissionString[];
-    organizations?: UserOrganizationWithDetails[];
-    roles?: RoleString[];
+    permissions: PermissionCode[]; // Simplified: just codes
+    organizations?: OrganizationReference[]; // Simplified: minimal data
+    roles?: RoleCode[]; // Simplified: just codes
     currentOrganizationId?: string | null;
   }
 }
@@ -54,9 +64,9 @@ declare module "next-auth/jwt" {
     firstName: string;
     lastName: string;
     isVerified: boolean;
-    organizations: UserOrganizationWithDetails[];
-    permissions: PermissionString[];
-    roles: RoleString[];
+    organizations: OrganizationReference[]; // Simplified: minimal data
+    permissions: PermissionCode[]; // Simplified: just codes
+    roles: RoleCode[]; // Simplified: just codes
     currentOrganizationId: string | null;
   }
 }

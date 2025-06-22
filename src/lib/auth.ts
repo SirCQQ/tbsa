@@ -5,6 +5,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type {
+  PermissionCode,
+  RoleCode,
+  OrganizationReference,
   PermissionString,
   RoleString,
   UserOrganizationWithDetails,
@@ -16,8 +19,8 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   pages: {
-    signIn: "/auth/signin",
-    error: "/auth/signin",
+    signIn: "/auth/login",
+    error: "/auth/login",
   },
   providers: [
     GoogleProvider({
@@ -78,53 +81,35 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        // Collect all permissions from roles and direct assignments
-        const rolePermissions: PermissionString[] = user.roles.flatMap(
-          (userRole) =>
-            userRole.role.rolePermissions.map((rp) => ({
-              id: rp.permission.id,
-              code: rp.permission.code,
-              name: rp.permission.name,
-              resource: rp.permission.resource,
-              action: rp.permission.action,
-              description: rp.permission.description,
-            }))
+        // Collect permission codes only
+        const rolePermissionCodes: string[] = user.roles.flatMap((userRole) =>
+          userRole.role.rolePermissions.map((rp) => rp.permission.code)
         );
 
-        const directPermissions: PermissionString[] = user.organizations
+        const directPermissionCodes: string[] = user.organizations
           .filter((org) => org.permission)
-          .map((org) => ({
-            id: org.permission!.id,
-            code: org.permission!.code,
-            name: org.permission!.name,
-            resource: org.permission!.resource,
-            action: org.permission!.action,
-            description: org.permission!.description,
-          }));
+          .map((org) => org.permission!.code);
 
-        // Combine and deduplicate permissions
-        const allPermissions = [...rolePermissions, ...directPermissions];
-        const uniquePermissions = allPermissions.filter(
-          (permission, index, self) =>
-            index === self.findIndex((p) => p.code === permission.code)
-        );
+        // Combine and deduplicate permission codes
+        const allPermissionCodes = [
+          ...rolePermissionCodes,
+          ...directPermissionCodes,
+        ];
+        const uniquePermissions = [...new Set(allPermissionCodes)];
 
-        // Map organizations
-        const organizations: UserOrganizationWithDetails[] =
-          user.organizations.map((org) => ({
+        // Map organizations to minimal data
+        const organizations: OrganizationReference[] = user.organizations.map(
+          (org) => ({
             id: org.organization.id,
             name: org.organization.name,
             code: org.organization.code,
-            description: org.organization.description,
-          }));
+          })
+        );
 
-        // Map roles
-        const roles: RoleString[] = user.roles.map((userRole) => ({
-          id: userRole.role.id,
-          code: userRole.role.code,
-          name: userRole.role.name,
-          description: userRole.role.description,
-        }));
+        // Map role codes only
+        const roles: RoleCode[] = user.roles.map(
+          (userRole) => userRole.role.code
+        );
 
         return {
           id: user.id,
@@ -194,50 +179,32 @@ export const authOptions: NextAuthOptions = {
           token.lastName = dbUser.lastName;
           token.isVerified = dbUser.isVerified;
 
-          // Get permissions for OAuth user
-          const rolePermissions: PermissionString[] = dbUser.roles.flatMap(
+          // Get permission codes for OAuth user
+          const rolePermissionCodes: string[] = dbUser.roles.flatMap(
             (userRole) =>
-              userRole.role.rolePermissions.map((rp) => ({
-                id: rp.permission.id,
-                code: rp.permission.code,
-                name: rp.permission.name,
-                resource: rp.permission.resource,
-                action: rp.permission.action,
-                description: rp.permission.description,
-              }))
+              userRole.role.rolePermissions.map((rp) => rp.permission.code)
           );
 
-          const directPermissions: PermissionString[] = dbUser.organizations
+          const directPermissionCodes: string[] = dbUser.organizations
             .filter((org) => org.permission)
-            .map((org) => ({
-              id: org.permission!.id,
-              code: org.permission!.code,
-              name: org.permission!.name,
-              resource: org.permission!.resource,
-              action: org.permission!.action,
-              description: org.permission!.description,
-            }));
+            .map((org) => org.permission!.code);
 
-          const allPermissions = [...rolePermissions, ...directPermissions];
-          const uniquePermissions = allPermissions.filter(
-            (permission, index, self) =>
-              index === self.findIndex((p) => p.code === permission.code)
-          );
+          const allPermissionCodes = [
+            ...rolePermissionCodes,
+            ...directPermissionCodes,
+          ];
+          const uniquePermissions = [...new Set(allPermissionCodes)];
 
-          const organizations: UserOrganizationWithDetails[] =
+          const organizations: OrganizationReference[] =
             dbUser.organizations.map((org) => ({
               id: org.organization.id,
               name: org.organization.name,
               code: org.organization.code,
-              description: org.organization.description,
             }));
 
-          const roles: RoleString[] = dbUser.roles.map((userRole) => ({
-            id: userRole.role.id,
-            code: userRole.role.code,
-            name: userRole.role.name,
-            description: userRole.role.description,
-          }));
+          const roles: RoleCode[] = dbUser.roles.map(
+            (userRole) => userRole.role.code
+          );
 
           token.permissions = uniquePermissions;
           token.organizations = organizations;

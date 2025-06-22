@@ -63,7 +63,7 @@ export default function RegisterPage() {
           <div className="text-center text-sm mt-6">
             <span className="text-muted-foreground">Aveți deja un cont? </span>
             <Link
-              href="/auth/signin"
+              href="/auth/login"
               className="underline underline-offset-4 hover:text-primary"
             >
               Conectați-vă

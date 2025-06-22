@@ -72,6 +72,10 @@ export function ViewportSizeIndicator({
     className
   );
 
+  if (process.env.NODE_ENV !== "development") {
+    return null;
+  }
+
   return (
     <div
       className={cn(

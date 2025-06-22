@@ -9,6 +9,8 @@ import {
   VIEWPORT_POSITIONS,
   ViewportSizeIndicator,
 } from "@/components/ui/viewport-size-indicator";
+import { Footer } from "@/components/landing/footer";
+import { Header } from "@/components/landing/header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,10 +46,15 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
+              <Header />
               {children}
+              <Footer />
               <Toaster />
               <ViewportSizeIndicator
-                position={VIEWPORT_POSITIONS.bottomLeft}
+                position={{
+                  bottom: "1rem",
+                  left: "2rem",
+                }}
                 className="bg-gradient-to-r from-purple-500/20 to-pink-500/20"
               />
             </ThemeProvider>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Building2, DropletIcon, Users, TrendingUp } from "lucide-react";
+import { Typography } from "../ui/typography";
 
 export function HeroSection() {
   return (
@@ -14,8 +15,11 @@ export function HeroSection() {
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
             Gestionează&nbsp;
-            <span className="text-blue-600 dark:text-blue-400">asociația</span>
-            &nbsp;de apartamente cu ușurință
+            {/* <span className="text-blue-600 dark:text-blue-400">asociația</span> */}
+            <Typography variant="span" gradient="blue">
+              asociația
+            </Typography>{" "}
+            de apartamente cu ușurință
           </h1>
 
           <p className="mt-6 text-lg leading-8 text-muted-foreground">

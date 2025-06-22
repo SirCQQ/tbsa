@@ -9,7 +9,6 @@ import { Typography } from "@/components/ui/typography";
 export default function NotFound() {
   return (
     <>
-      <Header />
       <BackgroundGradient className="flex h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="text-center p-8">

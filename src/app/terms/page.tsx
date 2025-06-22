@@ -97,8 +97,6 @@ export default function TermsPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-
       <main className="flex-1">
         {/* Hero Section */}
         <section className="bg-linear-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 py-16">
@@ -237,8 +235,6 @@ export default function TermsPage() {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 }

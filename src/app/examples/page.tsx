@@ -12,7 +12,6 @@ import {
 export default function ExamplesPage() {
   return (
     <>
-      <Header />
       <BackgroundGradient className="min-h-screen">
         {/* Viewport Size Indicators with responsive text colors */}
         <ViewportIndicatorTopRight />
