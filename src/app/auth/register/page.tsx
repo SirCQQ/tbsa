@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import {
   Card,
@@ -8,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
 import { OrganizationRegisterForm } from "@/components/auth/organization-register-form";
@@ -16,7 +15,6 @@ import { UserRegisterForm } from "@/components/auth/user-register-form";
 import Link from "next/link";
 
 export default function RegisterPage() {
-  const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("organization");
 
   return (
@@ -29,12 +27,6 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}

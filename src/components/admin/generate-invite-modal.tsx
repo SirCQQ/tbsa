@@ -61,7 +61,7 @@ const expiryOptions = [
 export function GenerateInviteModal({
   open,
   onOpenChange,
-  organizationId,
+  organizationId: _orgId,
 }: GenerateInviteModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -101,9 +101,6 @@ export function GenerateInviteModal({
       const inviteCode = generateInviteCode();
       setGeneratedCode(inviteCode);
 
-      const roleLabel =
-        roleOptions.find((r) => r.value === data.role)?.label || data.role;
-
       if (data.sendEmail) {
         toast.success(
           `Codul de invitație a fost generat și trimis la ${data.email}!`
@@ -128,7 +125,7 @@ export function GenerateInviteModal({
         setCopiedCode(true);
         toast.success("Codul a fost copiat în clipboard!");
         setTimeout(() => setCopiedCode(false), 2000);
-      } catch (error) {
+      } catch (_error) {
         toast.error("Nu s-a putut copia codul în clipboard");
       }
     }

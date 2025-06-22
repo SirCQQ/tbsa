@@ -1,6 +1,5 @@
 import { ButtonsDemo } from "@/components/examples/buttonts-demo";
 import { TypographyDemo } from "@/components/examples/typography-demo";
-import { Header } from "@/components/landing/header";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
 import {
   ViewportSizeIndicator,

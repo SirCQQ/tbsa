@@ -358,11 +358,13 @@ model RolePermission {
 model Building {
   id             String       @id @default(uuid())
   name           String // Building name/identifier
+  code           String // 6-8 character building code used by users to add apartments
   address        String // Physical address
   type           BuildingType
   floors         Int // Number of floors
   organizationId String       @map("organization_id")
   description    String? // Additional building details
+  readingDay     Int          @default(15) @map("reading_day") // Day of the month (1-31) when readings should be collected
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id])
@@ -373,7 +375,10 @@ model Building {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
+  @@unique([organizationId, code])
   @@index([organizationId])
+  @@index([readingDay])
+  @@index([code])
   @@map("buildings")
 }
 
@@ -391,6 +396,7 @@ model Apartment {
   building           Building            @relation(fields: [buildingId], references: [id])
   waterMeters        WaterMeter[]
   apartmentResidents ApartmentResident[]
+  inviteCodes        InviteCode[]
 
   // Timestamps
   createdAt DateTime  @default(now()) @map("created_at")
@@ -541,13 +547,15 @@ model InviteCode {
   id          String           @id @default(uuid())
   code        String           @unique // Actual invite code
   email       String // Intended recipient
+  apartmentId String           @map("apartment_id") // Apartment the user is being invited to
   status      InviteCodeStatus @default(ACTIVE)
   expiresAt   DateTime         @map("expires_at")
   usedAt      DateTime?        @map("used_at")
   createdById String           @map("created_by_id") // User who created the code
 
   // Relations
-  createdBy User @relation(fields: [createdById], references: [id])
+  apartment Apartment @relation(fields: [apartmentId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
 
   // Timestamps
   createdAt DateTime  @default(now()) @map("created_at")
@@ -557,6 +565,7 @@ model InviteCode {
   @@index([code])
   @@index([email])
   @@index([status])
+  @@index([apartmentId])
   @@index([createdById])
   @@map("invite_codes")
 }

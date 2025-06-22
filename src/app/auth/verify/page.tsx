@@ -72,7 +72,7 @@ function VerifyEmailContent() {
 
     // Automatically trigger verification when component mounts
     verifyEmail.mutate(token);
-  }, [token]);
+  }, [token, verifyEmail]);
 
   const getIcon = () => {
     if (verifyEmail.isPending) {

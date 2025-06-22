@@ -65,7 +65,7 @@ const buildingTypeOptions = [
 export function AddBuildingModal({
   open,
   onOpenChange,
-  organizationId,
+  organizationId: _orgId,
 }: AddBuildingModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 

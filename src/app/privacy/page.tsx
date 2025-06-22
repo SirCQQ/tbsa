@@ -1,5 +1,3 @@
-import { Header } from "@/components/landing/header";
-import { Footer } from "@/components/landing/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Lock, Eye, UserCheck, Database, Mail } from "lucide-react";

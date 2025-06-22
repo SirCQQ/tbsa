@@ -298,6 +298,7 @@ export async function seedDemoData() {
           type: "RESIDENTIAL",
           floors,
           organizationId: organization.id,
+          code: faker.string.alphanumeric(6),
           description: `Clădire rezidențială cu ${floors} etaje, ${Math.floor(Math.random() * 50) + 20} apartamente`,
         },
       });

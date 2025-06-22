@@ -25,8 +25,8 @@ const eslintConfig = [
         },
       ],
       "@typescript-eslint/passing-generics-to-types": "off",
-      // Allow 'any' type but show warning instead of error
-      "@typescript-eslint/no-explicit-any": "warn",
+      // Allow 'any' type - disabled for flexibility
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ];

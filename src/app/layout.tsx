@@ -5,10 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/toaster";
-import {
-  VIEWPORT_POSITIONS,
-  ViewportSizeIndicator,
-} from "@/components/ui/viewport-size-indicator";
+import { ViewportSizeIndicator } from "@/components/ui/viewport-size-indicator";
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 

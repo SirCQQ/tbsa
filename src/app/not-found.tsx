@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, ArrowLeft, Search } from "lucide-react";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
-import { Header } from "@/components/landing/header";
 import { Typography } from "@/components/ui/typography";
 
 export default function NotFound() {
