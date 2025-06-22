@@ -2,6 +2,14 @@ import { ButtonsDemo } from "@/components/examples/buttonts-demo";
 import { TypographyDemo } from "@/components/examples/typography-demo";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
 import {
+  ExampleOrPermissions,
+  ExampleAndPermissions,
+  ExampleCombinedPermissions,
+  ExampleWithLoading,
+  ExampleUsingHook,
+  ExampleNestedGuards,
+} from "@/components/auth/permission-examples";
+import {
   ViewportSizeIndicator,
   ViewportIndicatorTopRight,
   ViewportIndicatorBottomLeft,
@@ -38,12 +46,36 @@ export default function ExamplesPage() {
         <div className="container mx-auto py-8">
           <ButtonsDemo />
         </div>
+
+        {/* Permission Examples Section */}
+        <div className="container mx-auto py-8">
+          <div className="mb-8 p-6 bg-card/50 backdrop-blur-sm rounded-lg border">
+            <h2 className="text-2xl font-bold mb-4">
+              Permission Guard Examples
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              These examples demonstrate the PermissionGuard component with
+              different configurations. Note: These examples will show fallback
+              content unless you have the required permissions in your session.
+            </p>
+          </div>
+
+          <div className="grid gap-8">
+            <ExampleOrPermissions />
+            <ExampleAndPermissions />
+            <ExampleCombinedPermissions />
+            <ExampleWithLoading />
+            <ExampleUsingHook />
+            <ExampleNestedGuards />
+          </div>
+        </div>
       </BackgroundGradient>
     </>
   );
 }
 
 export const metadata = {
-  title: "Examples - TBSA Typography",
-  description: "Typography component examples and usage patterns for TBSA",
+  title: "Examples - TBSA Components",
+  description:
+    "Component examples including typography, buttons, and permission guards for TBSA",
 };

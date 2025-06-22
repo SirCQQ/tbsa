@@ -27,7 +27,7 @@ describe("Badge Component", () => {
         "default",
         "secondary",
         "destructive",
-        "outline-solid",
+        "outline",
       ] as const;
 
       variants.forEach((variant) => {
@@ -53,7 +53,7 @@ describe("Badge Component", () => {
               "text-destructive-foreground"
             );
             break;
-          case "outline-solid":
+          case "outline":
             expect(badge).toHaveClass("text-foreground");
             expect(badge).not.toHaveClass("border-transparent");
             break;

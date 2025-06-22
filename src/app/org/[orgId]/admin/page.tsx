@@ -24,9 +24,13 @@ import {
 } from "lucide-react";
 import { AddBuildingModal } from "@/components/admin/add-building-modal";
 import { GenerateInviteModal } from "@/components/admin/generate-invite-modal";
+import { OrgBuildingsList } from "@/components/admin/org-buildings-list";
+import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { useState } from "react";
 import { StatCard } from "@/components/ui/stat-card";
 import { useParams } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield } from "lucide-react";
 
 export default function OrganizationAdminPage() {
   const params = useParams();
@@ -145,7 +149,6 @@ export default function OrganizationAdminPage() {
             </CardContent>
           </Card>
         </div>
-
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
@@ -181,7 +184,6 @@ export default function OrganizationAdminPage() {
             trend={{ value: 5, label: "adăugate recent", type: "positive" }}
           />
         </div>
-
         {/* Main Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Building Management */}
@@ -198,26 +200,66 @@ export default function OrganizationAdminPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col space-y-3">
-                <Button
-                  onClick={() => setShowAddBuilding(true)}
-                  borderRadius="full"
-                  className="w-full"
+                <PermissionGuardOr permissions={["buildings:mere"]}>
+                  <Button
+                    onClick={() => setShowAddBuilding(true)}
+                    borderRadius="full"
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adaugă Clădire Nouă
+                  </Button>
+                </PermissionGuardOr>
+
+                <PermissionGuardOr
+                  permissions={["buildings:read"]}
+                  fallback={
+                    <Button
+                      disabled
+                      variant="outline"
+                      borderRadius="full"
+                      className="w-full"
+                      title="Nu aveți permisiunea de a vizualiza clădirile"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Acces Restricționat
+                    </Button>
+                  }
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adaugă Clădire Nouă
-                </Button>
-                <Button
-                  variant="outline"
-                  borderRadius="full"
-                  className="w-full"
+                  <Button
+                    variant="outline"
+                    borderRadius="full"
+                    className="w-full"
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Vezi Toate Clădirile ({organization.totalBuildings})
+                  </Button>
+                </PermissionGuardOr>
+
+                <PermissionGuardOr
+                  permissions={["buildings:update", "buildings:delete"]}
+                  fallback={
+                    <Button
+                      disabled
+                      variant="ghost"
+                      borderRadius="full"
+                      className="w-full"
+                      title="Nu aveți permisiunea de a configura clădirile"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Acces Restricționat
+                    </Button>
+                  }
                 >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Vezi Toate Clădirile ({organization.totalBuildings})
-                </Button>
-                <Button variant="ghost" borderRadius="full" className="w-full">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configurări Clădiri
-                </Button>
+                  <Button
+                    variant="ghost"
+                    borderRadius="full"
+                    className="w-full"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configurări Clădiri
+                  </Button>
+                </PermissionGuardOr>
               </div>
             </CardContent>
           </Card>
@@ -260,7 +302,6 @@ export default function OrganizationAdminPage() {
             </CardContent>
           </Card>
         </div>
-
         {/* Organization Management */}
         <Card className="backdrop-blur-md">
           <CardHeader>
@@ -311,6 +352,55 @@ export default function OrganizationAdminPage() {
           </CardContent>
         </Card>
 
+        {/* Buildings List */}
+        <PermissionGuardOr
+          permissions={[
+            "buildings:read",
+            "buildings:create",
+            "buildings:update",
+          ]}
+          fallback={
+            <Card className="backdrop-blur-md">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Shield className="h-12 w-12 text-muted-foreground mb-4" />
+                <Typography variant="h3" className="mb-2">
+                  Acces Restricționat
+                </Typography>
+                <Typography
+                  variant="p"
+                  className="text-muted-foreground text-center mb-4"
+                >
+                  Nu aveți permisiunile necesare pentru a vizualiza clădirile.
+                  Contactați administratorul pentru a obține acces.
+                </Typography>
+                <Alert className="max-w-md">
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    Permisiuni necesare: buildings:read, buildings:create sau
+                    buildings:update
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          }
+        >
+          <OrgBuildingsList
+            organizationId={orgId}
+            onAddBuilding={() => setShowAddBuilding(true)}
+            onEditBuilding={(building) => {
+              // TODO: Implement edit building functionality
+              console.log("Edit building:", building);
+            }}
+            onDeleteBuilding={(building) => {
+              // TODO: Implement delete building functionality
+              console.log("Delete building:", building);
+            }}
+            onViewBuilding={(building) => {
+              // TODO: Implement view building details functionality
+              console.log("View building:", building);
+            }}
+          />
+        </PermissionGuardOr>
         {/* Recent Activity */}
         <Card className="backdrop-blur-md">
           <CardHeader>
@@ -366,7 +456,6 @@ export default function OrganizationAdminPage() {
             </div>
           </CardContent>
         </Card>
-
         {/* Modals */}
         <AddBuildingModal
           open={showAddBuilding}

@@ -1,24 +1,14 @@
-import { buildingService } from "@/services/building.service";
-import { prisma } from "@/lib/prisma";
+import { mockPrisma, resetPrismaMocks } from "../__mocks__/prisma.mock";
+import {
+  buildingService,
+  CreateBuildingInput,
+} from "@/services/building.service";
 import { faker } from "@faker-js/faker";
-import type { BuildingType } from "@prisma/client/wasm";
-
-// Mock Prisma
-jest.mock("@/lib/prisma", () => ({
-  prisma: {
-    building: {
-      create: jest.fn(),
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
-    },
-  },
-}));
-
-const mockedPrisma = prisma as jest.Mocked<typeof prisma>;
+import type { BuildingType } from "@prisma/client";
 
 describe("BuildingService", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetPrismaMocks();
   });
 
   describe("createBuilding", () => {
@@ -29,6 +19,7 @@ describe("BuildingService", () => {
         address: "123 Test Street",
         type: "RESIDENTIAL" as BuildingType,
         floors: 5,
+        totalApartments: 10,
         description: "Test description",
         organizationId,
       };
@@ -48,11 +39,18 @@ describe("BuildingService", () => {
         },
       };
 
+      // Mock organization existence check
+      mockPrisma.organization.findUnique.mockResolvedValueOnce({
+        id: organizationId,
+        name: "Test Organization",
+        code: "TEST_ORG",
+      });
+
       // Mock code uniqueness check (first call returns null = unique)
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.building.findFirst.mockResolvedValueOnce(null);
 
       // Mock building creation
-      mockedPrisma.building.create.mockResolvedValueOnce(
+      mockPrisma.building.create.mockResolvedValueOnce(
         mockCreatedBuilding as any
       );
 
@@ -66,20 +64,21 @@ describe("BuildingService", () => {
       expect(result.data!.readingDay).toBe(15); // Default value
 
       // Verify database calls
-      expect(mockedPrisma.building.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
         where: {
           code: expect.any(String),
           organizationId,
         },
       });
 
-      expect(mockedPrisma.building.create).toHaveBeenCalledWith({
+      expect(mockPrisma.building.create).toHaveBeenCalledWith({
         data: {
           name: mockInput.name,
           code: expect.stringMatching(/^[A-Z0-9]{8}$/),
           address: mockInput.address,
           type: mockInput.type,
           floors: mockInput.floors,
+          totalApartments: mockInput.totalApartments,
           description: mockInput.description,
           readingDay: 15,
           organizationId,
@@ -98,13 +97,15 @@ describe("BuildingService", () => {
 
     it("should use custom readingDay when provided", async () => {
       const organizationId = faker.string.uuid();
-      const mockInput = {
+      const mockInput: CreateBuildingInput = {
         name: "Test Building",
         address: "123 Test Street",
         type: "COMMERCIAL" as BuildingType,
         floors: 10,
         readingDay: 25,
         organizationId,
+        totalApartments: 10,
+        description: "Test description",
       };
 
       const mockCreatedBuilding = {
@@ -121,8 +122,15 @@ describe("BuildingService", () => {
         },
       };
 
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(null);
-      mockedPrisma.building.create.mockResolvedValueOnce(
+      // Mock organization existence check
+      mockPrisma.organization.findUnique.mockResolvedValueOnce({
+        id: organizationId,
+        name: "Test Organization",
+        code: "TEST_ORG",
+      });
+
+      mockPrisma.building.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.building.create.mockResolvedValueOnce(
         mockCreatedBuilding as any
       );
 
@@ -134,17 +142,26 @@ describe("BuildingService", () => {
 
     it("should generate unique code if first attempt conflicts", async () => {
       const organizationId = faker.string.uuid();
-      const mockInput = {
+      const mockInput: CreateBuildingInput = {
         name: "Test Building",
         address: "123 Test Street",
         type: "MIXED" as BuildingType,
         floors: 3,
+        totalApartments: 10,
+        description: "Test description",
         organizationId,
       };
 
+      // Mock organization existence check
+      mockPrisma.organization.findUnique.mockResolvedValueOnce({
+        id: organizationId,
+        name: "Test Organization",
+        code: "TEST_ORG",
+      });
+
       // Mock first code check returns existing building (conflict)
       const existingBuilding = { id: faker.string.uuid() };
-      mockedPrisma.building.findFirst
+      mockPrisma.building.findFirst
         .mockResolvedValueOnce(existingBuilding as any) // First code conflicts
         .mockResolvedValueOnce(null); // Second code is unique
 
@@ -163,51 +180,67 @@ describe("BuildingService", () => {
         },
       };
 
-      mockedPrisma.building.create.mockResolvedValueOnce(
+      mockPrisma.building.create.mockResolvedValueOnce(
         mockCreatedBuilding as any
       );
 
       const result = await buildingService.createBuilding(mockInput);
 
       expect(result.success).toBe(true);
-      expect(mockedPrisma.building.findFirst).toHaveBeenCalledTimes(2); // Two uniqueness checks
+      expect(mockPrisma.building.findFirst).toHaveBeenCalledTimes(2); // Two uniqueness checks
     });
 
     it("should fail if unable to generate unique code after max attempts", async () => {
       const organizationId = faker.string.uuid();
-      const mockInput = {
+      const mockInput: CreateBuildingInput = {
         name: "Test Building",
         address: "123 Test Street",
         type: "RESIDENTIAL" as BuildingType,
         floors: 5,
         organizationId,
+        totalApartments: 10,
+        description: "Test description",
       };
+
+      // Mock organization existence check
+      mockPrisma.organization.findUnique.mockResolvedValueOnce({
+        id: organizationId,
+        name: "Test Organization",
+        code: "TEST_ORG",
+      });
 
       // Mock all code checks return conflicts
       const existingBuilding = { id: faker.string.uuid() };
-      mockedPrisma.building.findFirst.mockResolvedValue(
-        existingBuilding as any
-      );
+      mockPrisma.building.findFirst.mockResolvedValue(existingBuilding as any);
 
       const result = await buildingService.createBuilding(mockInput);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Unable to generate unique building code");
-      expect(mockedPrisma.building.create).not.toHaveBeenCalled();
+      expect(mockPrisma.building.create).not.toHaveBeenCalled();
     });
 
     it("should handle database errors gracefully", async () => {
       const organizationId = faker.string.uuid();
-      const mockInput = {
+      const mockInput: CreateBuildingInput = {
         name: "Test Building",
         address: "123 Test Street",
         type: "RESIDENTIAL" as BuildingType,
         floors: 5,
         organizationId,
+        totalApartments: 10,
+        description: "Test description",
       };
 
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(null);
-      mockedPrisma.building.create.mockRejectedValueOnce(
+      // Mock organization existence check
+      mockPrisma.organization.findUnique.mockResolvedValueOnce({
+        id: organizationId,
+        name: "Test Organization",
+        code: "TEST_ORG",
+      });
+
+      mockPrisma.building.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.building.create.mockRejectedValueOnce(
         new Error("Database connection failed")
       );
 
@@ -229,6 +262,7 @@ describe("BuildingService", () => {
           address: "123 Street",
           type: "RESIDENTIAL",
           floors: 5,
+          totalApartments: 20,
           readingDay: 15,
           organizationId,
           createdAt: new Date(),
@@ -248,6 +282,7 @@ describe("BuildingService", () => {
           address: "456 Avenue",
           type: "COMMERCIAL",
           floors: 10,
+          totalApartments: 30,
           readingDay: 20,
           organizationId,
           createdAt: new Date(),
@@ -262,9 +297,7 @@ describe("BuildingService", () => {
         },
       ];
 
-      mockedPrisma.building.findMany.mockResolvedValueOnce(
-        mockBuildings as any
-      );
+      mockPrisma.building.findMany.mockResolvedValueOnce(mockBuildings as any);
 
       const result =
         await buildingService.getBuildingsByOrganization(organizationId);
@@ -274,7 +307,7 @@ describe("BuildingService", () => {
       expect(result.data![0].name).toBe("Building 1");
       expect(result.data![1].name).toBe("Building 2");
 
-      expect(mockedPrisma.building.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.building.findMany).toHaveBeenCalledWith({
         where: {
           organizationId,
           deletedAt: null,
@@ -308,7 +341,7 @@ describe("BuildingService", () => {
     it("should return empty array when no buildings exist", async () => {
       const organizationId = faker.string.uuid();
 
-      mockedPrisma.building.findMany.mockResolvedValueOnce([]);
+      mockPrisma.building.findMany.mockResolvedValueOnce([]);
 
       const result =
         await buildingService.getBuildingsByOrganization(organizationId);
@@ -320,7 +353,7 @@ describe("BuildingService", () => {
     it("should handle database errors gracefully", async () => {
       const organizationId = faker.string.uuid();
 
-      mockedPrisma.building.findMany.mockRejectedValueOnce(
+      mockPrisma.building.findMany.mockRejectedValueOnce(
         new Error("Database error")
       );
 
@@ -343,6 +376,7 @@ describe("BuildingService", () => {
         address: "123 Test Street",
         type: "RESIDENTIAL",
         floors: 5,
+        totalApartments: 25,
         readingDay: 15,
         organizationId,
         createdAt: new Date(),
@@ -356,9 +390,7 @@ describe("BuildingService", () => {
         apartments: [],
       };
 
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(
-        mockBuilding as any
-      );
+      mockPrisma.building.findFirst.mockResolvedValueOnce(mockBuilding as any);
 
       const result = await buildingService.getBuildingById(
         buildingId,
@@ -375,7 +407,7 @@ describe("BuildingService", () => {
       const organizationId = faker.string.uuid();
       const buildingId = faker.string.uuid();
 
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.building.findFirst.mockResolvedValueOnce(null);
 
       const result = await buildingService.getBuildingById(
         buildingId,
@@ -392,7 +424,7 @@ describe("BuildingService", () => {
       const buildingId = faker.string.uuid();
 
       // Building exists but belongs to different organization
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.building.findFirst.mockResolvedValueOnce(null);
 
       const result = await buildingService.getBuildingById(
         buildingId,
@@ -402,7 +434,7 @@ describe("BuildingService", () => {
       expect(result.success).toBe(true);
       expect(result.data).toBeNull();
 
-      expect(mockedPrisma.building.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
         where: {
           id: buildingId,
           organizationId, // Ensures organization isolation
@@ -424,6 +456,7 @@ describe("BuildingService", () => {
         address: "123 Test Street",
         type: "RESIDENTIAL",
         floors: 5,
+        totalApartments: 15,
         readingDay: 15,
         organizationId,
         createdAt: new Date(),
@@ -436,9 +469,7 @@ describe("BuildingService", () => {
         },
       };
 
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(
-        mockBuilding as any
-      );
+      mockPrisma.building.findFirst.mockResolvedValueOnce(mockBuilding as any);
 
       const result = await buildingService.getBuildingByCode(
         buildingCode,
@@ -449,7 +480,7 @@ describe("BuildingService", () => {
       expect(result.data).toBeDefined();
       expect(result.data!.code).toBe(buildingCode);
 
-      expect(mockedPrisma.building.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
         where: {
           code: buildingCode.toUpperCase(),
           organizationId,
@@ -471,11 +502,11 @@ describe("BuildingService", () => {
       const organizationId = faker.string.uuid();
       const buildingCode = "testcode"; // lowercase input
 
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.building.findFirst.mockResolvedValueOnce(null);
 
       await buildingService.getBuildingByCode(buildingCode, organizationId);
 
-      expect(mockedPrisma.building.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
         where: {
           code: "TESTCODE", // Should be converted to uppercase
           organizationId,
@@ -490,7 +521,7 @@ describe("BuildingService", () => {
       const buildingCode = "SHARED123";
 
       // Code exists but in different organization
-      mockedPrisma.building.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.building.findFirst.mockResolvedValueOnce(null);
 
       const result = await buildingService.getBuildingByCode(
         buildingCode,
@@ -500,7 +531,7 @@ describe("BuildingService", () => {
       expect(result.success).toBe(true);
       expect(result.data).toBeNull();
 
-      expect(mockedPrisma.building.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
         where: {
           code: buildingCode,
           organizationId, // Ensures organization isolation
@@ -523,6 +554,7 @@ describe("BuildingService", () => {
           name: "Org1 Building",
           code: "ORG1BLDG",
           organizationId: org1Id,
+          totalApartments: 10,
         },
       ];
 
@@ -533,10 +565,11 @@ describe("BuildingService", () => {
           name: "Org2 Building",
           code: "ORG2BLDG",
           organizationId: org2Id,
+          totalApartments: 15,
         },
       ];
 
-      mockedPrisma.building.findMany
+      mockPrisma.building.findMany
         .mockResolvedValueOnce(org1Buildings as any)
         .mockResolvedValueOnce(org2Buildings as any);
 
@@ -547,7 +580,7 @@ describe("BuildingService", () => {
       expect(result2.data![0].name).toBe("Org2 Building");
 
       // Verify each call filters by the correct organization
-      expect(mockedPrisma.building.findMany).toHaveBeenNthCalledWith(1, {
+      expect(mockPrisma.building.findMany).toHaveBeenNthCalledWith(1, {
         where: {
           organizationId: org1Id,
           deletedAt: null,
@@ -556,7 +589,7 @@ describe("BuildingService", () => {
         orderBy: expect.any(Object),
       });
 
-      expect(mockedPrisma.building.findMany).toHaveBeenNthCalledWith(2, {
+      expect(mockPrisma.building.findMany).toHaveBeenNthCalledWith(2, {
         where: {
           organizationId: org2Id,
           deletedAt: null,
@@ -576,6 +609,7 @@ describe("BuildingService", () => {
         code: sameCode,
         organizationId: org1Id,
         name: "Org1 Building",
+        totalApartments: 12,
       };
 
       const mockBuilding2 = {
@@ -583,9 +617,10 @@ describe("BuildingService", () => {
         code: sameCode,
         organizationId: org2Id,
         name: "Org2 Building",
+        totalApartments: 18,
       };
 
-      mockedPrisma.building.findFirst
+      mockPrisma.building.findFirst
         .mockResolvedValueOnce(mockBuilding1 as any)
         .mockResolvedValueOnce(mockBuilding2 as any);
 

@@ -7,7 +7,7 @@ import type {
   User,
   Administrator,
   Owner,
-} from "@prisma/client/wasm";
+} from "@prisma/client";
 
 // Tenant Context Factories
 export const createMockAdministratorContext = (): TenantContext => ({

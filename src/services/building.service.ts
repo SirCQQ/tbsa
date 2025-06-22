@@ -6,6 +6,7 @@ export type CreateBuildingInput = {
   address: string;
   type: BuildingType;
   floors: number;
+  totalApartments: number;
   description?: string;
   readingDay?: number;
   organizationId: string;
@@ -77,10 +78,24 @@ class BuildingService {
     input: CreateBuildingInput
   ): Promise<BuildingServiceResult<Building>> {
     try {
+      // First, verify the organization exists
+      const orgExists = await prisma.organization.findUnique({
+        where: { id: input.organizationId },
+        select: { id: true, name: true, code: true },
+      });
+
+      if (!orgExists) {
+        return {
+          success: false,
+          error: `Organization with ID ${input.organizationId} does not exist`,
+        };
+      }
+
       // Generate unique building code
       const code = await this.generateUniqueBuildingCode(input.organizationId);
 
       // Create the building
+
       const building = await prisma.building.create({
         data: {
           name: input.name,
@@ -88,6 +103,7 @@ class BuildingService {
           address: input.address,
           type: input.type,
           floors: input.floors,
+          totalApartments: input.totalApartments,
           description: input.description,
           readingDay: input.readingDay || 15, // Default to 15th of month
           organizationId: input.organizationId,
@@ -108,7 +124,11 @@ class BuildingService {
         data: building,
       };
     } catch (error) {
-      console.error("Building creation error:", error);
+      // Log error details without complex object formatting to avoid Next.js source map bug
+      console.error(
+        "Building creation error:",
+        error instanceof Error ? error.message : String(error)
+      );
       return {
         success: false,
         error:

@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -20,35 +18,18 @@ import { SelectItem } from "@/components/ui/inputs/form-select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  createBuildingSchema,
+  type CreateBuildingFormData,
+} from "@/lib/validations/building";
+import {
+  useCreateBuilding,
+  isBuildingValidationError,
+  getBuildingValidationErrors,
+} from "@/hooks/api";
+import { BuildingType } from "@prisma/client";
 
-// Validation schema
-const buildingSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Numele clădirii este obligatoriu")
-    .max(100, "Numele nu poate depăși 100 de caractere"),
-  address: z
-    .string()
-    .min(1, "Adresa este obligatorie")
-    .max(200, "Adresa nu poate depăși 200 de caractere"),
-  type: z.enum(["RESIDENTIAL", "COMMERCIAL", "MIXED"], {
-    required_error: "Tipul clădirii este obligatoriu",
-  }),
-  floors: z
-    .number()
-    .min(1, "Numărul de etaje trebuie să fie cel puțin 1")
-    .max(50, "Numărul de etaje nu poate depăși 50"),
-  apartmentsPerFloor: z
-    .number()
-    .min(1, "Numărul de apartamente per etaj trebuie să fie cel puțin 1")
-    .max(20, "Numărul de apartamente per etaj nu poate depăși 20"),
-  description: z
-    .string()
-    .max(500, "Descrierea nu poate depăși 500 de caractere")
-    .optional(),
-});
-
-type BuildingFormData = z.infer<typeof buildingSchema>;
+// Building form data type is imported from validations
 
 interface AddBuildingModalProps {
   open: boolean;
@@ -57,53 +38,67 @@ interface AddBuildingModalProps {
 }
 
 const buildingTypeOptions = [
-  { value: "RESIDENTIAL", label: "Rezidențial" },
-  { value: "COMMERCIAL", label: "Comercial" },
-  { value: "MIXED", label: "Mixt (Rezidențial + Comercial)" },
+  { value: BuildingType.RESIDENTIAL, label: "Rezidențial" },
+  { value: BuildingType.COMMERCIAL, label: "Comercial" },
+  { value: BuildingType.MIXED, label: "Mixt (Rezidențial + Comercial)" },
 ];
 
 export function AddBuildingModal({
   open,
   onOpenChange,
-  organizationId: _orgId,
+  organizationId: _organizationId,
 }: AddBuildingModalProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Use a type that matches the form input (before Zod transformation)
+  type FormInput = {
+    name: string;
+    address: string;
+    type: BuildingType;
+    floors: string | number;
+    totalApartments: string | number;
+    description?: string;
+    readingDay?: string | number;
+  };
 
-  const form = useForm<BuildingFormData>({
-    resolver: zodResolver(buildingSchema),
+  const form = useForm<FormInput>({
+    resolver: zodResolver(createBuildingSchema),
     defaultValues: {
       name: "",
       address: "",
-      type: "RESIDENTIAL",
+      type: BuildingType.RESIDENTIAL,
       floors: 1,
-      apartmentsPerFloor: 1,
+      totalApartments: 1,
       description: "",
+      readingDay: 15,
+    } as CreateBuildingFormData,
+  });
+
+  const createBuilding = useCreateBuilding({
+    onSuccess: (data) => {
+      toast.success(
+        `Clădirea "${data.data.name}" a fost adăugată cu succes! Cod: ${data.data.code}`
+      );
+      form.reset();
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      if (isBuildingValidationError(error)) {
+        const validationErrors = getBuildingValidationErrors(error);
+        Object.entries(validationErrors).forEach(([field, message]) => {
+          form.setError(field as keyof CreateBuildingFormData, {
+            message,
+          });
+        });
+      } else {
+        toast.error(
+          "A apărut o eroare la crearea clădirii. Încercați din nou."
+        );
+      }
     },
   });
 
-  const onSubmit = async (data: BuildingFormData) => {
-    setIsSubmitting(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Building data:", data);
-
-      // Calculate total apartments
-      const totalApartments = data.floors * data.apartmentsPerFloor;
-
-      toast.success(
-        `Clădirea "${data.name}" a fost adăugată cu succes! (${totalApartments} apartamente)`
-      );
-
-      form.reset();
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error creating building:", error);
-      toast.error("A apărut o eroare la crearea clădirii. Încercați din nou.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = (data: FormInput) => {
+    // The Zod schema will transform the data to the correct types
+    createBuilding.mutate(data as CreateBuildingFormData);
   };
 
   const handleCancel = () => {
@@ -111,11 +106,9 @@ export function AddBuildingModal({
     onOpenChange(false);
   };
 
-  // Calculate total apartments dynamically
+  // Get floors for display
   const floors = form.watch("floors");
-  const apartmentsPerFloor = form.watch("apartmentsPerFloor");
-  const totalApartments =
-    floors && apartmentsPerFloor ? floors * apartmentsPerFloor : 0;
+  const floorsNum = typeof floors === "string" ? parseInt(floors, 10) : floors;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,33 +169,42 @@ export function AddBuildingModal({
                   type="number"
                   placeholder="Ex: 4"
                   min={1}
-                  max={50}
+                  max={100}
                   required
                 />
 
                 <ControlledInput
-                  name="apartmentsPerFloor"
-                  label="Apartamente per etaj"
+                  name="totalApartments"
+                  label="Total apartamente"
                   type="number"
-                  placeholder="Ex: 4"
+                  placeholder="Ex: 20"
                   min={1}
-                  max={20}
+                  max={120}
                   required
                 />
               </div>
 
-              {/* Total apartments calculation */}
-              {totalApartments > 0 && (
+              <ControlledInput
+                name="readingDay"
+                label="Ziua de citire"
+                type="number"
+                placeholder="15"
+                min={1}
+                max={31}
+                helperText="Ziua din lună când se fac citirile (1-31)"
+              />
+
+              {/* Building info */}
+              {floorsNum > 0 && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                      Total apartamente: {totalApartments}
+                      Clădire cu {floorsNum} etaj{floorsNum > 1 ? "e" : ""}
                     </span>
                   </div>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    Se vor crea automat {totalApartments} apartamente numerotate
-                    consecutiv
+                    Apartamentele vor fi adăugate separat după crearea clădirii
                   </p>
                 </div>
               )}
@@ -237,12 +239,16 @@ export function AddBuildingModal({
                 type="button"
                 variant="outline"
                 onClick={handleCancel}
-                disabled={isSubmitting}
+                disabled={createBuilding.isPending}
               >
                 Anulează
               </Button>
-              <Button type="submit" disabled={isSubmitting} borderRadius="full">
-                {isSubmitting ? (
+              <Button
+                type="submit"
+                disabled={createBuilding.isPending}
+                borderRadius="full"
+              >
+                {createBuilding.isPending ? (
                   <>
                     <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Se creează...

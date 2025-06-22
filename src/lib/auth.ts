@@ -209,15 +209,17 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.firstName = token.firstName;
-        session.user.lastName = token.lastName;
-        session.user.isVerified = token.isVerified;
-        session.user.permissions = token.permissions;
-        session.user.organizations = token.organizations;
-        session.user.roles = token.roles;
-        session.user.currentOrganizationId = token.currentOrganizationId;
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.firstName = (token.firstName as string) || "";
+        session.user.lastName = (token.lastName as string) || "";
+        session.user.isVerified = (token.isVerified as boolean) || false;
+        session.user.permissions = (token.permissions as string[]) || [];
+        session.user.organizations =
+          (token.organizations as OrganizationReference[]) || [];
+        session.user.roles = (token.roles as RoleCode[]) || [];
+        session.user.currentOrganizationId =
+          (token.currentOrganizationId as string) || null;
       }
       return session;
     },

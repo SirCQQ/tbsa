@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BuildingType } from "@prisma/client/wasm";
+import { BuildingType } from "@prisma/client";
 
 export const createBuildingSchema = z.object({
   name: z
@@ -14,19 +14,39 @@ export const createBuildingSchema = z.object({
     errorMap: () => ({ message: "Invalid building type" }),
   }),
   floors: z
-    .number()
-    .int("Floors must be a whole number")
-    .min(1, "Building must have at least 1 floor")
-    .max(100, "Building cannot have more than 100 floors"),
+    .union([z.string(), z.number()])
+    .transform((val) => (typeof val === "string" ? parseInt(val, 10) : val))
+    .refine((val) => !isNaN(val), "Floors must be a valid number")
+    .refine((val) => Number.isInteger(val), "Floors must be a whole number")
+    .refine((val) => val >= 1, "Building must have at least 1 floor")
+    .refine((val) => val <= 100, "Building cannot have more than 100 floors"),
+  totalApartments: z
+    .union([z.string(), z.number()])
+    .transform((val) => (typeof val === "string" ? parseInt(val, 10) : val))
+    .refine((val) => !isNaN(val), "Total apartments must be a valid number")
+    .refine(
+      (val) => Number.isInteger(val),
+      "Total apartments must be a whole number"
+    )
+    .refine((val) => val >= 1, "Building must have at least 1 apartment")
+    .refine(
+      (val) => val <= 120,
+      "Building cannot have more than 120 apartments"
+    ),
   description: z
     .string()
     .max(500, "Description must be less than 500 characters")
     .optional(),
   readingDay: z
-    .number()
-    .int("Reading day must be a whole number")
-    .min(1, "Reading day must be between 1 and 31")
-    .max(31, "Reading day must be between 1 and 31")
+    .union([z.string(), z.number()])
+    .transform((val) => (typeof val === "string" ? parseInt(val, 10) : val))
+    .refine((val) => !isNaN(val), "Reading day must be a valid number")
+    .refine(
+      (val) => Number.isInteger(val),
+      "Reading day must be a whole number"
+    )
+    .refine((val) => val >= 1, "Reading day must be between 1 and 31")
+    .refine((val) => val <= 31, "Reading day must be between 1 and 31")
     .optional(),
 });
 

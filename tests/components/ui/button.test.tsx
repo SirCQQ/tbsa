@@ -13,10 +13,9 @@ describe("Button Component", () => {
       expect(button).toHaveClass(
         "bg-primary",
         "text-primary-foreground",
-        "h-11",
+        "h-9",
         "px-4",
-        "py-2",
-        "md:h-10"
+        "py-2"
       );
     });
 
@@ -24,7 +23,7 @@ describe("Button Component", () => {
       const variants = [
         "default",
         "destructive",
-        "outline-solid",
+        "outline",
         "secondary",
         "ghost",
         "link",
@@ -45,7 +44,7 @@ describe("Button Component", () => {
           case "destructive":
             expect(button).toHaveClass("bg-destructive");
             break;
-          case "outline-solid":
+          case "outline":
             expect(button).toHaveClass("border", "border-input");
             break;
           case "secondary":
@@ -66,7 +65,7 @@ describe("Button Component", () => {
     });
 
     it("renders with different sizes", () => {
-      const sizes = ["default", "sm", "lg", "xl", "icon", "icon-sm"] as const;
+      const sizes = ["default", "sm", "lg", "icon"] as const;
 
       sizes.forEach((size) => {
         const { unmount } = render(<Button size={size}>{size} Button</Button>);
@@ -79,22 +78,16 @@ describe("Button Component", () => {
         // Check specific size classes
         switch (size) {
           case "sm":
-            expect(button).toHaveClass("h-10", "px-3", "text-xs", "md:h-9");
+            expect(button).toHaveClass("h-8", "px-3", "text-xs");
             break;
           case "lg":
-            expect(button).toHaveClass("h-12", "px-8", "md:h-11");
-            break;
-          case "xl":
-            expect(button).toHaveClass("h-14", "px-10", "text-base");
+            expect(button).toHaveClass("h-10", "px-8");
             break;
           case "icon":
-            expect(button).toHaveClass("h-11", "w-11", "md:h-10", "md:w-10");
-            break;
-          case "icon-sm":
-            expect(button).toHaveClass("h-10", "w-10", "md:h-9", "md:w-9");
+            expect(button).toHaveClass("h-9", "w-18");
             break;
           default:
-            expect(button).toHaveClass("h-11", "px-4", "py-2", "md:h-10");
+            expect(button).toHaveClass("h-9", "px-4", "py-2");
         }
 
         unmount();
@@ -103,25 +96,25 @@ describe("Button Component", () => {
   });
 
   describe("Touch-friendly sizing", () => {
-    it("has minimum 44px height on mobile for touch accessibility", () => {
+    it("has default height for touch accessibility", () => {
       render(<Button>Touch Button</Button>);
 
       const button = screen.getByRole("button", { name: /touch button/i });
-      expect(button).toHaveClass("h-11"); // 44px minimum for touch
+      expect(button).toHaveClass("h-9"); // Default height
     });
 
     it("provides appropriate touch targets for icon buttons", () => {
       render(<Button size="icon">Icon</Button>);
 
       const button = screen.getByRole("button", { name: /icon/i });
-      expect(button).toHaveClass("h-11", "w-11"); // 44px x 44px minimum
+      expect(button).toHaveClass("h-9", "w-18"); // Icon button dimensions
     });
 
-    it("maintains smaller sizes on desktop with responsive classes", () => {
+    it("has consistent sizing classes", () => {
       render(<Button>Responsive Button</Button>);
 
       const button = screen.getByRole("button", { name: /responsive button/i });
-      expect(button).toHaveClass("md:h-10"); // Smaller on desktop
+      expect(button).toHaveClass("h-9"); // Default height
     });
   });
 

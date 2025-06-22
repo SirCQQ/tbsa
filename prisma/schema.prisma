@@ -356,15 +356,16 @@ model RolePermission {
 
 /// Building model for managing properties
 model Building {
-  id             String       @id @default(uuid())
-  name           String // Building name/identifier
-  code           String // 6-8 character building code used by users to add apartments
-  address        String // Physical address
-  type           BuildingType
-  floors         Int // Number of floors
-  organizationId String       @map("organization_id")
-  description    String? // Additional building details
-  readingDay     Int          @default(15) @map("reading_day") // Day of the month (1-31) when readings should be collected
+  id              String       @id @default(uuid())
+  name            String // Building name/identifier
+  code            String // 6-8 character building code used by users to add apartments
+  address         String // Physical address
+  type            BuildingType
+  floors          Int // Number of floors
+  totalApartments Int          @default(1) @map("total_apartments") // Total number of apartments in the building
+  organizationId  String       @map("organization_id")
+  description     String? // Additional building details
+  readingDay      Int          @default(15) @map("reading_day") // Day of the month (1-31) when readings should be collected
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id])

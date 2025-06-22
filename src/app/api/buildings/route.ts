@@ -4,12 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { buildingService } from "@/services/building.service";
 import { createBuildingSchema } from "@/lib/validations/building";
 import { hasPermissionServerSide } from "@/lib/auth-helpers";
-import { ResourcesEnum, ActionsEnum } from "@prisma/client/wasm";
+import { ResourcesEnum, ActionsEnum } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Check authentication
     const session = await getServerSession(authOptions);
+    console.log("Session:", JSON.stringify(session, null, 2));
 
     if (!session?.user) {
       return NextResponse.json(
@@ -44,13 +45,19 @@ export async function POST(request: NextRequest) {
 
     // 4. Parse and validate request body
     const body = await request.json();
+    console.log("Request body:", JSON.stringify(body, null, 2));
+
     const validatedData = createBuildingSchema.parse(body);
+    console.log("Validated data:", JSON.stringify(validatedData, null, 2));
 
     // 5. Create building using service
-    const result = await buildingService.createBuilding({
+    const buildingInput = {
       ...validatedData,
       organizationId: session.user.currentOrganizationId,
-    });
+    };
+    console.log("Building input:", JSON.stringify(buildingInput, null, 2));
+
+    const result = await buildingService.createBuilding(buildingInput);
 
     if (!result.success) {
       return NextResponse.json(
@@ -80,7 +87,11 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Building creation API error:", error);
+    // Avoid complex object logging that triggers Next.js source map bugs
+    console.error(
+      "Building creation API error:",
+      error instanceof Error ? error.message : String(error)
+    );
 
     // Handle Zod validation errors
     if (error && typeof error === "object" && "issues" in error) {
