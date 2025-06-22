@@ -6,7 +6,7 @@ export default withAuth(
   function middleware(req: NextRequestWithAuth) {
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
-
+    console.log("\n\n\n\n\n\mmiddleware\n\n\n\n\n\n\n", { token });
     // Debug logging (remove in production)
     console.log("🚦 Middleware running for:", pathname);
     console.log("🔐 Token exists:", !!token);
@@ -95,6 +95,7 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
+        console.log("\n\n\n\n\n\ncallbacks\n\n\n\n\n\n\n", { token });
         const { pathname } = req.nextUrl;
 
         // Only run authorization check for protected routes
