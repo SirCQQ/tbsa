@@ -28,14 +28,14 @@ import { OrgBuildingsList } from "@/components/admin/org-buildings-list";
 import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { useState } from "react";
 import { StatCard } from "@/components/ui/stat-card";
-import { useParams } from "next/navigation";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+
+import { ActionsEnum, ResourcesEnum } from "@prisma/client";
 
 export default function OrganizationAdminPage() {
   const params = useParams();
   const orgId = params.orgId as string;
-
+  const router = useRouter();
   const [showAddBuilding, setShowAddBuilding] = useState(false);
   const [showGenerateInvite, setShowGenerateInvite] = useState(false);
 
@@ -200,7 +200,11 @@ export default function OrganizationAdminPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col space-y-3">
-                <PermissionGuardOr permissions={["buildings:mere"]}>
+                <PermissionGuardOr
+                  permissions={[
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`.toLowerCase(),
+                  ]}
+                >
                   <Button
                     onClick={() => setShowAddBuilding(true)}
                     borderRadius="full"
@@ -212,19 +216,9 @@ export default function OrganizationAdminPage() {
                 </PermissionGuardOr>
 
                 <PermissionGuardOr
-                  permissions={["buildings:read"]}
-                  fallback={
-                    <Button
-                      disabled
-                      variant="outline"
-                      borderRadius="full"
-                      className="w-full"
-                      title="Nu aveți permisiunea de a vizualiza clădirile"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Acces Restricționat
-                    </Button>
-                  }
+                  permissions={[
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`.toLowerCase(),
+                  ]}
                 >
                   <Button
                     variant="outline"
@@ -237,19 +231,10 @@ export default function OrganizationAdminPage() {
                 </PermissionGuardOr>
 
                 <PermissionGuardOr
-                  permissions={["buildings:update", "buildings:delete"]}
-                  fallback={
-                    <Button
-                      disabled
-                      variant="ghost"
-                      borderRadius="full"
-                      className="w-full"
-                      title="Nu aveți permisiunea de a configura clădirile"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Acces Restricționat
-                    </Button>
-                  }
+                  permissions={[
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`.toLowerCase(),
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`.toLowerCase(),
+                  ]}
                 >
                   <Button
                     variant="ghost"
@@ -355,34 +340,10 @@ export default function OrganizationAdminPage() {
         {/* Buildings List */}
         <PermissionGuardOr
           permissions={[
-            "buildings:read",
-            "buildings:create",
-            "buildings:update",
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`.toLowerCase(),
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`.toLowerCase(),
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`.toLowerCase(),
           ]}
-          fallback={
-            <Card className="backdrop-blur-md">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Shield className="h-12 w-12 text-muted-foreground mb-4" />
-                <Typography variant="h3" className="mb-2">
-                  Acces Restricționat
-                </Typography>
-                <Typography
-                  variant="p"
-                  className="text-muted-foreground text-center mb-4"
-                >
-                  Nu aveți permisiunile necesare pentru a vizualiza clădirile.
-                  Contactați administratorul pentru a obține acces.
-                </Typography>
-                <Alert className="max-w-md">
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    Permisiuni necesare: buildings:read, buildings:create sau
-                    buildings:update
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          }
         >
           <OrgBuildingsList
             organizationId={orgId}
@@ -396,8 +357,7 @@ export default function OrganizationAdminPage() {
               console.log("Delete building:", building);
             }}
             onViewBuilding={(building) => {
-              // TODO: Implement view building details functionality
-              console.log("View building:", building);
+              router.push(`/org/${orgId}/buildings/${building.id}`);
             }}
           />
         </PermissionGuardOr>
