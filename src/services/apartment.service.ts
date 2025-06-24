@@ -6,6 +6,34 @@ type CreateApartmentInput = CreateApartmentFormData & {
   organizationId: string;
 };
 
+type CreateBulkApartmentsInput = {
+  buildingId: string;
+  organizationId: string;
+  apartments: {
+    number: string;
+    floor: number;
+    isOccupied?: boolean;
+    occupantCount?: number;
+    surface?: number;
+    description?: string;
+  }[];
+};
+
+type BulkCreationResult = {
+  success: boolean;
+  created: Apartment[];
+  errors: {
+    apartment: {
+      number: string;
+      floor: number;
+    };
+    error: string;
+  }[];
+  total: number;
+  successCount: number;
+  errorCount: number;
+};
+
 type ServiceResult<T> = {
   success: boolean;
   data?: T;
@@ -102,6 +130,132 @@ export class ApartmentService {
       return {
         success: false,
         error: "Failed to create apartment",
+      };
+    }
+  }
+
+  /**
+   * Create multiple apartments in bulk
+   */
+  async createBulkApartments(
+    input: CreateBulkApartmentsInput
+  ): Promise<ServiceResult<BulkCreationResult>> {
+    try {
+      // Verify building exists and belongs to organization
+      const building = await prisma.building.findFirst({
+        where: {
+          id: input.buildingId,
+          organizationId: input.organizationId,
+        },
+      });
+
+      if (!building) {
+        return {
+          success: false,
+          error: "Building not found or does not belong to your organization",
+        };
+      }
+
+      const results: BulkCreationResult = {
+        success: true,
+        created: [],
+        errors: [],
+        total: input.apartments.length,
+        successCount: 0,
+        errorCount: 0,
+      };
+
+      // Get existing apartment numbers to check for duplicates
+      const existingApartments = await prisma.apartment.findMany({
+        where: {
+          buildingId: input.buildingId,
+        },
+        select: {
+          number: true,
+        },
+      });
+
+      const existingNumbers = new Set(
+        existingApartments.map((apt) => apt.number)
+      );
+
+      // Process each apartment
+      for (const apartmentData of input.apartments) {
+        try {
+          // Check for duplicate apartment number
+          if (existingNumbers.has(apartmentData.number)) {
+            results.errors.push({
+              apartment: {
+                number: apartmentData.number,
+                floor: apartmentData.floor,
+              },
+              error: `Apartment number ${apartmentData.number} already exists in this building`,
+            });
+            results.errorCount++;
+            continue;
+          }
+
+          // Validate floor against building's max floors
+          if (apartmentData.floor > building.floors) {
+            results.errors.push({
+              apartment: {
+                number: apartmentData.number,
+                floor: apartmentData.floor,
+              },
+              error: `Floor ${apartmentData.floor} exceeds building's maximum floors (${building.floors})`,
+            });
+            results.errorCount++;
+            continue;
+          }
+
+          // Create apartment
+          const apartment = await prisma.apartment.create({
+            data: {
+              number: apartmentData.number,
+              floor: apartmentData.floor,
+              buildingId: input.buildingId,
+              isOccupied: apartmentData.isOccupied || false,
+              occupantCount: apartmentData.occupantCount || 0,
+              surface: apartmentData.surface,
+              description: apartmentData.description,
+            },
+          });
+
+          results.created.push(apartment);
+          results.successCount++;
+
+          // Add to existing numbers to prevent duplicates within this batch
+          existingNumbers.add(apartmentData.number);
+        } catch (error) {
+          results.errors.push({
+            apartment: {
+              number: apartmentData.number,
+              floor: apartmentData.floor,
+            },
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+          results.errorCount++;
+        }
+      }
+
+      // If no apartments were created, consider it a failure
+      if (results.successCount === 0) {
+        return {
+          success: false,
+          error: "No apartments could be created",
+          data: results,
+        };
+      }
+
+      return {
+        success: true,
+        data: results,
+      };
+    } catch (error) {
+      console.error("Error creating bulk apartments:", error);
+      return {
+        success: false,
+        error: "Failed to create apartments",
       };
     }
   }

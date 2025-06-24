@@ -26,10 +26,11 @@ export function PermissionGuard({
   andPermissions,
   withRedirect = false,
   redirectUrl = "/auth/login",
-  fallback = <div>Nu aveți permisiunea de a accesa această pagină</div>,
+  fallback = null,
   loading = null,
 }: PermissionGuardProps) {
   const { user, isLoading, isAuthenticated, hasPermission } = useCurrentUser();
+
   const router = useRouter();
 
   // Helper function to parse permission string (resource:action format)

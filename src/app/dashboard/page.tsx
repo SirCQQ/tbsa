@@ -136,7 +136,7 @@ export default function DashboardPage() {
                 </div>
 
                 <Button
-                  onClick={() => router.push(`/org/${org.code}/admin`)}
+                  onClick={() => router.push(`/org/${org.code}/dashboard`)}
                   borderRadius="full"
                   className="w-full"
                 >

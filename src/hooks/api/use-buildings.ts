@@ -17,6 +17,7 @@ import {
 import { getErrorMessage } from "@/lib/axios";
 import type { CreateBuildingFormData } from "@/lib/validations/building";
 import type { AxiosError } from "axios";
+import { error } from "console";
 
 // Query keys
 export const buildingQueryKeys = {
@@ -114,20 +115,22 @@ export function useCreateBuilding(
   >
 ) {
   const queryClient = useQueryClient();
-
+  const { onSuccess, onError, ...rest } = options || {};
   return useMutation({
     mutationFn: (data: CreateBuildingFormData) => buildingsApi.create(data),
-    onSuccess: (data) => {
+    onSuccess: (data, variables, context) => {
       // Invalidate and refetch buildings list
       queryClient.invalidateQueries({ queryKey: buildingQueryKeys.lists() });
 
       // Optionally add the new building to the cache
       queryClient.setQueryData(buildingQueryKeys.detail(data.data.id), data);
+      onSuccess?.(data, variables, context);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
       console.error("Create building error:", getErrorMessage(error));
+      onError?.(error, variables, context);
     },
-    ...options,
+    ...rest,
   });
 }
 

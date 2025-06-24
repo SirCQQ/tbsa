@@ -33,6 +33,8 @@ import { StatCard } from "@/components/ui/stat-card";
 import { AddApartmentModal } from "@/components/apartments/add-apartment-modal";
 import { GenerateApartmentsModal } from "@/components/apartments/generate-apartments-modal";
 import { ActionsEnum, ResourcesEnum } from "@prisma/client";
+import { ICON_COLOR_MAPPINGS } from "@/lib/constants/icon-colors";
+import { PageNavigation } from "@/components/ui/page-navigation";
 
 export default function BuildingDetailsPage() {
   const params = useParams();
@@ -148,38 +150,50 @@ export default function BuildingDetailsPage() {
       container="7xl"
       className="py-24"
     >
-      <div className="w-full space-y-8">
+      <div className="w-full space-y-6 sm:space-y-8">
         {/* Header */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.back()}
-                className="backdrop-blur-md"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Înapoi
-              </Button>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Breadcrumb Navigation */}
+          <PageNavigation
+            title={`${building.name} - Detalii Clădire`}
+            className="mb-4"
+          />
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col gap-2">
               <div>
-                <Typography variant="h1" gradient="blue">
+                <Typography
+                  variant="h1"
+                  gradient="blue"
+                  className="text-2xl sm:text-3xl lg:text-4xl"
+                >
                   {building.name}
                 </Typography>
-                <Typography variant="p" className="text-muted-foreground">
+                <Typography
+                  variant="p"
+                  className="text-muted-foreground text-sm sm:text-base"
+                >
                   Cod: {building.code}
                 </Typography>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Action Buttons - Stack on mobile */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <PermissionGuardOr
                 permissions={[
                   `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
                 ]}
               >
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editează
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Edit
+                    className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.buildingPage.edit}`}
+                  />
+                  <span className="sm:inline">Editează</span>
                 </Button>
               </PermissionGuardOr>
               <PermissionGuardOr
@@ -187,9 +201,15 @@ export default function BuildingDetailsPage() {
                   `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
                 ]}
               >
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Setări
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Settings
+                    className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.buildingPage.settings}`}
+                  />
+                  <span className="sm:inline">Setări</span>
                 </Button>
               </PermissionGuardOr>
             </div>
@@ -198,49 +218,63 @@ export default function BuildingDetailsPage() {
           {/* Building Details Card */}
           <Card className="backdrop-blur-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Building2
+                  className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.buildingPage.building}`}
+                />
                 Informații Clădire
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-muted-foreground">
+                  <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                     TIP CLĂDIRE
                   </h4>
-                  <p className="font-semibold">{building.type}</p>
+                  <p className="font-semibold text-sm sm:text-base">
+                    {building.type}
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-muted-foreground">
+                  <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                     ETAJE
                   </h4>
-                  <p className="font-semibold">{building.floors}</p>
+                  <p className="font-semibold text-sm sm:text-base">
+                    {building.floors}
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-muted-foreground">
+                  <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                     ZI CITIRE
                   </h4>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Ziua {building.readingDay} din lună</span>
+                    <Calendar
+                      className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.buildingPage.calendar}`}
+                    />
+                    <span className="text-sm sm:text-base">
+                      Ziua {building.readingDay} din lună
+                    </span>
                   </div>
                 </div>
-                <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                  <h4 className="font-medium text-sm text-muted-foreground">
+                <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                  <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                     ADRESĂ
                   </h4>
                   <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span>{building.address}</span>
+                    <MapPin
+                      className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.buildingPage.address} mt-0.5`}
+                    />
+                    <span className="text-sm sm:text-base">
+                      {building.address}
+                    </span>
                   </div>
                 </div>
                 {building.description && (
-                  <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                  <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       DESCRIERE
                     </h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {building.description}
                     </p>
                   </div>
@@ -250,19 +284,21 @@ export default function BuildingDetailsPage() {
           </Card>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Stats Overview - Responsive grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <StatCard
             title="Total Apartamente"
             value={building.totalApartments.toString()}
             description="Unități locative"
             icon={Home}
+            iconColor={ICON_COLOR_MAPPINGS.buildingPage.totalApartments}
           />
           <StatCard
             title="Apartamente Ocupate"
             value={building.occupiedApartments.toString()}
             description="Unități cu proprietari"
             icon={CheckCircle2}
+            iconColor={ICON_COLOR_MAPPINGS.buildingPage.occupiedApartments}
             trend={{
               value: Math.round(
                 (building.occupiedApartments / building.totalApartments) * 100
@@ -276,20 +312,24 @@ export default function BuildingDetailsPage() {
             value={building.vacantApartments.toString()}
             description="Unități disponibile"
             icon={XCircle}
+            iconColor={ICON_COLOR_MAPPINGS.buildingPage.vacantApartments}
           />
           <StatCard
             title="Etaje"
             value={building.floors.toString()}
             description="Nivele clădire"
             icon={Building2}
+            iconColor={ICON_COLOR_MAPPINGS.buildingPage.floors}
           />
         </div>
 
         {/* Apartments by Floor */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <Typography variant="h2">Apartamente pe Etaje</Typography>
-            <div className="flex items-center gap-2">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <Typography variant="h2" className="text-xl sm:text-2xl">
+              Apartamente pe Etaje
+            </Typography>
+            <div className="flex flex-col sm:flex-row gap-2">
               <PermissionGuardOr
                 permissions={[
                   `${ResourcesEnum.APARTMENTS}:${ActionsEnum.CREATE}`,
@@ -299,9 +339,15 @@ export default function BuildingDetailsPage() {
                   size="sm"
                   variant="outline"
                   onClick={() => setShowGenerateApartments(true)}
+                  className="w-full sm:w-auto"
                 >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Generează Apartamente
+                  <Zap
+                    className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.buildingPage.generate}`}
+                  />
+                  <span className="hidden sm:inline">
+                    Generează Apartamente
+                  </span>
+                  <span className="sm:hidden">Generează</span>
                 </Button>
               </PermissionGuardOr>
               <PermissionGuardOr
@@ -309,9 +355,16 @@ export default function BuildingDetailsPage() {
                   `${ResourcesEnum.APARTMENTS}:${ActionsEnum.CREATE}`,
                 ]}
               >
-                <Button size="sm" onClick={() => setShowAddApartment(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adaugă Apartament
+                <Button
+                  size="sm"
+                  onClick={() => setShowAddApartment(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus
+                    className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.buildingPage.add}`}
+                  />
+                  <span className="hidden sm:inline">Adaugă Apartament</span>
+                  <span className="sm:hidden">Adaugă</span>
                 </Button>
               </PermissionGuardOr>
             </div>
@@ -325,18 +378,21 @@ export default function BuildingDetailsPage() {
               return (
                 <Card key={floor} className="backdrop-blur-md">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{floorName}</span>
-                      <Badge variant="secondary">
+                    <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <span className="text-lg sm:text-xl">{floorName}</span>
+                      <Badge
+                        variant="secondary"
+                        className="self-start sm:self-auto"
+                      >
                         {apartments.length} apartamente
                       </Badge>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm">
                       Apartamente de la etajul {floor === 0 ? "parter" : floor}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                       {apartments.map((apartment) => (
                         <PermissionGuardOr
                           key={apartment.id}
@@ -351,16 +407,16 @@ export default function BuildingDetailsPage() {
                                   : "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950"
                               }`}
                             >
-                              <CardContent className="p-4">
+                              <CardContent className="p-3 sm:p-4">
                                 <div className="flex items-center justify-between mb-2">
-                                  <span className="font-semibold">
+                                  <span className="font-semibold text-sm">
                                     Ap. {apartment.number}
                                   </span>
                                   <div className="flex items-center gap-1">
                                     {apartment.isOccupied ? (
-                                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                      <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                                     ) : (
-                                      <XCircle className="h-4 w-4 text-orange-600" />
+                                      <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
                                     )}
                                   </div>
                                 </div>
@@ -383,8 +439,8 @@ export default function BuildingDetailsPage() {
                                     <div>
                                       Ocupanți: {apartment.occupantCount}{" "}
                                       {apartment.occupantCount === 1
-                                        ? "persoană"
-                                        : "persoane"}
+                                        ? "pers."
+                                        : "pers."}
                                     </div>
                                   )}
                                   {apartment.surface && (
@@ -407,16 +463,16 @@ export default function BuildingDetailsPage() {
                               )
                             }
                           >
-                            <CardContent className="p-4">
+                            <CardContent className="p-3 sm:p-4">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="font-semibold">
+                                <span className="font-semibold text-sm">
                                   Ap. {apartment.number}
                                 </span>
                                 <div className="flex items-center gap-1">
                                   {apartment.isOccupied ? (
-                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                                   ) : (
-                                    <XCircle className="h-4 w-4 text-orange-600" />
+                                    <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
                                   )}
                                 </div>
                               </div>
@@ -437,14 +493,14 @@ export default function BuildingDetailsPage() {
                                   <div>
                                     Ocupanți: {apartment.occupantCount}{" "}
                                     {apartment.occupantCount === 1
-                                      ? "persoană"
-                                      : "persoane"}
+                                      ? "pers."
+                                      : "pers."}
                                   </div>
                                 )}
                                 {apartment.surface && (
                                   <div>Suprafață: {apartment.surface} m²</div>
                                 )}
-                                <div className="text-primary text-xs font-medium pt-1">
+                                <div className="text-primary text-xs font-medium pt-1 hidden sm:block">
                                   Click pentru detalii →
                                 </div>
                               </div>

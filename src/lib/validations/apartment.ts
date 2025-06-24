@@ -72,5 +72,49 @@ export const apartmentIdSchema = z.object({
   id: z.string().uuid("ID-ul apartamentului trebuie să fie un UUID valid"),
 });
 
+export const createBulkApartmentsSchema = z.object({
+  buildingId: z.string().uuid("ID-ul clădirii trebuie să fie un UUID valid"),
+  apartments: z
+    .array(
+      z.object({
+        number: z
+          .string()
+          .min(1, "Numărul apartamentului este obligatoriu")
+          .max(10, "Numărul apartamentului nu poate depăși 10 caractere")
+          .regex(
+            /^[A-Za-z0-9]+$/,
+            "Numărul apartamentului poate conține doar litere și cifre"
+          ),
+        floor: z
+          .number()
+          .int("Etajul trebuie să fie un număr întreg")
+          .min(0, "Etajul nu poate fi negativ")
+          .max(50, "Etajul nu poate depăși 50"),
+        isOccupied: z.boolean().optional().default(false),
+        occupantCount: z
+          .number()
+          .int("Numărul de ocupanți trebuie să fie un număr întreg")
+          .min(0, "Numărul de ocupanți nu poate fi negativ")
+          .max(20, "Numărul de ocupanți nu poate depăși 20")
+          .optional()
+          .default(0),
+        surface: z
+          .number()
+          .positive("Suprafața trebuie să fie mai mare decât 0")
+          .max(1000, "Suprafața nu poate depăși 1000 m²")
+          .optional(),
+        description: z
+          .string()
+          .max(500, "Descrierea nu poate depăși 500 de caractere")
+          .optional(),
+      })
+    )
+    .min(1, "Trebuie să existe cel puțin un apartament")
+    .max(500, "Nu se pot crea mai mult de 500 de apartamente odată"),
+});
+
 export type CreateApartmentFormData = z.infer<typeof createApartmentSchema>;
 export type UpdateApartmentFormData = z.infer<typeof updateApartmentSchema>;
+export type CreateBulkApartmentsFormData = z.infer<
+  typeof createBulkApartmentsSchema
+>;

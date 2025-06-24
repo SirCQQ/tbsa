@@ -1,5 +1,8 @@
 import { api } from "@/lib/axios";
-import type { CreateApartmentFormData } from "@/lib/validations/apartment";
+import type {
+  CreateApartmentFormData,
+  CreateBulkApartmentsFormData,
+} from "@/lib/validations/apartment";
 
 // API Response Types
 export type ApartmentResponse = {
@@ -32,6 +35,24 @@ export type ApartmentErrorResponse = {
     field: string;
     message: string;
   }>;
+};
+
+export type BulkCreationResponse = {
+  success: true;
+  message: string;
+  data: {
+    total: number;
+    successCount: number;
+    errorCount: number;
+    created: ApartmentResponse[];
+    errors: Array<{
+      apartment: {
+        number: string;
+        floor: number;
+      };
+      error: string;
+    }>;
+  };
 };
 
 // API Functions
@@ -81,6 +102,14 @@ export const apartmentsApi = {
       success: true;
       message: string;
     }>(`/apartments/${id}`);
+    return response.data;
+  },
+
+  // Bulk create apartments
+  createBulk: async (
+    data: CreateBulkApartmentsFormData
+  ): Promise<BulkCreationResponse> => {
+    const response = await api.put<BulkCreationResponse>("/apartments", data);
     return response.data;
   },
 };

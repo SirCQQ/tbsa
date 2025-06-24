@@ -82,11 +82,7 @@ export default withAuth(
         const { pathname } = req.nextUrl;
 
         // Only run authorization check for protected routes
-        if (
-          pathname.startsWith("/dashboard") ||
-          pathname.startsWith("/org/") ||
-          pathname.startsWith("/admin")
-        ) {
+        if (pathname.startsWith("/dashboard") || pathname.startsWith("/org/")) {
           return !!token;
         }
 
@@ -103,6 +99,5 @@ export const config = {
     "/dashboard/:path*",
     "/auth/:path*",
     "/org/:path*",
-    "/admin/:path*",
   ],
 };

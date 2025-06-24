@@ -17,9 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { usePageTitle } from "@/components/ui/page-navigation";
+import { Typography } from "../ui/typography";
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const pageTitle = usePageTitle();
   const {
     user,
     isLoading,
@@ -41,8 +44,8 @@ export function Header() {
     <header className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className=" w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo/App Name - Fixed width for consistent spacing */}
-          <div className="flex items-center space-x-2 flex-shrink-0 w-24 md:w-32">
+          {/* Logo/App Name and Mobile Page Title */}
+          <div className="flex items-center space-x-3 flex-shrink-0">
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">
@@ -53,6 +56,19 @@ export function Header() {
                 TBSA
               </span>
             </Link>
+
+            {/* Mobile Page Title - Show when authenticated and close to logo */}
+            {isAuthenticated && (
+              <div className="lg:hidden">
+                <Typography
+                  variant="h3"
+                  className="ml-2 truncate max-w-[200px] "
+                  gradient="blue"
+                >
+                  {pageTitle}
+                </Typography>
+              </div>
+            )}
           </div>
 
           {/* Desktop Navigation - Centered */}

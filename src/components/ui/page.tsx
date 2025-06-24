@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-const pageVariants = cva("min-h-screen w-full", {
+const pageVariants = cva("min-h-screen w-full py-24", {
   variants: {
     display: {
       block: "block",
@@ -118,11 +118,11 @@ const pageVariants = cva("min-h-screen w-full", {
         "bg-gradient-radial from-muted/20 at-center to-background",
       // Multi-directional sophisticated gradients
       "gradient-aurora":
-        "bg-gradient-to-br from-purple-50/30 via-pink-50/20 via-blue-50/25 to-cyan-50/30 dark:from-purple-950/20 dark:via-pink-950/10 dark:via-blue-950/15 dark:to-cyan-950/20",
+        "bg-gradient-to-br from-purple-50/30 via-pink-50/30  to-cyan-50/30 dark:from-purple-950/20 dark:via-pink-950/10 dark:via-blue-950/15 dark:to-cyan-950/20",
       "gradient-northern":
-        "bg-gradient-to-br from-indigo-50/40 via-blue-50/30 via-cyan-50/25 to-teal-50/35 dark:from-indigo-950/30 dark:via-blue-950/20 dark:via-cyan-950/15 dark:to-teal-950/25",
+        "bg-gradient-to-br from-indigo-50/40 via-blue-50/30  to-teal-50/35 dark:from-indigo-950/30 dark:via-blue-950/20 dark:via-cyan-950/15 dark:to-teal-950/25",
       "gradient-cosmic":
-        "bg-gradient-to-br from-violet-50/35 via-purple-50/25 via-indigo-50/30 to-blue-50/35 dark:from-violet-950/25 dark:via-purple-950/15 dark:via-indigo-950/20 dark:to-blue-950/25",
+        "bg-gradient-to-br from-violet-50/35 via-purple-50/30  to-blue-50/35 dark:from-violet-950/25 dark:via-purple-950/15 dark:via-indigo-950/20 dark:to-blue-950/25",
       // Animated gradients (subtle animation)
       "gradient-wave":
         "bg-gradient-to-r from-blue-50/30 via-cyan-50/40 via-blue-50/30 to-cyan-50/40 dark:from-blue-950/20 dark:via-cyan-950/30 dark:via-blue-950/20 dark:to-cyan-950/30 bg-[length:200%_100%] animate-gradient-x",

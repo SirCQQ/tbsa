@@ -11,9 +11,13 @@ import {
   type GetApartmentsResponse,
   type ApartmentErrorResponse,
   type ApartmentResponse,
+  type BulkCreationResponse,
 } from "@/lib/api/apartments";
 import { getErrorMessage } from "@/lib/axios";
-import type { CreateApartmentFormData } from "@/lib/validations/apartment";
+import type {
+  CreateApartmentFormData,
+  CreateBulkApartmentsFormData,
+} from "@/lib/validations/apartment";
 import type { AxiosError } from "axios";
 import { buildingQueryKeys } from "./use-buildings";
 
@@ -245,4 +249,67 @@ export function getApartmentValidationErrors(
   });
 
   return errors;
+}
+
+// Bulk create apartments mutation hook
+export function useCreateBulkApartments(
+  options?: UseMutationOptions<
+    BulkCreationResponse,
+    AxiosError<ApartmentErrorResponse>,
+    CreateBulkApartmentsFormData
+  >
+) {
+  const queryClient = useQueryClient();
+  const { onSuccess, onError, ...rest } = options || {};
+
+  return useMutation({
+    mutationFn: (data: CreateBulkApartmentsFormData) =>
+      apartmentsApi.createBulk(data),
+    onSuccess: (response, variables, context) => {
+      // Invalidate apartments list for the specific building
+      queryClient.invalidateQueries({
+        queryKey: apartmentQueryKeys.byBuilding(variables.buildingId),
+      });
+
+      // Invalidate all apartment lists (including organization-wide lists)
+      queryClient.invalidateQueries({
+        queryKey: apartmentQueryKeys.lists(),
+      });
+
+      // Invalidate the specific building detail (apartment count may have changed)
+      queryClient.invalidateQueries({
+        queryKey: buildingQueryKeys.detail(variables.buildingId),
+      });
+
+      // Invalidate building lists
+      queryClient.invalidateQueries({
+        queryKey: buildingQueryKeys.all,
+      });
+
+      // Invalidate any generic apartment queries
+      queryClient.invalidateQueries({
+        queryKey: apartmentQueryKeys.all,
+      });
+
+      // Add all newly created apartments to the cache
+      response.data.created.forEach((apartment) => {
+        queryClient.setQueryData(apartmentQueryKeys.detail(apartment.id), {
+          success: true,
+          message: "Apartment retrieved successfully",
+          data: apartment,
+        } as CreateApartmentResponse);
+      });
+
+      // Call user-provided onSuccess callback if provided
+      onSuccess?.(response, variables, context);
+    },
+    onError: (error, variables, context) => {
+      console.error("Bulk create apartments error:", getErrorMessage(error));
+
+      // Call user-provided onError callback if provided
+      onError?.(error, variables, context);
+    },
+    // Spread other options but exclude onSuccess and onError to avoid overriding
+    ...rest,
+  });
 }

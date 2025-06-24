@@ -31,8 +31,9 @@ import { StatCard } from "@/components/ui/stat-card";
 import { useParams, useRouter } from "next/navigation";
 
 import { ActionsEnum, ResourcesEnum } from "@prisma/client";
+import { ICON_COLOR_MAPPINGS } from "@/lib/constants/icon-colors";
 
-export default function OrganizationAdminPage() {
+export default function OrganizationDashboardPage() {
   const params = useParams();
   const orgId = params.orgId as string;
   const router = useRouter();
@@ -65,16 +66,20 @@ export default function OrganizationAdminPage() {
       container="7xl"
       className="py-24"
     >
-      <div className="w-full space-y-8">
+      <div className="w-full space-y-6 sm:space-y-8">
         {/* Header with Organization Info */}
-        <div className="space-y-6">
-          <div className="text-center space-y-4">
-            <Typography variant="h1" gradient="blue">
-              Panou Administrator
+        <div className="space-y-4 sm:space-y-6">
+          <div className="text-center space-y-2 sm:space-y-4">
+            <Typography
+              variant="h1"
+              gradient="blue"
+              className="text-2xl sm:text-3xl lg:text-4xl"
+            >
+              Dashboard Organizație
             </Typography>
             <Typography
               variant="p"
-              className="text-muted-foreground max-w-2xl mx-auto"
+              className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base px-4 sm:px-0"
             >
               Gestionați clădirile, utilizatorii și codurile de invitație pentru
               organizația dumneavoastră
@@ -86,7 +91,9 @@ export default function OrganizationAdminPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-primary" />
+                  <Crown
+                    className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.adminDashboard.stats}`}
+                  />
                   Informații Organizație
                 </div>
                 <Badge
@@ -118,7 +125,9 @@ export default function OrganizationAdminPage() {
                     DATA ÎNFIINȚĂRII
                   </h4>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Calendar
+                      className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.adminDashboard.stats}`}
+                    />
                     <span>
                       {new Date(organization.createdAt).toLocaleDateString(
                         "ro-RO"
@@ -131,7 +140,9 @@ export default function OrganizationAdminPage() {
                     ADRESĂ
                   </h4>
                   <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <MapPin
+                      className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.adminDashboard.stats} mt-0.5`}
+                    />
                     <span>{organization.address}</span>
                   </div>
                 </div>
@@ -150,12 +161,13 @@ export default function OrganizationAdminPage() {
           </Card>
         </div>
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard
             title="Clădiri Totale"
             value={organization.totalBuildings.toString()}
             description="Clădiri administrate"
             icon={Building2}
+            iconColor={ICON_COLOR_MAPPINGS.adminDashboard.buildings}
             trend={{
               value: 1,
               label: "adăugată luna aceasta",
@@ -167,6 +179,7 @@ export default function OrganizationAdminPage() {
             value={organization.totalUsers.toString()}
             description="Utilizatori înregistrați"
             icon={Users}
+            iconColor={ICON_COLOR_MAPPINGS.adminDashboard.users}
             trend={{ value: 12, label: "noi utilizatori", type: "positive" }}
           />
           <StatCard
@@ -174,6 +187,7 @@ export default function OrganizationAdminPage() {
             value={organization.activeInvites.toString()}
             description="Invitații în așteptare"
             icon={UserPlus}
+            iconColor={ICON_COLOR_MAPPINGS.adminDashboard.add}
             trend={{ value: 3, label: "expirate recent", type: "negative" }}
           />
           <StatCard
@@ -181,19 +195,22 @@ export default function OrganizationAdminPage() {
             value={organization.totalApartments.toString()}
             description="Unități locative"
             icon={BarChart3}
+            iconColor={ICON_COLOR_MAPPINGS.adminDashboard.stats}
             trend={{ value: 5, label: "adăugate recent", type: "positive" }}
           />
         </div>
         {/* Main Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Building Management */}
           <Card className="backdrop-blur-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Building2
+                  className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.adminDashboard.buildings}`}
+                />
                 Gestionare Clădiri
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Adăugați și gestionați clădirile din organizația{" "}
                 {organization.name}
               </CardDescription>
@@ -209,23 +226,29 @@ export default function OrganizationAdminPage() {
                     onClick={() => setShowAddBuilding(true)}
                     borderRadius="full"
                     className="w-full"
+                    variant="primary"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus
+                      className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.add}`}
+                    />
                     Adaugă Clădire Nouă
                   </Button>
                 </PermissionGuardOr>
 
                 <PermissionGuardOr
                   permissions={[
-                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`.toLowerCase(),
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
                   ]}
                 >
                   <Button
                     variant="outline"
                     borderRadius="full"
                     className="w-full"
+                    onClick={() => router.push(`/org/${orgId}/buildings`)}
                   >
-                    <Building2 className="h-4 w-4 mr-2" />
+                    <Building2
+                      className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.buildings}`}
+                    />
                     Vezi Toate Clădirile ({organization.totalBuildings})
                   </Button>
                 </PermissionGuardOr>
@@ -241,7 +264,9 @@ export default function OrganizationAdminPage() {
                     borderRadius="full"
                     className="w-full"
                   >
-                    <Settings className="h-4 w-4 mr-2" />
+                    <Settings
+                      className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.manage}`}
+                    />
                     Configurări Clădiri
                   </Button>
                 </PermissionGuardOr>
@@ -252,11 +277,13 @@ export default function OrganizationAdminPage() {
           {/* Invite Code Management */}
           <Card className="backdrop-blur-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <UserPlus
+                  className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.adminDashboard.add}`}
+                />
                 Coduri de Invitație
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Generați coduri de invitație pentru utilizatori noi în
                 organizație
               </CardDescription>
@@ -267,8 +294,11 @@ export default function OrganizationAdminPage() {
                   onClick={() => setShowGenerateInvite(true)}
                   borderRadius="full"
                   className="w-full"
+                  variant="primary"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus
+                    className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.add}`}
+                  />
                   Generează Cod Invitație
                 </Button>
                 <Button
@@ -276,11 +306,15 @@ export default function OrganizationAdminPage() {
                   borderRadius="full"
                   className="w-full"
                 >
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users
+                    className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.users}`}
+                  />
                   Vezi Coduri Active ({organization.activeInvites})
                 </Button>
                 <Button variant="ghost" borderRadius="full" className="w-full">
-                  <BarChart3 className="h-4 w-4 mr-2" />
+                  <BarChart3
+                    className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.stats}`}
+                  />
                   Rapoarte Invitații
                 </Button>
               </div>
@@ -290,23 +324,29 @@ export default function OrganizationAdminPage() {
         {/* Organization Management */}
         <Card className="backdrop-blur-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Settings
+                className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.adminDashboard.manage}`}
+              />
               Administrare Organizație
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Gestionați setările și configurările organizației
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Button
                 variant="outline"
                 borderRadius="full"
                 className="h-auto p-4 flex-col"
               >
-                <Users className="h-6 w-6 mb-2" />
-                <span className="font-medium">Gestionare Utilizatori</span>
+                <Users
+                  className={`h-6 w-6 mb-2 ${ICON_COLOR_MAPPINGS.adminDashboard.users}`}
+                />
+                <span className="font-medium text-sm sm:text-base">
+                  Gestionare Utilizatori
+                </span>
                 <span className="text-xs text-muted-foreground">
                   {organization.totalUsers} utilizatori
                 </span>
@@ -316,8 +356,12 @@ export default function OrganizationAdminPage() {
                 borderRadius="full"
                 className="h-auto p-4 flex-col"
               >
-                <Crown className="h-6 w-6 mb-2" />
-                <span className="font-medium">Plan Abonament</span>
+                <Crown
+                  className={`h-6 w-6 mb-2 ${ICON_COLOR_MAPPINGS.adminDashboard.stats}`}
+                />
+                <span className="font-medium text-sm sm:text-base">
+                  Plan Abonament
+                </span>
                 <span className="text-xs text-muted-foreground">
                   {organization.subscriptionPlan}
                 </span>
@@ -325,10 +369,14 @@ export default function OrganizationAdminPage() {
               <Button
                 variant="outline"
                 borderRadius="full"
-                className="h-auto p-4 flex-col"
+                className="h-auto p-4 flex-col sm:col-span-2 lg:col-span-1"
               >
-                <BarChart3 className="h-6 w-6 mb-2" />
-                <span className="font-medium">Rapoarte & Analize</span>
+                <BarChart3
+                  className={`h-6 w-6 mb-2 ${ICON_COLOR_MAPPINGS.adminDashboard.stats}`}
+                />
+                <span className="font-medium text-sm sm:text-base">
+                  Rapoarte & Analize
+                </span>
                 <span className="text-xs text-muted-foreground">
                   Vezi statistici
                 </span>

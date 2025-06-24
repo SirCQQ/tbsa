@@ -180,7 +180,11 @@ class BuildingService {
         data: buildings,
       };
     } catch (error) {
-      console.error("Error fetching buildings:", error);
+      // Log error details without complex object formatting to avoid Next.js source map bug
+      console.error(
+        "Error fetching buildings:",
+        error instanceof Error ? error.message : String(error)
+      );
       return {
         success: false,
         error: "Failed to fetch buildings",
@@ -231,7 +235,10 @@ class BuildingService {
         data: building,
       };
     } catch (error) {
-      console.error("Error fetching building:", error);
+      console.error(
+        "Error fetching building:",
+        error instanceof Error ? error.message : String(error)
+      );
       return {
         success: false,
         error: "Failed to fetch building",
@@ -269,7 +276,10 @@ class BuildingService {
         data: building,
       };
     } catch (error) {
-      console.error("Error fetching building by code:", error);
+      console.error(
+        "Error fetching building by code:",
+        error instanceof Error ? error.message : String(error)
+      );
       return {
         success: false,
         error: "Failed to fetch building by code",

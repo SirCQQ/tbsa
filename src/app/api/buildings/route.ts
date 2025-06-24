@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
     // 2. Check permissions
     const hasCreatePermission = await hasPermissionServerSide(
       session.user.permissions || [],
-      ResourcesEnum.BUILDINGS.toLowerCase(),
-      ActionsEnum.CREATE.toLowerCase()
+      ResourcesEnum.BUILDINGS,
+      ActionsEnum.CREATE
     );
 
     if (!hasCreatePermission) {

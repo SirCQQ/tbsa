@@ -1,6 +1,4 @@
 "use client";
-
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,11 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
 import { ControlledSelect } from "@/components/ui/inputs/form/controlled-select";
 import { SelectItem } from "@/components/ui/select";
-import { useCreateApartment } from "@/hooks/api/use-apartments";
-import {
-  getApartmentValidationErrors,
-  isApartmentValidationError,
-} from "@/hooks/api/use-apartments";
+import { useCreateBulkApartments } from "@/hooks/api/use-apartments";
 import { toast } from "sonner";
 import { AlertCircle, Zap, Info } from "lucide-react";
 
@@ -62,13 +56,6 @@ export function GenerateApartmentsModal({
   buildingName,
   floors,
 }: GenerateApartmentsModalProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState({
-    current: 0,
-    total: 0,
-    currentFloor: 0,
-  });
-
   const form = useForm<GenerateApartmentsFormData>({
     resolver: zodResolver(generateApartmentsSchema),
     defaultValues: {
@@ -78,90 +65,10 @@ export function GenerateApartmentsModal({
     },
   });
 
-  const createApartment = useCreateApartment({
-    onError: (error) => {
-      console.error("Error creating apartment:", error);
-    },
-  });
+  const createBulkApartments = useCreateBulkApartments({
+    onSuccess: (response) => {
+      const { successCount, errorCount, errors } = response.data;
 
-  const onSubmit = async (data: GenerateApartmentsFormData) => {
-    const apartmentsPerFloor = parseInt(data.apartmentsPerFloor, 10);
-    const startingNumber = parseInt(data.startingNumber, 10);
-    const totalApartments = apartmentsPerFloor * (floors + 1); // +1 for ground floor
-
-    setIsGenerating(true);
-    setGenerationProgress({
-      current: 0,
-      total: totalApartments,
-      currentFloor: 0,
-    });
-
-    let currentNumber = startingNumber;
-    let successCount = 0;
-    let errorCount = 0;
-    const errors: string[] = [];
-
-    try {
-      // Generate apartments for each floor (0 = ground floor, 1-floors = upper floors)
-      for (let floor = 0; floor <= floors; floor++) {
-        setGenerationProgress((prev) => ({
-          ...prev,
-          currentFloor: floor,
-        }));
-
-        for (let aptIndex = 0; aptIndex < apartmentsPerFloor; aptIndex++) {
-          try {
-            let apartmentNumber: string;
-
-            if (data.numberingPattern === "floor_based") {
-              // Floor-based: 101, 102, 103, 201, 202, 203, etc.
-              if (floor === 0) {
-                apartmentNumber = (aptIndex + 1).toString();
-              } else {
-                apartmentNumber = `${floor}${(aptIndex + 1).toString().padStart(2, "0")}`;
-              }
-            } else {
-              // Sequential: 1, 2, 3, 4, 5, 6, etc.
-              apartmentNumber = currentNumber.toString();
-              currentNumber++;
-            }
-
-            await createApartment.mutateAsync({
-              number: apartmentNumber,
-              floor,
-              buildingId,
-              isOccupied: false,
-              occupantCount: 0,
-            });
-
-            successCount++;
-          } catch (error: any) {
-            errorCount++;
-            if (isApartmentValidationError(error)) {
-              const validationErrors = getApartmentValidationErrors(error);
-              errors.push(
-                `Apartament ${currentNumber}: ${Object.values(validationErrors).join(", ")}`
-              );
-            } else {
-              errors.push(`Apartament ${currentNumber}: Eroare neașteptată`);
-            }
-
-            if (data.numberingPattern === "sequential") {
-              currentNumber++; // Still increment even on error
-            }
-          }
-
-          setGenerationProgress((prev) => ({
-            ...prev,
-            current: prev.current + 1,
-          }));
-
-          // Small delay to prevent overwhelming the server
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      }
-
-      // Show results
       if (successCount > 0) {
         toast.success(
           `${successCount} apartamente au fost generate cu succes!`
@@ -169,27 +76,72 @@ export function GenerateApartmentsModal({
       }
 
       if (errorCount > 0) {
-        toast.error(
-          `${errorCount} apartamente nu au putut fi create. Verificați consolă pentru detalii.`
-        );
+        toast.error(`${errorCount} apartamente nu au putut fi create.`);
+
+        // Log detailed errors for debugging
         console.error("Apartment generation errors:", errors);
+
+        // Show first few errors to user
+        errors.slice(0, 3).forEach((error) => {
+          toast.error(`Apartament ${error.apartment.number}: ${error.error}`);
+        });
       }
 
       if (successCount > 0) {
         form.reset();
         onOpenChange(false);
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       toast.error("A apărut o eroare la generarea apartamentelor.");
-      console.error("Generation error:", error);
-    } finally {
-      setIsGenerating(false);
-      setGenerationProgress({ current: 0, total: 0, currentFloor: 0 });
+      console.error("Bulk generation error:", error);
+    },
+  });
+
+  const onSubmit = async (data: GenerateApartmentsFormData) => {
+    const apartmentsPerFloor = parseInt(data.apartmentsPerFloor, 10);
+    const startingNumber = parseInt(data.startingNumber, 10);
+
+    // Generate all apartment data upfront
+    const apartments = [];
+    let currentNumber = startingNumber;
+
+    // Generate apartments for each floor (0 = ground floor, 1-floors = upper floors)
+    for (let floor = 0; floor <= floors; floor++) {
+      for (let aptIndex = 0; aptIndex < apartmentsPerFloor; aptIndex++) {
+        let apartmentNumber: string;
+
+        if (data.numberingPattern === "floor_based") {
+          // Floor-based: 101, 102, 103, 201, 202, 203, etc.
+          if (floor === 0) {
+            apartmentNumber = (aptIndex + 1).toString();
+          } else {
+            apartmentNumber = `${floor}${(aptIndex + 1).toString().padStart(2, "0")}`;
+          }
+        } else {
+          // Sequential: 1, 2, 3, 4, 5, 6, etc.
+          apartmentNumber = currentNumber.toString();
+          currentNumber++;
+        }
+
+        apartments.push({
+          number: apartmentNumber,
+          floor,
+          isOccupied: false,
+          occupantCount: 0,
+        });
+      }
     }
+
+    // Make a single bulk creation request
+    createBulkApartments.mutate({
+      buildingId,
+      apartments,
+    });
   };
 
   const handleCancel = () => {
-    if (!isGenerating) {
+    if (!createBulkApartments.isPending) {
       form.reset();
       onOpenChange(false);
     }
@@ -305,7 +257,8 @@ export function GenerateApartmentsModal({
                 <div className="flex items-center gap-2 mb-3">
                   <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Se vor genera {totalApartments} apartamente în total
+                    Se vor genera {totalApartments} apartamente într-o singură
+                    operațiune
                   </span>
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-400">
@@ -324,38 +277,6 @@ export function GenerateApartmentsModal({
               </div>
             </div>
 
-            {/* Progress during generation */}
-            {isGenerating && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Progres Generare</h3>
-                <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Progres general:</span>
-                      <span>
-                        {generationProgress.current} /{" "}
-                        {generationProgress.total}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${(generationProgress.current / generationProgress.total) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Etaj curent:{" "}
-                      {generationProgress.currentFloor === 0
-                        ? "Parter"
-                        : `Etaj ${generationProgress.currentFloor}`}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Form errors */}
             {form.formState.errors.root && (
               <Alert variant="destructive">
@@ -371,8 +292,9 @@ export function GenerateApartmentsModal({
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <strong>Atenție:</strong> Această operațiune va crea{" "}
-                {totalApartments} apartamente noi. Asigurați-vă că numerotarea
-                nu intră în conflict cu apartamentele existente.
+                {totalApartments} apartamente noi într-o singură cerere.
+                Asigurați-vă că numerotarea nu intră în conflict cu
+                apartamentele existente.
               </AlertDescription>
             </Alert>
 
@@ -382,16 +304,19 @@ export function GenerateApartmentsModal({
                 type="button"
                 variant="outline"
                 onClick={handleCancel}
-                disabled={isGenerating}
+                disabled={createBulkApartments.isPending}
               >
                 Anulează
               </Button>
-              <Button type="submit" disabled={isGenerating} borderRadius="full">
-                {isGenerating ? (
+              <Button
+                type="submit"
+                disabled={createBulkApartments.isPending}
+                borderRadius="full"
+              >
+                {createBulkApartments.isPending ? (
                   <>
                     <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Generez... ({generationProgress.current}/
-                    {generationProgress.total})
+                    Se generează...
                   </>
                 ) : (
                   <>

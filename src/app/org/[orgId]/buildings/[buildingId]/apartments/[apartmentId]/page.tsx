@@ -33,6 +33,8 @@ import { useBuilding } from "@/hooks/api/use-buildings";
 import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { StatCard } from "@/components/ui/stat-card";
 import { ActionsEnum, ResourcesEnum } from "@prisma/client";
+import { ICON_COLOR_MAPPINGS } from "@/lib/constants/icon-colors";
+import { PageNavigation } from "@/components/ui/page-navigation";
 
 export default function ApartmentDetailsPage() {
   const params = useParams();
@@ -131,40 +133,45 @@ export default function ApartmentDetailsPage() {
       container="7xl"
       className="py-24"
     >
-      <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  router.push(`/org/${orgId}/buildings/${buildingId}`)
-                }
-                className="backdrop-blur-md"
+      <div className="w-full space-y-6 sm:space-y-8">
+        {/* Header with Breadcrumbs */}
+        <div className="space-y-4 sm:space-y-6">
+          <PageNavigation
+            title={`Apartament ${apartment.number}`}
+            className="mb-4"
+          />
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <Typography
+                variant="h1"
+                gradient="blue"
+                className="text-2xl sm:text-3xl lg:text-4xl"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Înapoi la Clădire
-              </Button>
-              <div>
-                <Typography variant="h1" gradient="blue">
-                  Apartament {apartment.number}
-                </Typography>
-                <Typography variant="p" className="text-muted-foreground">
-                  {building?.name} • {floorDisplay}
-                </Typography>
-              </div>
+                Apartament {apartment.number}
+              </Typography>
+              <Typography
+                variant="p"
+                className="text-muted-foreground text-sm sm:text-base"
+              >
+                {building?.name} • {floorDisplay}
+              </Typography>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Action Buttons - Stack on mobile */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <PermissionGuardOr
                 permissions={[
                   `${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`,
                 ]}
               >
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editează
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Edit className="h-4 w-4 mr-2 text-blue-500" />
+                  <span className="sm:inline">Editează</span>
                 </Button>
               </PermissionGuardOr>
               <PermissionGuardOr
@@ -172,9 +179,13 @@ export default function ApartmentDetailsPage() {
                   `${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`,
                 ]}
               >
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Setări
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Settings className="h-4 w-4 mr-2 text-gray-500" />
+                  <span className="sm:inline">Setări</span>
                 </Button>
               </PermissionGuardOr>
             </div>
@@ -205,19 +216,21 @@ export default function ApartmentDetailsPage() {
           </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {/* Stats Overview - Responsive grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
           <StatCard
-            title="Numărul Apartamentului"
+            title="Nr. Apartament"
             value={apartment.number}
             description="Identificator unic"
             icon={Home}
+            iconColor={ICON_COLOR_MAPPINGS.apartmentPage.apartment}
           />
           <StatCard
             title="Etaj"
             value={floorDisplay}
             description="Locația în clădire"
             icon={Building2}
+            iconColor={ICON_COLOR_MAPPINGS.apartmentPage.floor}
           />
           <StatCard
             title="Ocupanți"
@@ -226,6 +239,7 @@ export default function ApartmentDetailsPage() {
               apartment.occupantCount === 1 ? "persoană" : "persoane"
             }
             icon={User}
+            iconColor={ICON_COLOR_MAPPINGS.apartmentPage.occupants}
             trend={
               apartment.occupantCount > 0
                 ? {
@@ -242,22 +256,30 @@ export default function ApartmentDetailsPage() {
             value={apartment.surface ? `${apartment.surface} m²` : "N/A"}
             description="Aria locuibilă"
             icon={MapPin}
+            iconColor={ICON_COLOR_MAPPINGS.apartmentPage.surface}
           />
-          <StatCard
-            title="Status"
-            value={apartment.isOccupied ? "Ocupat" : "Liber"}
-            description="Starea actuală"
-            icon={apartment.isOccupied ? CheckCircle2 : XCircle}
-            trend={
-              apartment.isOccupied
-                ? {
-                    value: 100,
-                    label: "ocupat",
-                    type: "positive" as const,
-                  }
-                : undefined
-            }
-          />
+          <div className="col-span-2 sm:col-span-1">
+            <StatCard
+              title="Status"
+              value={apartment.isOccupied ? "Ocupat" : "Liber"}
+              description="Starea actuală"
+              icon={apartment.isOccupied ? CheckCircle2 : XCircle}
+              iconColor={
+                apartment.isOccupied
+                  ? ICON_COLOR_MAPPINGS.apartmentPage.status.occupied
+                  : ICON_COLOR_MAPPINGS.apartmentPage.status.vacant
+              }
+              trend={
+                apartment.isOccupied
+                  ? {
+                      value: 100,
+                      label: "ocupat",
+                      type: "positive" as const,
+                    }
+                  : undefined
+              }
+            />
+          </div>
         </div>
 
         {/* Apartment Details */}
@@ -265,49 +287,57 @@ export default function ApartmentDetailsPage() {
           {/* Basic Information */}
           <Card className="backdrop-blur-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Home
+                  className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.apartmentPage.apartment}`}
+                />
                 Informații Apartament
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Detalii despre apartamentul {apartment.number}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       NUMĂRUL APARTAMENTULUI
                     </h4>
-                    <p className="font-semibold">{apartment.number}</p>
+                    <p className="font-semibold text-sm sm:text-base">
+                      {apartment.number}
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       ETAJ
                     </h4>
-                    <p className="font-semibold">{floorDisplay}</p>
+                    <p className="font-semibold text-sm sm:text-base">
+                      {floorDisplay}
+                    </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       SUPRAFAȚA
                     </h4>
-                    <p className="font-semibold">
+                    <p className="font-semibold text-sm sm:text-base">
                       {apartment.surface
                         ? `${apartment.surface} m²`
                         : "Nu este specificată"}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       NUMĂRUL DE OCUPANȚI
                     </h4>
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
-                      <span className="font-semibold">
+                      <User
+                        className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.apartmentPage.occupants}`}
+                      />
+                      <span className="font-semibold text-sm sm:text-base">
                         {apartment.occupantCount}{" "}
                         {apartment.occupantCount === 1
                           ? "persoană"
@@ -317,23 +347,27 @@ export default function ApartmentDetailsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       STATUS OCUPARE
                     </h4>
                     <div className="flex items-center gap-2">
                       {apartment.isOccupied ? (
                         <>
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600 font-medium">
+                          <CheckCircle2
+                            className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.apartmentPage.status.occupied.replace("text-", "text-").replace("500", "600")}`}
+                          />
+                          <span className="text-green-600 font-medium text-sm sm:text-base">
                             Ocupat
                           </span>
                         </>
                       ) : (
                         <>
-                          <XCircle className="h-4 w-4 text-orange-600" />
-                          <span className="text-orange-600 font-medium">
+                          <XCircle
+                            className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.apartmentPage.status.vacant.replace("text-", "text-").replace("500", "600")}`}
+                          />
+                          <span className="text-orange-600 font-medium text-sm sm:text-base">
                             Liber
                           </span>
                         </>
@@ -344,21 +378,21 @@ export default function ApartmentDetailsPage() {
 
                 {apartment.description && (
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       DESCRIERE
                     </h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {apartment.description}
                     </p>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       CREAT LA
                     </h4>
-                    <p className="text-sm">
+                    <p className="text-xs sm:text-sm">
                       {new Date(apartment.createdAt).toLocaleDateString(
                         "ro-RO",
                         {
@@ -372,10 +406,10 @@ export default function ApartmentDetailsPage() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       ACTUALIZAT LA
                     </h4>
-                    <p className="text-sm">
+                    <p className="text-xs sm:text-sm">
                       {new Date(apartment.updatedAt).toLocaleDateString(
                         "ro-RO",
                         {
@@ -397,54 +431,68 @@ export default function ApartmentDetailsPage() {
           {building && (
             <Card className="backdrop-blur-md">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Building2
+                    className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.apartmentPage.building}`}
+                  />
                   Informații Clădire
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Contextul clădirii în care se află apartamentul
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       NUMELE CLĂDIRII
                     </h4>
-                    <p className="font-semibold">{building.name}</p>
+                    <p className="font-semibold text-sm sm:text-base">
+                      {building.name}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       CODUL CLĂDIRII
                     </h4>
-                    <p className="font-semibold">{building.code}</p>
+                    <p className="font-semibold text-sm sm:text-base">
+                      {building.code}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">
+                    <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                       ADRESA
                     </h4>
                     <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span className="text-sm">{building.address}</span>
+                      <MapPin
+                        className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.apartmentPage.surface} mt-0.5`}
+                      />
+                      <span className="text-xs sm:text-sm">
+                        {building.address}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <h4 className="font-medium text-sm text-muted-foreground">
+                      <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                         TOTAL ETAJE
                       </h4>
-                      <p className="font-semibold">{building.floors}</p>
+                      <p className="font-semibold text-sm sm:text-base">
+                        {building.floors}
+                      </p>
                     </div>
                     <div className="space-y-2">
-                      <h4 className="font-medium text-sm text-muted-foreground">
+                      <h4 className="font-medium text-xs sm:text-sm text-muted-foreground">
                         ZI CITIRE
                       </h4>
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
+                        <Calendar
+                          className={`h-4 w-4 ${ICON_COLOR_MAPPINGS.apartmentPage.calendar}`}
+                        />
+                        <span className="text-xs sm:text-sm">
                           Ziua {building.readingDay}
                         </span>
                       </div>
@@ -460,8 +508,10 @@ export default function ApartmentDetailsPage() {
                       }
                       className="w-full"
                     >
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Vezi Toate Apartamentele din Clădire
+                      <Building2 className="h-4 w-4 mr-2 text-purple-500" />
+                      <span className="text-xs sm:text-sm">
+                        Vezi Toate Apartamentele din Clădire
+                      </span>
                     </Button>
                   </div>
                 </div>
@@ -473,11 +523,11 @@ export default function ApartmentDetailsPage() {
         {/* Residents Section (Placeholder) */}
         <Card className="backdrop-blur-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <User className="h-5 w-5 text-indigo-500" />
               Rezidenți
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Persoanele care locuiesc în acest apartament
             </CardDescription>
           </CardHeader>
@@ -485,7 +535,7 @@ export default function ApartmentDetailsPage() {
             {apartment.isOccupied ? (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
+                <AlertDescription className="text-xs sm:text-sm">
                   Funcționalitatea de gestionare a rezidenților va fi
                   implementată în curând. Apartamentul este marcat ca ocupat.
                 </AlertDescription>
@@ -493,7 +543,7 @@ export default function ApartmentDetailsPage() {
             ) : (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
+                <AlertDescription className="text-xs sm:text-sm">
                   Acest apartament este momentan liber. Nu există rezidenți
                   înregistrați.
                 </AlertDescription>
@@ -505,18 +555,20 @@ export default function ApartmentDetailsPage() {
         {/* Water Meters Section (Placeholder) */}
         <Card className="backdrop-blur-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Droplets className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Droplets
+                className={`h-5 w-5 ${ICON_COLOR_MAPPINGS.apartmentPage.water}`}
+              />
               Contoare Apă
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Contoarele de apă asociate acestui apartament
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Alert>
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
+              <AlertDescription className="text-xs sm:text-sm">
                 Funcționalitatea de gestionare a contoarelor de apă va fi
                 implementată în curând.
               </AlertDescription>
@@ -524,40 +576,32 @@ export default function ApartmentDetailsPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <div className="flex justify-center">
-          <div className="flex items-center gap-4">
-            <PermissionGuardOr
-              permissions={[
-                `${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`,
-              ]}
-            >
-              <Button variant="outline">
-                <Edit className="h-4 w-4 mr-2" />
-                Editează Apartament
-              </Button>
-            </PermissionGuardOr>
-            <PermissionGuardOr
-              permissions={[
-                `${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`,
-              ]}
-            >
-              <Button variant="outline">
-                <User className="h-4 w-4 mr-2" />
-                Gestionează Rezidenți
-              </Button>
-            </PermissionGuardOr>
-            <PermissionGuardOr
-              permissions={[
-                `${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`,
-              ]}
-            >
-              <Button variant="outline">
-                <Droplets className="h-4 w-4 mr-2" />
-                Gestionează Contoare
-              </Button>
-            </PermissionGuardOr>
-          </div>
+        {/* Quick Actions - Mobile optimized */}
+        <div className="flex flex-col sm:flex-row sm:justify-center gap-3">
+          <PermissionGuardOr
+            permissions={[`${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`]}
+          >
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Edit className="h-4 w-4 mr-2" />
+              Editează Apartament
+            </Button>
+          </PermissionGuardOr>
+          <PermissionGuardOr
+            permissions={[`${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`]}
+          >
+            <Button variant="outline" className="w-full sm:w-auto">
+              <User className="h-4 w-4 mr-2" />
+              Gestionează Rezidenți
+            </Button>
+          </PermissionGuardOr>
+          <PermissionGuardOr
+            permissions={[`${ResourcesEnum.APARTMENTS}:${ActionsEnum.UPDATE}`]}
+          >
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Droplets className="h-4 w-4 mr-2" />
+              Gestionează Contoare
+            </Button>
+          </PermissionGuardOr>
         </div>
       </div>
     </Page>

@@ -24,8 +24,8 @@ export async function GET(
     // Check permission to read apartments
     const hasReadPermission = await hasPermissionServerSide(
       session.user.permissions || [],
-      ResourcesEnum.APARTMENTS.toLowerCase(),
-      ActionsEnum.READ.toLowerCase()
+      ResourcesEnum.APARTMENTS,
+      ActionsEnum.READ
     );
 
     if (!hasReadPermission) {
@@ -98,8 +98,8 @@ export async function PUT(
     // Check permission to update apartments
     const hasUpdatePermission = await hasPermissionServerSide(
       session.user.permissions || [],
-      ResourcesEnum.APARTMENTS.toLowerCase(),
-      ActionsEnum.UPDATE.toLowerCase()
+      ResourcesEnum.APARTMENTS,
+      ActionsEnum.UPDATE
     );
 
     if (!hasUpdatePermission) {
@@ -202,8 +202,8 @@ export async function DELETE(
     // Check permission to delete apartments
     const hasDeletePermission = await hasPermissionServerSide(
       session.user.permissions || [],
-      ResourcesEnum.APARTMENTS.toLowerCase(),
-      ActionsEnum.DELETE.toLowerCase()
+      ResourcesEnum.APARTMENTS,
+      ActionsEnum.DELETE
     );
 
     if (!hasDeletePermission) {
