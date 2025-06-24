@@ -8,6 +8,7 @@ export type ApartmentResponse = {
   floor: number;
   buildingId: string;
   isOccupied: boolean;
+  occupantCount: number;
   surface?: number;
   description?: string;
   createdAt: string;

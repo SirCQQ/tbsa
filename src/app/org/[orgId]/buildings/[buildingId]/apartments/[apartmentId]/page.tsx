@@ -206,7 +206,7 @@ export default function ApartmentDetailsPage() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <StatCard
             title="Numărul Apartamentului"
             value={apartment.number}
@@ -218,6 +218,24 @@ export default function ApartmentDetailsPage() {
             value={floorDisplay}
             description="Locația în clădire"
             icon={Building2}
+          />
+          <StatCard
+            title="Ocupanți"
+            value={apartment.occupantCount.toString()}
+            description={
+              apartment.occupantCount === 1 ? "persoană" : "persoane"
+            }
+            icon={User}
+            trend={
+              apartment.occupantCount > 0
+                ? {
+                    value: apartment.occupantCount,
+                    label:
+                      apartment.occupantCount === 1 ? "persoană" : "persoane",
+                    type: "neutral" as const,
+                  }
+                : undefined
+            }
           />
           <StatCard
             title="Suprafața"
@@ -283,6 +301,23 @@ export default function ApartmentDetailsPage() {
                         : "Nu este specificată"}
                     </p>
                   </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">
+                      NUMĂRUL DE OCUPANȚI
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-primary" />
+                      <span className="font-semibold">
+                        {apartment.occupantCount}{" "}
+                        {apartment.occupantCount === 1
+                          ? "persoană"
+                          : "persoane"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm text-muted-foreground">
                       STATUS OCUPARE
