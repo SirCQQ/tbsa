@@ -12,6 +12,13 @@ export type CreateBuildingInput = {
   organizationId: string;
 };
 
+export type UpdateBuildingInput = {
+  name?: string;
+  address?: string;
+  floors?: number;
+  description?: string;
+};
+
 export type BuildingServiceResult<T> = {
   success: boolean;
   data?: T;
@@ -283,6 +290,113 @@ class BuildingService {
       return {
         success: false,
         error: "Failed to fetch building by code",
+      };
+    }
+  }
+
+  /**
+   * Update building with floor validation
+   */
+  async updateBuilding(
+    buildingId: string,
+    organizationId: string,
+    input: UpdateBuildingInput
+  ): Promise<BuildingServiceResult<Building>> {
+    try {
+      // First, get the current building
+      const currentBuilding = await prisma.building.findFirst({
+        where: {
+          id: buildingId,
+          organizationId,
+          deletedAt: null,
+        },
+        include: {
+          apartments: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              floor: true,
+            },
+          },
+        },
+      });
+
+      if (!currentBuilding) {
+        return {
+          success: false,
+          error: "Clădirea nu a fost găsită sau nu aveți permisiunile necesare",
+        };
+      }
+
+      // If floors are being reduced, check for apartments on higher floors
+      if (input.floors !== undefined && input.floors < currentBuilding.floors) {
+        const apartmentsOnHigherFloors = currentBuilding.apartments.filter(
+          (apt) => apt.floor > input.floors!
+        );
+
+        if (apartmentsOnHigherFloors.length > 0) {
+          const affectedFloors = [
+            ...new Set(apartmentsOnHigherFloors.map((apt) => apt.floor)),
+          ].sort((a, b) => a - b);
+
+          return {
+            success: false,
+            error: `Nu se poate reduce numărul de etaje de la ${currentBuilding.floors} la ${input.floors} deoarece există ${apartmentsOnHigherFloors.length} apartamente pe etajele ${affectedFloors.join(", ")}. Ștergeți mai întâi apartamentele de pe aceste etaje.`,
+          };
+        }
+      }
+
+      // Update the building
+      const updatedBuilding = await prisma.building.update({
+        where: {
+          id: buildingId,
+        },
+        data: {
+          name: input.name,
+          address: input.address,
+          floors: input.floors,
+          description: input.description,
+          updatedAt: new Date(),
+        },
+        include: {
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          apartments: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              number: true,
+              floor: true,
+              isOccupied: true,
+              occupantCount: true,
+              surface: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        data: updatedBuilding,
+      };
+    } catch (error) {
+      console.error(
+        "Building update error:",
+        error instanceof Error ? error.message : String(error)
+      );
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to update building",
       };
     }
   }

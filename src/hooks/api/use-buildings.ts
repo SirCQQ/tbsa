@@ -17,7 +17,6 @@ import {
 import { getErrorMessage } from "@/lib/axios";
 import type { CreateBuildingFormData } from "@/lib/validations/building";
 import type { AxiosError } from "axios";
-import { error } from "console";
 
 // Query keys
 export const buildingQueryKeys = {
@@ -143,20 +142,41 @@ export function useUpdateBuilding(
   >
 ) {
   const queryClient = useQueryClient();
+  const { onSuccess, onError, ...rest } = options || {};
 
   return useMutation({
     mutationFn: ({ id, data }) => buildingsApi.update(id, data),
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch buildings list
+    onSuccess: (data, variables, context) => {
+      // Hook's cache invalidation logic (always runs)
+
+      // 1. Invalidate buildings list queries
       queryClient.invalidateQueries({ queryKey: buildingQueryKeys.lists() });
 
-      // Update the specific building in cache
+      // 2. Invalidate all building detail queries (both standard and enriched patterns)
+      queryClient.invalidateQueries({
+        queryKey: buildingQueryKeys.details(),
+      });
+
+      // 3. Invalidate enriched building queries (with organizationId)
+      queryClient.invalidateQueries({
+        queryKey: ["buildings", variables.id],
+      });
+
+      // 4. Update the standard building detail cache
       queryClient.setQueryData(buildingQueryKeys.detail(variables.id), data);
+
+      // Call user-provided onSuccess callback if provided
+      onSuccess?.(data, variables, context);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Hook's error handling (always runs)
       console.error("Update building error:", getErrorMessage(error));
+
+      // Call user-provided onError callback if provided
+      onError?.(error, variables, context);
     },
-    ...options,
+    // Spread other options (excluding onSuccess and onError which we handle above)
+    ...rest,
   });
 }
 
@@ -169,22 +189,29 @@ export function useDeleteBuilding(
   >
 ) {
   const queryClient = useQueryClient();
+  const { onSuccess, onError, ...rest } = options || {};
 
   return useMutation({
     mutationFn: (id: string) => buildingsApi.delete(id),
-    onSuccess: (_, deletedId) => {
-      // Invalidate and refetch buildings list
+    onSuccess: (data, variables, context) => {
+      // Hook's cache invalidation logic (always runs)
       queryClient.invalidateQueries({ queryKey: buildingQueryKeys.lists() });
-
-      // Remove the deleted building from cache
       queryClient.removeQueries({
-        queryKey: buildingQueryKeys.detail(deletedId),
+        queryKey: buildingQueryKeys.detail(variables),
       });
+
+      // Call user-provided onSuccess callback if provided
+      onSuccess?.(data, variables, context);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Hook's error handling (always runs)
       console.error("Delete building error:", getErrorMessage(error));
+
+      // Call user-provided onError callback if provided
+      onError?.(error, variables, context);
     },
-    ...options,
+    // Spread other options (excluding onSuccess and onError which we handle above)
+    ...rest,
   });
 }
 

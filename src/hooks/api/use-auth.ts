@@ -21,13 +21,27 @@ export function useRegisterOrganization(
     OrganizationRegistrationData
   >
 ) {
+  const { onSuccess, onError, ...rest } = options || {};
+
   return useMutation({
     mutationFn: (data: OrganizationRegistrationData) =>
       authApi.registerOrganization(data),
-    onError: (error) => {
-      console.error("Organization registration error:", getErrorMessage(error));
+    onSuccess: (data, variables, context) => {
+      // Hook's success logic (always runs)
+      // No cache invalidation needed for registration
+
+      // Call user-provided onSuccess callback if provided
+      onSuccess?.(data, variables, context);
     },
-    ...options,
+    onError: (error, variables, context) => {
+      // Hook's error handling (always runs)
+      console.error("Organization registration error:", getErrorMessage(error));
+
+      // Call user-provided onError callback if provided
+      onError?.(error, variables, context);
+    },
+    // Spread other options (excluding onSuccess and onError which we handle above)
+    ...rest,
   });
 }
 
@@ -39,12 +53,26 @@ export function useRegisterUser(
     UserRegistrationData
   >
 ) {
+  const { onSuccess, onError, ...rest } = options || {};
+
   return useMutation({
     mutationFn: (data: UserRegistrationData) => authApi.registerUser(data),
-    onError: (error) => {
-      console.error("User registration error:", getErrorMessage(error));
+    onSuccess: (data, variables, context) => {
+      // Hook's success logic (always runs)
+      // No cache invalidation needed for registration
+
+      // Call user-provided onSuccess callback if provided
+      onSuccess?.(data, variables, context);
     },
-    ...options,
+    onError: (error, variables, context) => {
+      // Hook's error handling (always runs)
+      console.error("User registration error:", getErrorMessage(error));
+
+      // Call user-provided onError callback if provided
+      onError?.(error, variables, context);
+    },
+    // Spread other options (excluding onSuccess and onError which we handle above)
+    ...rest,
   });
 }
 

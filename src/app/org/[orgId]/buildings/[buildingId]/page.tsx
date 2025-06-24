@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Building2,
   MapPin,
   Calendar,
@@ -25,6 +32,7 @@ import {
   CheckCircle2,
   XCircle,
   Zap,
+  Filter,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useBuilding } from "@/hooks/api/use-buildings";
@@ -32,6 +40,7 @@ import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { StatCard } from "@/components/ui/stat-card";
 import { AddApartmentModal } from "@/components/apartments/add-apartment-modal";
 import { GenerateApartmentsModal } from "@/components/apartments/generate-apartments-modal";
+import { EditBuildingModal } from "@/components/admin/edit-building-modal";
 import { ActionsEnum, ResourcesEnum } from "@prisma/client";
 import { ICON_COLOR_MAPPINGS } from "@/lib/constants/icon-colors";
 import { PageNavigation } from "@/components/ui/page-navigation";
@@ -44,6 +53,9 @@ export default function BuildingDetailsPage() {
 
   const [showAddApartment, setShowAddApartment] = useState(false);
   const [showGenerateApartments, setShowGenerateApartments] = useState(false);
+  const [showEditBuilding, setShowEditBuilding] = useState(false);
+  const [occupancyFilter, setOccupancyFilter] = useState<string>("all");
+  const [floorFilter, setFloorFilter] = useState<string>("all");
 
   const { data: building, isLoading, error } = useBuilding(buildingId, orgId);
 
@@ -140,6 +152,33 @@ export default function BuildingDetailsPage() {
     .map(Number)
     .sort((a, b) => a - b);
 
+  // Filter apartments based on selected filters
+  const getFilteredApartments = (apartments: any[]) => {
+    return apartments.filter((apartment) => {
+      // Occupancy filter
+      if (occupancyFilter === "occupied" && !apartment.isOccupied) return false;
+      if (occupancyFilter === "vacant" && apartment.isOccupied) return false;
+
+      return true;
+    });
+  };
+
+  // Filter floors based on floor filter
+  const getFilteredFloors = () => {
+    if (floorFilter === "all") return sortedFloors;
+    return sortedFloors.filter((floor) => floor.toString() === floorFilter);
+  };
+
+  const filteredFloors = getFilteredFloors();
+
+  // Check if there are any apartments matching the current filters
+  const hasFilteredApartments = filteredFloors.some((floor) => {
+    const apartments = getFilteredApartments(
+      building.apartmentsByFloor[floor.toString()]
+    );
+    return apartments.length > 0;
+  });
+
   return (
     <Page
       display="flex"
@@ -189,6 +228,7 @@ export default function BuildingDetailsPage() {
                   variant="outline"
                   size="sm"
                   className="w-full sm:w-auto"
+                  onClick={() => setShowEditBuilding(true)}
                 >
                   <Edit
                     className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.buildingPage.edit}`}
@@ -370,10 +410,143 @@ export default function BuildingDetailsPage() {
             </div>
           </div>
 
+          {/* Filters */}
+          <Card className="backdrop-blur-md">
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-medium">Filtrează:</span>
+                </div>
+
+                <div className="flex flex-row  gap-8 md:gap-3 flex-1">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">
+                      Ocupare
+                    </label>
+                    <Select
+                      value={occupancyFilter}
+                      onValueChange={setOccupancyFilter}
+                    >
+                      <SelectTrigger className="w-full sm:w-[140px]">
+                        <SelectValue placeholder="Toate" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toate</SelectItem>
+                        <SelectItem value="occupied">Ocupate</SelectItem>
+                        <SelectItem value="vacant">Libere</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">
+                      Etaj
+                    </label>
+                    <Select value={floorFilter} onValueChange={setFloorFilter}>
+                      <SelectTrigger className="w-full sm:w-[120px]">
+                        <SelectValue placeholder="Toate" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toate</SelectItem>
+                        {sortedFloors.map((floor) => (
+                          <SelectItem key={floor} value={floor.toString()}>
+                            {floor === 0 ? "Parter" : `Etaj ${floor}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {(occupancyFilter !== "all" || floorFilter !== "all") && (
+                    <div className="flex items-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setOccupancyFilter("all");
+                          setFloorFilter("all");
+                        }}
+                        className="text-xs"
+                      >
+                        Resetează
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* No Results Fallback */}
+          {!hasFilteredApartments &&
+            (occupancyFilter !== "all" || floorFilter !== "all") && (
+              <Card className="backdrop-blur-md">
+                <CardContent className="p-8 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+                      <Filter className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div className="space-y-2">
+                      <Typography
+                        variant="h3"
+                        className="text-lg font-semibold"
+                      >
+                        Nu s-au găsit apartamente
+                      </Typography>
+                      <Typography
+                        variant="p"
+                        className="text-muted-foreground text-sm"
+                      >
+                        Nu există apartamente care să corespundă filtrelor
+                        selectate.
+                      </Typography>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 text-sm text-muted-foreground">
+                      <span>Filtre active:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {occupancyFilter !== "all" && (
+                          <Badge variant="outline" className="text-xs">
+                            {occupancyFilter === "occupied"
+                              ? "Ocupate"
+                              : "Libere"}
+                          </Badge>
+                        )}
+                        {floorFilter !== "all" && (
+                          <Badge variant="outline" className="text-xs">
+                            {floorFilter === "0"
+                              ? "Parter"
+                              : `Etaj ${floorFilter}`}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setOccupancyFilter("all");
+                        setFloorFilter("all");
+                      }}
+                      className="mt-2"
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      Resetează filtrele
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
           <div className="space-y-4">
-            {sortedFloors.map((floor) => {
-              const apartments = building.apartmentsByFloor[floor.toString()];
+            {filteredFloors.map((floor) => {
+              const apartments = getFilteredApartments(
+                building.apartmentsByFloor[floor.toString()]
+              );
               const floorName = floor === 0 ? "Parter" : `Etaj ${floor}`;
+
+              // Skip floors with no apartments after filtering
+              if (apartments.length === 0) return null;
 
               return (
                 <Card key={floor} className="backdrop-blur-md">
@@ -400,41 +573,24 @@ export default function BuildingDetailsPage() {
                             `${ResourcesEnum.APARTMENTS}:${ActionsEnum.READ}`,
                           ]}
                           fallback={
-                            <Card
-                              className={`transition-all ${
-                                apartment.isOccupied
-                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950"
-                                  : "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950"
-                              }`}
-                            >
+                            <Card className="h-36 transition-all backdrop-blur-md">
                               <CardContent className="p-3 sm:p-4">
                                 <div className="flex items-center justify-between mb-2">
                                   <span className="font-semibold text-sm">
                                     Ap. {apartment.number}
                                   </span>
-                                  <div className="flex items-center gap-1">
-                                    {apartment.isOccupied ? (
-                                      <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-                                    ) : (
-                                      <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
-                                    )}
-                                  </div>
+                                  <Badge
+                                    variant="secondary"
+                                    className={`text-xs ${
+                                      apartment.isOccupied
+                                        ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-800"
+                                        : "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-800"
+                                    }`}
+                                  >
+                                    {apartment.isOccupied ? "Ocupat" : "Liber"}
+                                  </Badge>
                                 </div>
                                 <div className="space-y-1 text-xs text-muted-foreground">
-                                  <div>
-                                    Status:{" "}
-                                    <span
-                                      className={
-                                        apartment.isOccupied
-                                          ? "text-green-600 font-medium"
-                                          : "text-orange-600 font-medium"
-                                      }
-                                    >
-                                      {apartment.isOccupied
-                                        ? "Ocupat"
-                                        : "Liber"}
-                                    </span>
-                                  </div>
                                   {apartment.occupantCount > 0 && (
                                     <div>
                                       Ocupanți: {apartment.occupantCount}{" "}
@@ -452,11 +608,7 @@ export default function BuildingDetailsPage() {
                           }
                         >
                           <Card
-                            className={`cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${
-                              apartment.isOccupied
-                                ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 hover:border-green-300 dark:hover:border-green-700"
-                                : "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950 hover:border-orange-300 dark:hover:border-orange-700"
-                            }`}
+                            className="h-32 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] backdrop-blur-md"
                             onClick={() =>
                               router.push(
                                 `/org/${orgId}/buildings/${buildingId}/apartments/${apartment.id}`
@@ -468,27 +620,18 @@ export default function BuildingDetailsPage() {
                                 <span className="font-semibold text-sm">
                                   Ap. {apartment.number}
                                 </span>
-                                <div className="flex items-center gap-1">
-                                  {apartment.isOccupied ? (
-                                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-                                  ) : (
-                                    <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
-                                  )}
-                                </div>
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-xs ${
+                                    apartment.isOccupied
+                                      ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-800"
+                                      : "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-800"
+                                  }`}
+                                >
+                                  {apartment.isOccupied ? "Ocupat" : "Liber"}
+                                </Badge>
                               </div>
                               <div className="space-y-1 text-xs text-muted-foreground">
-                                <div>
-                                  Status:{" "}
-                                  <span
-                                    className={
-                                      apartment.isOccupied
-                                        ? "text-green-600 font-medium"
-                                        : "text-orange-600 font-medium"
-                                    }
-                                  >
-                                    {apartment.isOccupied ? "Ocupat" : "Liber"}
-                                  </span>
-                                </div>
                                 {apartment.occupantCount > 0 && (
                                   <div>
                                     Ocupanți: {apartment.occupantCount}{" "}
@@ -533,6 +676,13 @@ export default function BuildingDetailsPage() {
         buildingId={buildingId}
         buildingName={building.name}
         floors={building.floors}
+      />
+
+      {/* Edit Building Modal */}
+      <EditBuildingModal
+        open={showEditBuilding}
+        onOpenChange={setShowEditBuilding}
+        building={building}
       />
     </Page>
   );
