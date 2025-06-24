@@ -1,7 +1,7 @@
 ---
-description: Create or use api calls
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # API Calls with React Query & Axios
 
@@ -46,56 +46,117 @@ export function useBuilding(id: string) {
 ```
 
 ### **Mutation Hooks (POST, PUT, DELETE)**
+
+**Critical Pattern**: Mutation hooks must preserve both cache invalidation AND user-provided callbacks.
+
 ```typescript
-// ✅ DO: Use React Query mutations for write operations
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+// ✅ DO: Use proper callback merging pattern for mutations
+import { useMutation, useQueryClient, UseMutationOptions } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 
-export function useCreateBuilding() {
+export function useCreateBuilding(
+  options?: UseMutationOptions<
+    CreateBuildingResponse,
+    AxiosError<BuildingErrorResponse>,
+    CreateBuildingRequest
+  >
+) {
   const queryClient = useQueryClient();
-  
+  const { onSuccess, onError, ...rest } = options || {};
+
   return useMutation({
     mutationFn: async (data: CreateBuildingRequest) => {
       const response = await api.post("/buildings", data);
       return response.data;
     },
-    onSuccess: () => {
-      // Invalidate and refetch buildings list
+    onSuccess: (data, variables, context) => {
+      // Hook's cache invalidation logic (always runs)
       queryClient.invalidateQueries({ queryKey: ["buildings"] });
+      queryClient.invalidateQueries({ queryKey: ["buildings", data.data.id] });
+
+      // Call user-provided onSuccess callback if provided
+      onSuccess?.(data, variables, context);
     },
+    onError: (error, variables, context) => {
+      // Hook's error handling (always runs)
+      console.error("Create building error:", error);
+
+      // Call user-provided onError callback if provided
+      onError?.(error, variables, context);
+    },
+    // Spread other options (excluding onSuccess and onError which we handle above)
+    ...rest,
   });
 }
 
-export function useUpdateBuilding() {
+export function useUpdateBuilding(
+  options?: UseMutationOptions<
+    UpdateBuildingResponse,
+    AxiosError<BuildingErrorResponse>,
+    { id: string; data: UpdateBuildingRequest }
+  >
+) {
   const queryClient = useQueryClient();
-  
+  const { onSuccess, onError, ...rest } = options || {};
+
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateBuildingRequest }) => {
+    mutationFn: async ({ id, data }) => {
       const response = await api.put(`/buildings/${id}`, data);
       return response.data;
     },
-    onSuccess: (_, { id }) => {
-      // Invalidate specific building and buildings list
-      queryClient.invalidateQueries({ queryKey: ["buildings", id] });
+    onSuccess: (data, variables, context) => {
+      // Hook's cache invalidation logic
+      queryClient.invalidateQueries({ queryKey: ["buildings", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["buildings"] });
-    },
-  });
-}
 
-export function useDeleteBuilding() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await api.delete(`/buildings/${id}`);
-      return response.data;
+      // Call user-provided callback
+      onSuccess?.(data, variables, context);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    onError: (error, variables, context) => {
+      console.error("Update building error:", error);
+      onError?.(error, variables, context);
     },
+    ...rest,
   });
 }
 ```
+
+### **Why This Pattern is Critical**
+
+```typescript
+// ✅ DO: This allows components to add their own logic while preserving cache invalidation
+const createBuilding = useCreateBuilding({
+  onSuccess: (data) => {
+    toast.success(`Clădirea ${data.data.name} a fost creată!`);
+    form.reset();
+    onModalClose();
+  },
+  onError: (error) => {
+    if (isValidationError(error)) {
+      setFormErrors(error.response.data.details);
+    } else {
+      toast.error("Eroare la crearea clădirii");
+    }
+  },
+});
+
+// ❌ DON'T: This overwrites the hook's cache invalidation
+const createBuilding = useCreateBuilding();
+// Later in component:
+createBuilding.mutate(data, {
+  onSuccess: () => {
+    // This runs, but cache invalidation from hook is lost!
+    toast.success("Success!");
+  }
+});
+```
+
+### **Callback Merging Implementation Details**
+
+1. **Extract user callbacks**: `const { onSuccess, onError, ...rest } = options || {};`
+2. **Handle cache invalidation first**: Always run the hook's logic first
+3. **Call user callbacks**: Use optional chaining to call user-provided callbacks
+4. **Spread remaining options**: Use `...rest` to pass through other mutation options
 
 ## **File Organization**
 
@@ -147,18 +208,28 @@ function BuildingsList() {
 
 ### **Mutations with Loading States**
 ```typescript
-// ✅ DO: Use mutations with proper loading and error handling
+// ✅ DO: Use mutations with proper loading, error handling, and callbacks
 function CreateBuildingForm() {
-  const createBuilding = useCreateBuilding();
+  const createBuilding = useCreateBuilding({
+    onSuccess: (data) => {
+      toast.success(`Clădirea ${data.data.name} a fost creată cu succes`);
+      form.reset();
+      onClose(); // Close modal or navigate away
+    },
+    onError: (error) => {
+      if (isValidationError(error)) {
+        const validationErrors = getValidationErrors(error);
+        Object.entries(validationErrors).forEach(([field, message]) => {
+          form.setError(field, { message });
+        });
+      } else {
+        toast.error("Eroare la crearea clădirii");
+      }
+    },
+  });
 
-  const onSubmit = async (data: CreateBuildingRequest) => {
-    try {
-      await createBuilding.mutateAsync(data);
-      toast.success("Clădirea a fost creată cu succes");
-      onClose();
-    } catch (error) {
-      toast.error("Eroare la crearea clădirii");
-    }
+  const onSubmit = (data: CreateBuildingRequest) => {
+    createBuilding.mutate(data);
   };
 
   return (
@@ -172,6 +243,23 @@ function CreateBuildingForm() {
       </Button>
     </form>
   );
+}
+
+// ❌ DON'T: Handle success/error logic in mutateAsync - use hook callbacks instead
+function CreateBuildingForm() {
+  const createBuilding = useCreateBuilding(); // No callbacks here
+
+  const onSubmit = async (data: CreateBuildingRequest) => {
+    try {
+      await createBuilding.mutateAsync(data);
+      // This pattern loses the hook's cache invalidation benefits
+      toast.success("Success");
+      onClose();
+    } catch (error) {
+      toast.error("Error");
+    }
+  };
+  // ...
 }
 ```
 
@@ -395,6 +483,31 @@ useMutation({
   mutationFn: createBuilding,
   // Missing onSuccess to invalidate queries
 });
+
+// ❌ DON'T: Overwrite hook callbacks without preserving cache invalidation
+export function useCreateBuilding(options) {
+  return useMutation({
+    mutationFn: createBuildingFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["buildings"]);
+    },
+    // This overwrites the hook's onSuccess!
+    ...options,
+  });
+}
+
+// ❌ DON'T: Set callbacks to undefined (breaks React Query)
+export function useCreateBuilding(options) {
+  return useMutation({
+    mutationFn: createBuildingFn,
+    onSuccess: () => { /* cache logic */ },
+    ...(options && {
+      ...options,
+      onSuccess: undefined, // This can break React Query
+      onError: undefined,
+    }),
+  });
+}
 ```
 
 ## **Testing Patterns**
@@ -444,3 +557,6 @@ test("useBuildings returns buildings data", async () => {
 - **Use selective query invalidation** to avoid unnecessary refetches
 - **Type all API responses and requests** with TypeScript
 - **Test hooks with proper React Query setup**
+- **CRITICAL: Use callback merging pattern** in mutation hooks to preserve both cache invalidation and user callbacks
+- **Pass callbacks to hooks, not to mutate()** for consistent behavior
+- **Extract user callbacks properly** using destructuring to avoid overwriting hook logic

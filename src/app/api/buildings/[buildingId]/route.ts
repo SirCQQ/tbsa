@@ -10,6 +10,7 @@ type ApartmentData = {
   number: string;
   floor: number;
   isOccupied: boolean;
+  occupantCount: number;
   surface: number | null;
 };
 

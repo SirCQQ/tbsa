@@ -50,6 +50,7 @@ export function AddApartmentModal({
     floor: string | number;
     buildingId: string;
     isOccupied?: boolean;
+    occupantCount?: string | number;
     surface?: string | number;
     description?: string;
   };
@@ -61,6 +62,7 @@ export function AddApartmentModal({
       floor: 0,
       buildingId,
       isOccupied: false,
+      occupantCount: 0,
       surface: "",
       description: "",
     },
@@ -159,28 +161,40 @@ export function AddApartmentModal({
                   ))}
                 </ControlledSelect>
               </div>
-
-              <ControlledInput
-                name="surface"
-                label="Suprafața (m²)"
-                type="number"
-                placeholder="Ex: 45.5"
-                min={1}
-                max={1000}
-                step={0.1}
-                helperText="Opțional - suprafața în metri pătrați"
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ControlledInput
+                  name="surface"
+                  label="Suprafața (m²)"
+                  type="number"
+                  placeholder="Ex: 45.5"
+                  min={1}
+                  max={1000}
+                  step={0.1}
+                  helperText="Opțional - suprafața în metri pătrați"
+                />
+                <ControlledInput
+                  name="occupantCount"
+                  label="Numărul de ocupanți"
+                  type="number"
+                  placeholder="Ex: 2"
+                  min={0}
+                  max={20}
+                  helperText="Numărul de persoane care locuiesc în apartament"
+                />
+              </div>
             </div>
 
             {/* Status Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Status apartament</h3>
 
-              <ControlledCheckbox
-                name="isOccupied"
-                label="Apartament ocupat"
-                helperText="Bifați dacă apartamentul are deja proprietar/chiriaș"
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ControlledCheckbox
+                  name="isOccupied"
+                  label="Apartament ocupat"
+                  helperText="Bifați dacă apartamentul are deja proprietar/chiriaș"
+                />
+              </div>
 
               {/* Floor info */}
               {!isNaN(floorNum) && (

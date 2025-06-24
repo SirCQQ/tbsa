@@ -329,6 +329,7 @@ describe("BuildingService", () => {
               number: true,
               floor: true,
               isOccupied: true,
+              occupantCount: true,
             },
           },
         },

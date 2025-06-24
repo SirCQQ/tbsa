@@ -12,6 +12,7 @@ describe("Apartment Validation", () => {
         floor: 1,
         buildingId: faker.string.uuid(),
         isOccupied: false,
+        occupantCount: 2,
         surface: 85.5,
         description: "Two-bedroom apartment",
       };
@@ -58,6 +59,7 @@ describe("Apartment Validation", () => {
       const result = createApartmentSchema.parse(validData);
 
       expect(result.isOccupied).toBe(false);
+      expect(result.occupantCount).toBe(0);
     });
 
     it("should handle optional fields as undefined", () => {
@@ -224,6 +226,92 @@ describe("Apartment Validation", () => {
 
         const result = createApartmentSchema.parse(validData);
         expect(result.surface).toBe(85.75);
+      });
+    });
+
+    describe("occupantCount validation", () => {
+      it("should handle string occupantCount conversion", () => {
+        const validData = {
+          number: "101",
+          floor: 1,
+          buildingId: faker.string.uuid(),
+          occupantCount: "3", // String that should be converted to number
+        };
+
+        const result = createApartmentSchema.parse(validData);
+
+        expect(result.occupantCount).toBe(3);
+        expect(typeof result.occupantCount).toBe("number");
+      });
+
+      it("should use default value when occupantCount is not provided", () => {
+        const validData = {
+          number: "101",
+          floor: 1,
+          buildingId: faker.string.uuid(),
+        };
+
+        const result = createApartmentSchema.parse(validData);
+
+        expect(result.occupantCount).toBe(0);
+      });
+
+      it("should handle empty string as default value", () => {
+        const validData = {
+          number: "101",
+          floor: 1,
+          buildingId: faker.string.uuid(),
+          occupantCount: "", // Empty string should become 0
+        };
+
+        const result = createApartmentSchema.parse(validData);
+
+        expect(result.occupantCount).toBe(0);
+      });
+
+      it("should fail if occupantCount is negative", () => {
+        const invalidData = {
+          number: "101",
+          floor: 1,
+          buildingId: faker.string.uuid(),
+          occupantCount: -1,
+        };
+
+        expect(() => createApartmentSchema.parse(invalidData)).toThrow();
+      });
+
+      it("should fail if occupantCount exceeds maximum", () => {
+        const invalidData = {
+          number: "101",
+          floor: 1,
+          buildingId: faker.string.uuid(),
+          occupantCount: 21,
+        };
+
+        expect(() => createApartmentSchema.parse(invalidData)).toThrow();
+      });
+
+      it("should fail if occupantCount is not a whole number", () => {
+        const invalidData = {
+          number: "101",
+          floor: 1,
+          buildingId: faker.string.uuid(),
+          occupantCount: 2.5,
+        };
+
+        expect(() => createApartmentSchema.parse(invalidData)).toThrow();
+      });
+
+      it("should accept valid occupantCount values", () => {
+        const validData = {
+          number: "101",
+          floor: 1,
+          buildingId: faker.string.uuid(),
+          occupantCount: 4,
+        };
+
+        const result = createApartmentSchema.parse(validData);
+        expect(result.occupantCount).toBe(4);
       });
     });
 

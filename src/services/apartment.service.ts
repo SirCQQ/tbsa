@@ -87,6 +87,7 @@ export class ApartmentService {
           floor: input.floor,
           buildingId: input.buildingId,
           isOccupied: input.isOccupied || false,
+          occupantCount: input.occupantCount || 0,
           surface: input.surface,
           description: input.description,
         },

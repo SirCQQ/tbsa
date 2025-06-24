@@ -319,12 +319,18 @@ export async function seedDemoData() {
               : `${floor}${apt.toString().padStart(2, "0")}`;
           const surface = Math.floor(Math.random() * 60) + 40; // 40-100 sqm
 
+          const isOccupied = Math.random() > 0.1; // 90% occupied
+          const occupantCount = isOccupied
+            ? Math.floor(Math.random() * 4) + 1 // 1-4 occupants if occupied
+            : 0; // 0 occupants if not occupied
+
           const apartment = await prisma.apartment.create({
             data: {
               number: apartmentNumber,
               floor,
               buildingId: building.id,
-              isOccupied: Math.random() > 0.1, // 90% occupied
+              isOccupied,
+              occupantCount,
               surface,
               description: `Apartament cu ${Math.floor(Math.random() * 3) + 2} camere, ${surface}mp`,
             },

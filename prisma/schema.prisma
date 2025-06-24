@@ -386,13 +386,14 @@ model Building {
 
 /// Apartment model for individual units
 model Apartment {
-  id          String  @id @default(uuid())
-  number      String // Apartment number/identifier
-  floor       Int // Floor number
-  buildingId  String  @map("building_id")
-  isOccupied  Boolean @default(false) @map("is_occupied")
-  surface     Float? // Square meters
-  description String? // Additional apartment details
+  id            String  @id @default(uuid())
+  number        String // Apartment number/identifier
+  floor         Int // Floor number
+  buildingId    String  @map("building_id")
+  isOccupied    Boolean @default(false) @map("is_occupied")
+  occupantCount Int     @default(0) @map("occupant_count") // Number of people living in the apartment
+  surface       Float? // Square meters
+  description   String? // Additional apartment details
 
   // Relations
   building           Building            @relation(fields: [buildingId], references: [id])

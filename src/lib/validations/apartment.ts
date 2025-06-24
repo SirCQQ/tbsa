@@ -21,6 +21,24 @@ export const createApartmentSchema = z.object({
     .refine((val) => val <= 50, "Etajul nu poate depăși 50"),
   buildingId: z.string().uuid("ID-ul clădirii trebuie să fie un UUID valid"),
   isOccupied: z.boolean().optional().default(false),
+  occupantCount: z
+    .union([z.string(), z.number()])
+    .optional()
+    .default(0)
+    .transform((val) => {
+      if (val === undefined || val === null || val === "") return 0;
+      return typeof val === "string" ? parseInt(val, 10) : val;
+    })
+    .refine(
+      (val) => !isNaN(val),
+      "Numărul de ocupanți trebuie să fie un număr valid"
+    )
+    .refine(
+      (val) => Number.isInteger(val),
+      "Numărul de ocupanți trebuie să fie un număr întreg"
+    )
+    .refine((val) => val >= 0, "Numărul de ocupanți nu poate fi negativ")
+    .refine((val) => val <= 20, "Numărul de ocupanți nu poate depăși 20"),
   surface: z
     .union([z.string(), z.number()])
     .optional()
