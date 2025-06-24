@@ -131,6 +131,7 @@ export function GenerateApartmentsModal({
               floor,
               buildingId,
               isOccupied: false,
+              occupantCount: 0,
             });
 
             successCount++;
