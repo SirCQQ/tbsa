@@ -53,8 +53,8 @@ export async function GET(
     // 2. Check permissions
     const hasReadPermission = await hasPermissionServerSide(
       session.user.permissions || [],
-      ResourcesEnum.BUILDINGS.toLowerCase(),
-      ActionsEnum.READ.toLowerCase()
+      ResourcesEnum.BUILDINGS,
+      ActionsEnum.READ
     );
 
     if (!hasReadPermission) {

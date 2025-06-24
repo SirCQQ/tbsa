@@ -520,10 +520,11 @@ export async function seedCoreSystem() {
         update: {
           name: permission.name,
           description: permission.description,
+          code: `${permission.resource}:${permission.action}`.toUpperCase(),
         },
         create: {
           ...permission,
-          code: `${permission.resource.toLowerCase()}:${permission.action.toLowerCase()}`,
+          code: `${permission.resource}:${permission.action}`.toUpperCase(),
         },
       })
     )
@@ -558,9 +559,9 @@ export async function seedCoreSystem() {
   const adminRole = createdRoles.find((r) => r.code === "ADMINISTRATOR");
   const adminPermissions = createdPermissions.filter(
     (p) =>
-      !p.code.includes("admin_grant") &&
-      !p.code.includes("subscription_plans") &&
-      !p.code.includes("modules")
+      !p.code.includes("ADMIN_GRANT") &&
+      !p.code.includes("SUBSCRIPTION_PLANS") &&
+      !p.code.includes("MODULES")
   );
 
   if (adminRole) {
@@ -585,10 +586,10 @@ export async function seedCoreSystem() {
   const ownerRole = createdRoles.find((r) => r.code === "OWNER");
   const ownerPermissions = createdPermissions.filter(
     (p) =>
-      p.code.includes("buildings:") ||
-      p.code.includes("apartments:") ||
-      p.code.includes("water_readings:") ||
-      p.code.includes("water_meters:")
+      p.code.includes("BUILDINGS:") ||
+      p.code.includes("APARTMENTS:") ||
+      p.code.includes("WATER_READINGS:") ||
+      p.code.includes("WATER_METERS:")
   );
 
   if (ownerRole) {
@@ -612,7 +613,7 @@ export async function seedCoreSystem() {
   // Tenant gets limited permissions
   const tenantRole = createdRoles.find((r) => r.code === "TENANT");
   const tenantPermissions = createdPermissions.filter(
-    (p) => p.code.includes(":read") || p.code === "water_readings:create"
+    (p) => p.code.includes(":READ") || p.code === "WATER_READINGS:CREATE"
   );
 
   if (tenantRole) {

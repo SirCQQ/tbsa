@@ -202,7 +202,7 @@ export default function OrganizationAdminPage() {
               <div className="flex flex-col space-y-3">
                 <PermissionGuardOr
                   permissions={[
-                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`.toLowerCase(),
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
                   ]}
                 >
                   <Button
@@ -232,8 +232,8 @@ export default function OrganizationAdminPage() {
 
                 <PermissionGuardOr
                   permissions={[
-                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`.toLowerCase(),
-                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`.toLowerCase(),
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+                    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
                   ]}
                 >
                   <Button
@@ -340,9 +340,9 @@ export default function OrganizationAdminPage() {
         {/* Buildings List */}
         <PermissionGuardOr
           permissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`.toLowerCase(),
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`.toLowerCase(),
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`.toLowerCase(),
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
           ]}
         >
           <OrgBuildingsList

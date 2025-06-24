@@ -38,7 +38,7 @@ describe("Database Operations", () => {
           password: userData.password,
           firstName: userData.firstName,
           lastName: userData.lastName,
-          role: userData.role,
+          role: userData.ro,
         },
       });
       expect(result).toEqual(userData);

@@ -4,7 +4,7 @@ export const mockJose = {
     payload: {
       userId: "test-user-id",
       email: "test@example.com",
-      permissions: ["buildings:read"],
+      permissions: [`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`],
       administratorId: "test-admin-id",
     },
   }),

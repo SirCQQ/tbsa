@@ -1,7 +1,7 @@
 import type { DefaultSession } from "next-auth";
 
 // Simplified types - store only codes/IDs instead of full objects
-export type PermissionCode = string; // e.g., "users:read", "buildings:create"
+export type PermissionCode = string; // e.g., "users:read",   `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`
 export type RoleCode = string; // e.g., "ADMIN", "OWNER", "TENANT"
 export type OrganizationReference = {
   id: string;

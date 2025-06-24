@@ -9,8 +9,10 @@ import {
   buildingsApi,
   type CreateBuildingResponse,
   type GetBuildingsResponse,
+  type GetBuildingWithApartmentsResponse,
   type BuildingErrorResponse,
   type BuildingWithOrganization,
+  type BuildingWithApartments,
 } from "@/lib/api/buildings";
 import { getErrorMessage } from "@/lib/axios";
 import type { CreateBuildingFormData } from "@/lib/validations/building";
@@ -42,7 +44,7 @@ export function useBuildings(
   });
 }
 
-// Get building by ID query hook
+// Get building by ID query hook (simple version)
 export function useBuilding(
   id: string,
   options?: UseQueryOptions<
@@ -50,13 +52,56 @@ export function useBuilding(
     AxiosError<BuildingErrorResponse>,
     BuildingWithOrganization
   >
+): ReturnType<
+  typeof useQuery<
+    CreateBuildingResponse,
+    AxiosError<BuildingErrorResponse>,
+    BuildingWithOrganization
+  >
+>;
+
+// Get building by ID query hook (with apartments version)
+export function useBuilding(
+  id: string,
+  organizationId: string,
+  options?: UseQueryOptions<
+    GetBuildingWithApartmentsResponse,
+    AxiosError<BuildingErrorResponse>,
+    BuildingWithApartments
+  >
+): ReturnType<
+  typeof useQuery<
+    GetBuildingWithApartmentsResponse,
+    AxiosError<BuildingErrorResponse>,
+    BuildingWithApartments
+  >
+>;
+
+// Implementation
+export function useBuilding(
+  id: string,
+  organizationIdOrOptions?:
+    | string
+    | UseQueryOptions<any, AxiosError<BuildingErrorResponse>, any>,
+  options?: UseQueryOptions<any, AxiosError<BuildingErrorResponse>, any>
 ) {
+  // If second parameter is a string, it's organizationId (enriched version)
+  const isEnrichedVersion = typeof organizationIdOrOptions === "string";
+  const organizationId = isEnrichedVersion
+    ? organizationIdOrOptions
+    : undefined;
+  const queryOptions = isEnrichedVersion ? options : organizationIdOrOptions;
+
   return useQuery({
-    queryKey: buildingQueryKeys.detail(id),
+    queryKey: isEnrichedVersion
+      ? ["buildings", id, organizationId]
+      : buildingQueryKeys.detail(id),
     queryFn: () => buildingsApi.getById(id),
     select: (data) => data.data,
-    enabled: !!id,
-    ...options,
+    enabled: !!id && (!isEnrichedVersion || !!organizationId),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    ...queryOptions,
   });
 }
 

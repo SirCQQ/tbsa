@@ -74,7 +74,7 @@ export async function hasPermissionServerSide(
   resource: string,
   action: string
 ): Promise<boolean> {
-  const permissionCode = `${resource}:${action}`;
+  const permissionCode = `${resource.toLocaleUpperCase()}:${action.toLocaleUpperCase()}`;
   return permissionCodes.includes(permissionCode);
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Page } from "@/components/ui/page";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -16,7 +17,6 @@ import {
   Building2,
   MapPin,
   Calendar,
-  Users,
   Home,
   ArrowLeft,
   Settings,
@@ -26,15 +26,19 @@ import {
   XCircle,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useBuilding } from "@/hooks/api/use-building";
+import { useBuilding } from "@/hooks/api/use-buildings";
 import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { StatCard } from "@/components/ui/stat-card";
+import { AddApartmentModal } from "@/components/apartments/add-apartment-modal";
+import { ActionsEnum, ResourcesEnum } from "@prisma/client";
 
 export default function BuildingDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const orgId = params.orgId as string;
   const buildingId = params.buildingId as string;
+
+  const [showAddApartment, setShowAddApartment] = useState(false);
 
   const { data: building, isLoading, error } = useBuilding(buildingId, orgId);
 
@@ -165,13 +169,21 @@ export default function BuildingDetailsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <PermissionGuardOr permissions={["buildings:update"]}>
+              <PermissionGuardOr
+                permissions={[
+                  `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+                ]}
+              >
                 <Button variant="outline" size="sm">
                   <Edit className="h-4 w-4 mr-2" />
                   Editează
                 </Button>
               </PermissionGuardOr>
-              <PermissionGuardOr permissions={["buildings:update"]}>
+              <PermissionGuardOr
+                permissions={[
+                  `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+                ]}
+              >
                 <Button variant="outline" size="sm">
                   <Settings className="h-4 w-4 mr-2" />
                   Setări
@@ -274,8 +286,12 @@ export default function BuildingDetailsPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <Typography variant="h2">Apartamente pe Etaje</Typography>
-            <PermissionGuardOr permissions={["apartments:create"]}>
-              <Button size="sm">
+            <PermissionGuardOr
+              permissions={[
+                `${ResourcesEnum.APARTMENTS}:${ActionsEnum.CREATE}`,
+              ]}
+            >
+              <Button size="sm" onClick={() => setShowAddApartment(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Adaugă Apartament
               </Button>
@@ -352,6 +368,15 @@ export default function BuildingDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Apartment Modal */}
+      <AddApartmentModal
+        open={showAddApartment}
+        onOpenChange={setShowAddApartment}
+        buildingId={buildingId}
+        buildingName={building.name}
+        maxFloor={building.floors}
+      />
     </Page>
   );
 }

@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Building2, Users, Settings, Shield } from "lucide-react";
+import { ActionsEnum, ResourcesEnum } from "@prisma/client";
 
 /**
  * Examples of how to use the PermissionGuard component
@@ -26,7 +27,11 @@ import { Building2, Users, Settings, Shield } from "lucide-react";
 export function ExampleOrPermissions() {
   return (
     <PermissionGuardOr
-      permissions={["buildings:read", "buildings:create", "buildings:update"]}
+      permissions={[
+        `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
+        `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+      ]}
       fallback={
         <Alert>
           <Shield className="h-4 w-4" />
@@ -58,7 +63,11 @@ export function ExampleOrPermissions() {
 export function ExampleAndPermissions() {
   return (
     <PermissionGuardAnd
-      permissions={["users:read", "users:create", "users:update"]}
+      permissions={[
+        `${ResourcesEnum.USERS}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.USERS}:${ActionsEnum.CREATE}`,
+        `${ResourcesEnum.USERS}:${ActionsEnum.UPDATE}`,
+      ]}
       fallback={
         <Alert>
           <Shield className="h-4 w-4" />
@@ -90,8 +99,14 @@ export function ExampleAndPermissions() {
 export function ExampleCombinedPermissions() {
   return (
     <PermissionGuard
-      orPermissions={["buildings:read", "apartments:read"]} // User needs at least one of these
-      andPermissions={["users:read", "organizations:read"]} // AND all of these
+      orPermissions={[
+        `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.APARTMENTS}:${ActionsEnum.READ}`,
+      ]} // User needs at least one of these
+      andPermissions={[
+        `${ResourcesEnum.USERS}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
+      ]} // AND all of these
       fallback={
         <Alert>
           <Shield className="h-4 w-4" />
@@ -128,7 +143,10 @@ export function ExampleCombinedPermissions() {
 export function ExampleWithRedirect() {
   return (
     <PermissionGuard
-      orPermissions={["admin:access", "super_admin:access"]}
+      orPermissions={[
+        `${ResourcesEnum.ADMINISTRATOR}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.SUPER_ADMIN}:${ActionsEnum.READ}`,
+      ]}
       withRedirect={true}
       redirectUrl="/auth/login?error=insufficient_permissions"
     >
@@ -152,7 +170,7 @@ export function ExampleWithRedirect() {
 export function ExampleWithLoading() {
   return (
     <PermissionGuard
-      orPermissions={["buildings:read"]}
+      orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]}
       loading={
         <Card>
           <CardHeader>
@@ -196,9 +214,9 @@ export function ExampleUsingHook() {
     usePermissions();
 
   const canManageBuildings = hasAnyPermission([
-    "buildings:create",
-    "buildings:update",
-    "buildings:delete",
+    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
+    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+    `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
   ]);
   const canFullyManageUsers = hasAllPermissions([
     "users:read",
@@ -207,7 +225,7 @@ export function ExampleUsingHook() {
     "users:delete",
   ]);
   const canAccessDashboard = hasExactPermissions(
-    ["buildings:read", "apartments:read"], // OR permissions
+    [`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`, "apartments:read"], // OR permissions
     ["organizations:read"] // AND permissions
   );
 
@@ -274,7 +292,7 @@ export function ExampleUsingHook() {
 export function ExampleNestedGuards() {
   return (
     <PermissionGuardOr
-      permissions={["organizations:read"]}
+      permissions={[`${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`]}
       fallback={
         <Alert>
           <Shield className="h-4 w-4" />
@@ -300,7 +318,10 @@ export function ExampleNestedGuards() {
 
           {/* Nested guard for admin features */}
           <PermissionGuardAnd
-            permissions={["organizations:update", "users:read"]}
+            permissions={[
+              `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.UPDATE}`,
+              `${ResourcesEnum.USERS}:${ActionsEnum.READ}`,
+            ]}
             fallback={
               <Alert>
                 <AlertDescription>

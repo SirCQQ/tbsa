@@ -2,7 +2,6 @@
 
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Page } from "@/components/ui/page";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -19,14 +18,6 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 export default function DashboardPage() {
   const { user, isLoading } = useCurrentUser();
   const router = useRouter();
-
-  // Auto-redirect to first organization if user has only one
-  useEffect(() => {
-    if (user && user.organizations && user.organizations.length === 1) {
-      const orgCode = user.organizations[0].code;
-      router.push(`/org/${orgCode}/admin`);
-    }
-  }, [user, router]);
 
   if (isLoading) {
     return (

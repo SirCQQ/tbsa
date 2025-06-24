@@ -8,6 +8,8 @@ import {
   usePermissions,
 } from "@/components/auth/permission-guard";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { ActionsEnum, ResourcesEnum } from "@prisma/client";
+import { Session } from "next-auth";
 
 // Mock the dependencies
 jest.mock("next/navigation", () => ({
@@ -20,6 +22,11 @@ jest.mock("@/hooks/use-current-user", () => ({
 
 const mockRouter = {
   push: jest.fn(),
+  back: jest.fn(),
+  forward: jest.fn(),
+  refresh: jest.fn(),
+  replace: jest.fn(),
+  prefetch: jest.fn(),
 };
 
 const mockUseCurrentUser = useCurrentUser as jest.MockedFunction<
@@ -33,15 +40,22 @@ describe("PermissionGuard", () => {
     mockUseRouter.mockReturnValue(mockRouter);
   });
 
-  const mockUser = {
+  const mockUser: Session["user"] = {
     id: "user-1",
     email: "test@example.com",
     firstName: "Test",
     lastName: "User",
-    permissions: ["buildings:read", "users:create", "organizations:read"],
+    permissions: [
+      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+      `${ResourcesEnum.USERS}:${ActionsEnum.CREATE}`,
+      `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
+    ],
     roles: ["admin"],
     organizations: [{ id: "org-1", name: "Test Org", code: "TEST" }],
     currentOrganizationId: "org-1",
+    isVerified: true,
+    image: "https://example.com/image.png",
+    name: "Test User",
   };
 
   const mockHasPermission = jest.fn();
@@ -66,7 +80,12 @@ describe("PermissionGuard", () => {
       );
 
       render(
-        <PermissionGuard orPermissions={["buildings:read", "buildings:create"]}>
+        <PermissionGuard
+          orPermissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
+          ]}
+        >
           <div>Protected Content</div>
         </PermissionGuard>
       );
@@ -94,7 +113,10 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          andPermissions={["buildings:read", "organizations:read"]}
+          andPermissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
+          ]}
         >
           <div>Protected Content</div>
         </PermissionGuard>
@@ -123,7 +145,10 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:delete", "buildings:update"]}
+          orPermissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+          ]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -154,7 +179,10 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          andPermissions={["buildings:read", "buildings:delete"]} // User has read but not delete
+          andPermissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
+          ]} // User has read but not delete
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -187,8 +215,13 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:read", "buildings:create"]} // User has buildings:read
-          andPermissions={["organizations:read"]} // User has organizations:read
+          orPermissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
+          ]} // User has buildings:read
+          andPermissions={[
+            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
+          ]} // User has organizations:read
         >
           <div>Protected Content</div>
         </PermissionGuard>
@@ -217,8 +250,13 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:delete", "buildings:update"]} // User has neither
-          andPermissions={["organizations:read"]} // User has this
+          orPermissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+          ]} // User has neither
+          andPermissions={[
+            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
+          ]} // User has this
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -249,8 +287,11 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:read"]} // User has this
-          andPermissions={["organizations:read", "buildings:delete"]} // User missing buildings:delete
+          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]} // User has this
+          andPermissions={[
+            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
+          ]} // User missing buildings:delete
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -265,6 +306,7 @@ describe("PermissionGuard", () => {
   describe("Authentication states", () => {
     it("should render fallback when user is not authenticated", () => {
       mockUseCurrentUser.mockReturnValue({
+        //@ts-expect-error not expectiong null
         user: null,
         isLoading: false,
         isAuthenticated: false,
@@ -277,7 +319,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:read"]}
+          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]}
           fallback={<div>Please log in</div>}
         >
           <div>Protected Content</div>
@@ -290,6 +332,7 @@ describe("PermissionGuard", () => {
 
     it("should render loading component when loading", () => {
       mockUseCurrentUser.mockReturnValue({
+        //@ts-expect-error not expectiong null
         user: null,
         isLoading: true,
         isAuthenticated: false,
@@ -302,7 +345,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:read"]}
+          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]}
           loading={<div>Loading permissions...</div>}
           fallback={<div>Access Denied</div>}
         >
@@ -317,6 +360,7 @@ describe("PermissionGuard", () => {
 
     it("should render nothing when loading and no loading component provided", () => {
       mockUseCurrentUser.mockReturnValue({
+        //@ts-expect-error not expectiong null
         user: null,
         isLoading: true,
         isAuthenticated: false,
@@ -329,7 +373,7 @@ describe("PermissionGuard", () => {
 
       const { container } = render(
         <PermissionGuard
-          orPermissions={["buildings:read"]}
+          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -361,7 +405,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:delete"]} // User doesn't have this
+          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`]} // User doesn't have this
           withRedirect={true}
           redirectUrl="/access-denied"
         >
@@ -394,7 +438,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:delete"]} // User doesn't have this
+          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`]} // User doesn't have this
           withRedirect={true}
         >
           <div>Protected Content</div>
@@ -426,7 +470,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["buildings:read"]} // User has this
+          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]} // User has this
           withRedirect={true}
           redirectUrl="/access-denied"
         >
@@ -460,7 +504,10 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuardOr
-          permissions={["buildings:read", "buildings:create"]}
+          permissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
+          ]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -490,7 +537,10 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuardAnd
-          permissions={["buildings:read", "organizations:read"]}
+          permissions={[
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+            "organizations:read",
+          ]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -524,7 +574,10 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={["invalid-permission", "buildings:read"]}
+          orPermissions={[
+            "invalid-permission",
+            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+          ]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -570,16 +623,19 @@ describe("usePermissions hook", () => {
       usePermissions();
 
     const canManageBuildings = hasAnyPermission([
-      "buildings:create",
-      "buildings:update",
+      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
+      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
     ]);
     const canFullyManageUsers = hasAllPermissions([
-      "users:create",
-      "users:read",
+      `${ResourcesEnum.USERS}:${ActionsEnum.CREATE}`,
+      `${ResourcesEnum.USERS}:${ActionsEnum.READ}`,
     ]);
     const canAccessDashboard = hasExactPermissions(
-      ["buildings:read", "apartments:read"],
-      ["organizations:read"]
+      [
+        `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.APARTMENTS}:${ActionsEnum.READ}`,
+      ],
+      [`${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`]
     );
 
     return (
@@ -599,15 +655,22 @@ describe("usePermissions hook", () => {
     jest.clearAllMocks();
   });
 
-  const mockUser = {
+  const mockUser: Session["user"] = {
     id: "user-1",
     email: "test@example.com",
     firstName: "Test",
     lastName: "User",
-    permissions: ["buildings:read", "users:create", "organizations:read"],
+    permissions: [
+      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+      `${ResourcesEnum.USERS}:${ActionsEnum.CREATE}`,
+      `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
+    ],
     roles: ["admin"],
     organizations: [{ id: "org-1", name: "Test Org", code: "TEST" }],
     currentOrganizationId: "org-1",
+    isVerified: true,
+    image: "https://example.com/image.png",
+    name: "Test User",
   };
 
   const mockHasPermission = jest.fn();
@@ -637,6 +700,7 @@ describe("usePermissions hook", () => {
 
   it("should return false when user is not authenticated", () => {
     mockUseCurrentUser.mockReturnValue({
+      //@ts-expect-error not expectiong null
       user: null,
       isLoading: false,
       isAuthenticated: false,

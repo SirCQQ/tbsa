@@ -36,20 +36,35 @@ export const buildingsApi = {
 };
 
 // Response types
+export type ApartmentData = {
+  id: string;
+  number: string;
+  floor: number;
+  isOccupied: boolean;
+  surface: number | null;
+};
+
 export type BuildingWithOrganization = Building & {
   organization: Pick<Organization, "id" | "name" | "code">;
-  apartments?: Array<{
-    id: string;
-    number: string;
-    floor: number;
-    isOccupied: boolean;
-  }>;
+  apartments?: ApartmentData[];
+};
+
+export type BuildingWithApartments = BuildingWithOrganization & {
+  apartments: ApartmentData[];
+  apartmentsByFloor: Record<string, ApartmentData[]>;
+  occupiedApartments: number;
+  vacantApartments: number;
 };
 
 export type CreateBuildingResponse = {
   success: true;
   message: string;
   data: BuildingWithOrganization;
+};
+
+export type GetBuildingWithApartmentsResponse = {
+  success: true;
+  data: BuildingWithApartments;
 };
 
 export type GetBuildingsResponse = {
