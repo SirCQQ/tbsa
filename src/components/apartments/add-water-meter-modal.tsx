@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Info, CheckCircle } from "lucide-react";
+import { Info, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
@@ -47,6 +47,7 @@ export function AddWaterMeterModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddWaterMeterFormData>({
+    //@ts-expect-error zodResolver is not typed correctly
     resolver: zodResolver(addWaterMeterFormSchema),
     defaultValues: {
       serialNumber: "",
@@ -157,6 +158,7 @@ export function AddWaterMeterModal({
         </DialogHeader>
 
         <Form {...form}>
+          {/* @ts-expect-error zodResolver is not typed correctly */}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">

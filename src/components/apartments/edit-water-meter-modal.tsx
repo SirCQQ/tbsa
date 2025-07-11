@@ -50,7 +50,7 @@ export function EditWaterMeterModal({
   });
 
   const updateWaterMeter = useUpdateWaterMeter({
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Contorul a fost actualizat cu succes");
       onOpenChange(false);
       form.reset();

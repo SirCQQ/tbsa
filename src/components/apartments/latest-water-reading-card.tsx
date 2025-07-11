@@ -8,22 +8,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Droplets, Calendar, CheckCircle2, AlertCircle } from "lucide-react";
-
-type WaterMeter = {
-  id: string;
-  serialNumber: string;
-  location: string | null;
-  latestReading:
-    | {
-        value: number;
-        readingDate: Date;
-        isApproved: boolean;
-      }
-    | undefined;
-};
+import { WaterMeterListItem } from "@/services/water-meter.service";
 
 type LatestWaterReadingCardProps = {
-  waterMeters: WaterMeter[];
+  waterMeters: WaterMeterListItem[];
 };
 
 export function LatestWaterReadingCard({

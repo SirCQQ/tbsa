@@ -13,20 +13,10 @@ import { Droplets, Edit, Settings, AlertCircle } from "lucide-react";
 import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { ActionsEnum, ResourcesEnum, type WaterMeter } from "@prisma/client";
 import { ICON_COLOR_MAPPINGS } from "@/lib/constants/icon-colors";
-
-type WaterMeterWithReadings = WaterMeter & {
-  _count: { waterReadings: number };
-  latestReading:
-    | {
-        value: number;
-        readingDate: Date;
-        isApproved: boolean;
-      }
-    | undefined;
-};
+import { WaterMeterListItem } from "@/services/water-meter.service";
 
 type WaterMetersCardProps = {
-  waterMeters: WaterMeterWithReadings[] | undefined;
+  waterMeters: WaterMeterListItem[] | undefined;
   isLoading: boolean;
   error: Error | null;
   onAddWaterMeter: () => void;
@@ -90,7 +80,8 @@ export function WaterMetersCard({
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-xs sm:text-sm">
               Nu există contoare de apă configurate pentru acest apartament.
-              Apăsați pe "Adaugă Contor" pentru a adăuga primul contor.
+              Apăsați pe &quot;Adaugă Contor&quot; pentru a adăuga primul
+              contor.
             </AlertDescription>
           </Alert>
         ) : (
