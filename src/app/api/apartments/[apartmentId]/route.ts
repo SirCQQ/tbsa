@@ -183,6 +183,14 @@ export async function PUT(
   }
 }
 
+// PATCH method (alias for PUT)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ apartmentId: string }> }
+) {
+  return PUT(request, { params });
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ apartmentId: string }> }

@@ -339,14 +339,38 @@ export async function seedDemoData() {
           // 5. Create Water Meters for each apartment
           const numMeters = Math.floor(Math.random() * 2) + 1; // 1-2 meters per apartment
 
+          const meterBrands = [
+            "Zenner",
+            "Sensus",
+            "Honeywell",
+            "Elster",
+            "Itron",
+          ];
+          const meterModels = ["MTKD-M", "620M", "W2000", "V200", "AQUADIS+"];
+          const locations = ["Bucătărie", "Baie", "Debara", "Hol", "Balcon"];
+
           for (let meterIndex = 0; meterIndex < numMeters; meterIndex++) {
-            const meterType = meterIndex === 0 ? "Bucătărie" : "Baie";
-            const serialNumber = `WM${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            const location =
+              meterIndex === 0
+                ? "Bucătărie"
+                : meterIndex === 1
+                  ? "Baie"
+                  : faker.helpers.arrayElement(locations);
+
+            const serialNumber = `${faker.helpers.arrayElement(["WM", "AQ", "SN"])}${Date.now().toString().slice(-6)}${Math.floor(
+              Math.random() * 1000
+            )
+              .toString()
+              .padStart(3, "0")}`;
+            const brand = faker.helpers.arrayElement(meterBrands);
+            const model = faker.helpers.arrayElement(meterModels);
 
             await prisma.waterMeter.create({
               data: {
                 serialNumber,
-                location: meterType,
+                location,
+                brand,
+                model,
                 apartmentId: apartment.id,
                 isActive: Math.random() > 0.05, // 95% active
               },
@@ -461,17 +485,34 @@ export async function seedDemoData() {
     },
   });
 
-  for (const meter of waterMeters.slice(0, 50)) {
-    // Limit to first 50 meters for demo
-    const numReadings = Math.floor(Math.random() * 6) + 3; // 3-8 readings per meter
+  for (const meter of waterMeters) {
+    const numReadings = Math.floor(Math.random() * 8) + 5; // 5-12 readings per meter
+    let currentValue = Math.floor(Math.random() * 500) + 100; // Starting value between 100-600
 
+    // Create readings in chronological order
+    const readings = [];
     for (let i = 0; i < numReadings; i++) {
-      const readingDate = faker.date.between({
-        from: new Date("2023-01-01"),
-        to: new Date(),
-      });
+      const monthsAgo = numReadings - i - 1;
+      const readingDate = new Date();
+      readingDate.setMonth(readingDate.getMonth() - monthsAgo);
+      readingDate.setDate(Math.floor(Math.random() * 28) + 1); // Random day in month
 
-      const reading = i * Math.floor(Math.random() * 100) + 50; // Progressive readings
+      // Progressive increase in readings (realistic water consumption)
+      const monthlyConsumption = Math.floor(Math.random() * 15) + 5; // 5-20 m³ per month
+      currentValue += monthlyConsumption;
+
+      readings.push({
+        value: currentValue,
+        date: readingDate,
+      });
+    }
+
+    // Sort by date to ensure chronological order
+    readings.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // Create the readings in the database
+    for (let i = 0; i < readings.length; i++) {
+      const reading = readings[i];
 
       // Random submitter from apartment residents
       const residents = meter.apartment.apartmentResidents;
@@ -481,14 +522,27 @@ export async function seedDemoData() {
           : null;
 
       if (submitter) {
+        const isRecent = i >= readings.length - 2; // Last 2 readings
+        const isApproved = isRecent ? Math.random() > 0.3 : Math.random() > 0.1; // Recent readings less likely to be approved
+
         await prisma.waterReading.create({
           data: {
             waterMeterId: meter.id,
-            value: reading,
-            readingDate,
+            value: reading.value,
+            readingDate: reading.date,
             submittedById: submitter.user.id,
-            isApproved: Math.random() > 0.2, // 80% approved
-            notes: Math.random() > 0.7 ? faker.lorem.sentence() : null,
+            approvedById: isApproved ? submitter.user.id : null,
+            isApproved,
+            notes:
+              Math.random() > 0.8
+                ? faker.helpers.arrayElement([
+                    "Citire normală",
+                    "Contor verificat",
+                    "Valoare confirmată",
+                    "Citire lunară regulată",
+                    "Verificat cu proprietarul",
+                  ])
+                : null,
           },
         });
       }

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Building, BuildingType } from "@prisma/client/wasm";
+import type { Building, BuildingType } from "@prisma/client";
 
 export type CreateBuildingInput = {
   name: string;

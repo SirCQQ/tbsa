@@ -64,8 +64,14 @@ export const createApartmentSchema = z.object({
     .optional(),
 });
 
-export const updateApartmentSchema = createApartmentSchema.partial().omit({
-  buildingId: true,
+// Form schema that matches the input field types
+export const editApartmentFormSchema = z.object({
+  number: z.string().min(1, "Numărul apartamentului este obligatoriu"),
+  floor: z.string().min(1, "Etajul este obligatoriu"),
+  isOccupied: z.boolean(),
+  occupantCount: z.string(),
+  surface: z.string().optional(),
+  description: z.string().optional(),
 });
 
 export const apartmentIdSchema = z.object({
@@ -114,7 +120,9 @@ export const createBulkApartmentsSchema = z.object({
 });
 
 export type CreateApartmentFormData = z.infer<typeof createApartmentSchema>;
-export type UpdateApartmentFormData = z.infer<typeof updateApartmentSchema>;
+
 export type CreateBulkApartmentsFormData = z.infer<
   typeof createBulkApartmentsSchema
 >;
+
+export type EditApartmentFormData = z.infer<typeof editApartmentFormSchema>;
