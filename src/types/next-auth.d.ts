@@ -10,7 +10,7 @@ export type OrganizationReference = {
 };
 
 // Keep full types for when we need to fetch complete data
-export type PermissionString = {
+export type Permission = {
   id: string;
   code: string;
   name: string;
@@ -19,7 +19,7 @@ export type PermissionString = {
   description?: string | null;
 };
 
-export type RoleString = {
+export type Role = {
   id: string;
   code: string;
   name: string;

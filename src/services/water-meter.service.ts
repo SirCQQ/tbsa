@@ -5,6 +5,7 @@ import type {
   UpdateWaterMeterFormData,
   BulkCreateWaterMetersFormData,
 } from "@/lib/validations/water-meter";
+import { ServiceResult } from "@/types/api-response";
 
 export type WaterMeterWithReadings = WaterMeter & {
   waterReadings: WaterReading[];
@@ -24,48 +25,13 @@ export type WaterMeterListItem = WaterMeter & {
   };
 };
 
-export type CreateWaterMeterResponse = {
-  success: boolean;
-  data?: WaterMeter;
-  error?: string;
-};
-
-export type GetWaterMetersResponse = {
-  success: boolean;
-  data?: WaterMeterListItem[];
-  error?: string;
-};
-
-export type GetWaterMeterResponse = {
-  success: boolean;
-  data?: WaterMeterWithReadings;
-  error?: string;
-};
-
-export type UpdateWaterMeterResponse = {
-  success: boolean;
-  data?: WaterMeter;
-  error?: string;
-};
-
-export type DeleteWaterMeterResponse = {
-  success: boolean;
-  error?: string;
-};
-
-export type BulkCreateWaterMetersResponse = {
-  success: boolean;
-  data?: WaterMeter[];
-  error?: string;
-};
-
 export class WaterMeterService {
   /**
    * Get all water meters for a specific apartment
    */
   static async getWaterMetersByApartment(
     apartmentId: string
-  ): Promise<GetWaterMetersResponse> {
+  ): Promise<ServiceResult<WaterMeterListItem[]>> {
     try {
       // First verify apartment exists and get building info for organization check
       const apartment = await prisma.apartment.findUnique({
@@ -142,7 +108,9 @@ export class WaterMeterService {
   /**
    * Get a specific water meter by ID
    */
-  static async getWaterMeterById(id: string): Promise<GetWaterMeterResponse> {
+  static async getWaterMeterById(
+    id: string
+  ): Promise<ServiceResult<WaterMeterWithReadings>> {
     try {
       const waterMeter = await prisma.waterMeter.findUnique({
         where: {
@@ -214,7 +182,7 @@ export class WaterMeterService {
   static async createWaterMeter(
     data: CreateWaterMeterFormData,
     userId?: string
-  ): Promise<CreateWaterMeterResponse> {
+  ): Promise<ServiceResult<WaterMeter>> {
     try {
       // Check if apartment exists and get building info for organization check
       const apartment = await prisma.apartment.findUnique({
@@ -323,7 +291,7 @@ export class WaterMeterService {
   static async bulkCreateWaterMeters(
     data: BulkCreateWaterMetersFormData,
     userId?: string
-  ): Promise<BulkCreateWaterMetersResponse> {
+  ): Promise<ServiceResult<WaterMeter[]>> {
     try {
       // Check if apartment exists
       const apartment = await prisma.apartment.findUnique({
@@ -439,7 +407,7 @@ export class WaterMeterService {
   static async updateWaterMeter(
     id: string,
     data: UpdateWaterMeterFormData
-  ): Promise<UpdateWaterMeterResponse> {
+  ): Promise<ServiceResult<WaterMeter>> {
     try {
       // Check if water meter exists
       const existingMeter = await prisma.waterMeter.findUnique({
@@ -525,7 +493,7 @@ export class WaterMeterService {
   /**
    * Delete a water meter (soft delete)
    */
-  static async deleteWaterMeter(id: string): Promise<DeleteWaterMeterResponse> {
+  static async deleteWaterMeter(id: string): Promise<ServiceResult<boolean>> {
     try {
       // Check if water meter exists and has readings
       const waterMeter = await prisma.waterMeter.findUnique({
@@ -589,7 +557,7 @@ export class WaterMeterService {
   static async toggleWaterMeterStatus(
     id: string,
     isActive: boolean
-  ): Promise<UpdateWaterMeterResponse> {
+  ): Promise<ServiceResult<WaterMeter>> {
     try {
       const waterMeter = await prisma.waterMeter.findUnique({
         where: {

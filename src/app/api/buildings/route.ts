@@ -45,17 +45,14 @@ export async function POST(request: NextRequest) {
 
     // 4. Parse and validate request body
     const body = await request.json();
-    console.log("Request body:", JSON.stringify(body, null, 2));
 
     const validatedData = createBuildingSchema.parse(body);
-    console.log("Validated data:", JSON.stringify(validatedData, null, 2));
 
     // 5. Create building using service
     const buildingInput = {
       ...validatedData,
       organizationId: session.user.currentOrganizationId,
     };
-    console.log("Building input:", JSON.stringify(buildingInput, null, 2));
 
     const result = await buildingService.createBuilding(buildingInput);
 

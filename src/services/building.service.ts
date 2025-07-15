@@ -1,29 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import type { Building, BuildingType } from "@prisma/client";
-
-export type CreateBuildingInput = {
-  name: string;
-  address: string;
-  type: BuildingType;
-  floors: number;
-  totalApartments: number;
-  description?: string;
-  readingDay?: number;
-  organizationId: string;
-};
-
-export type UpdateBuildingInput = {
-  name?: string;
-  address?: string;
-  floors?: number;
-  description?: string;
-};
-
-export type BuildingServiceResult<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
+import {
+  CreateBuildingInput,
+  UpdateBuildingInput,
+} from "@/lib/validations/building";
+import { ServiceResult } from "@/types/api-response";
+import type { Building } from "@prisma/client";
 
 class BuildingService {
   /**
@@ -83,7 +64,7 @@ class BuildingService {
    */
   async createBuilding(
     input: CreateBuildingInput
-  ): Promise<BuildingServiceResult<Building>> {
+  ): Promise<ServiceResult<Building>> {
     try {
       // First, verify the organization exists
       const orgExists = await prisma.organization.findUnique({
@@ -149,7 +130,7 @@ class BuildingService {
    */
   async getBuildingsByOrganization(
     organizationId: string
-  ): Promise<BuildingServiceResult<Building[]>> {
+  ): Promise<ServiceResult<Building[]>> {
     try {
       const buildings = await prisma.building.findMany({
         where: {
@@ -205,7 +186,7 @@ class BuildingService {
   async getBuildingById(
     buildingId: string,
     organizationId: string
-  ): Promise<BuildingServiceResult<Building | null>> {
+  ): Promise<ServiceResult<Building | null>> {
     try {
       const building = await prisma.building.findFirst({
         where: {
@@ -259,7 +240,7 @@ class BuildingService {
   async getBuildingByCode(
     code: string,
     organizationId: string
-  ): Promise<BuildingServiceResult<Building | null>> {
+  ): Promise<ServiceResult<Building | null>> {
     try {
       const building = await prisma.building.findFirst({
         where: {
@@ -301,7 +282,7 @@ class BuildingService {
     buildingId: string,
     organizationId: string,
     input: UpdateBuildingInput
-  ): Promise<BuildingServiceResult<Building>> {
+  ): Promise<ServiceResult<Building>> {
     try {
       // First, get the current building
       const currentBuilding = await prisma.building.findFirst({

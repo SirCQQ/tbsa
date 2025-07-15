@@ -1,67 +1,94 @@
 import { prisma } from "@/lib/prisma";
-import type { Apartment } from "@prisma/client";
-import type { CreateApartmentFormData } from "@/lib/validations/apartment";
+import type { Apartment, Prisma } from "@prisma/client";
+import type {
+  BulkCreationResult,
+  CreateApartmentInput,
+  CreateBulkApartmentsInput,
+} from "@/lib/validations/apartment";
+import { ErrorServiceResult, ServiceResult } from "@/types/api-response";
 
-type CreateApartmentInput = CreateApartmentFormData & {
-  organizationId: string;
-};
-
-type CreateBulkApartmentsInput = {
-  buildingId: string;
-  organizationId: string;
-  apartments: {
-    number: string;
-    floor: number;
-    isOccupied?: boolean;
-    occupantCount?: number;
-    surface?: number;
-    description?: string;
-  }[];
-};
-
-type BulkCreationResult = {
-  success: boolean;
-  created: Apartment[];
-  errors: {
-    apartment: {
-      number: string;
-      floor: number;
+export type GetApartmentByIdResult = Prisma.ApartmentGetPayload<{
+  include: {
+    building: {
+      select: {
+        id: true;
+        name: true;
+        code: true;
+        organizationId: true;
+      };
     };
-    error: string;
-  }[];
-  total: number;
-  successCount: number;
-  errorCount: number;
-};
-
-type ServiceResult<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
-
-type ApartmentWithBuilding = Apartment & {
-  building: {
-    id: string;
-    name: string;
-    code: string;
-    organizationId: string;
   };
-};
+}>;
 
-type ApartmentWithCounts = Apartment & {
-  building: {
-    id: string;
-    name: string;
-    code: string;
+export type GetApartmentsByBuildingResult = Prisma.ApartmentGetPayload<{
+  include: {
+    building: {
+      select: {
+        id: true;
+        name: true;
+        code: true;
+      };
+    };
+    _count: {
+      select: {
+        apartmentResidents: true;
+        waterMeters: true;
+      };
+    };
   };
-  _count: {
-    apartmentResidents: number;
-    waterMeters: number;
+}>;
+
+export type GetApartmentsByOrganization = Prisma.ApartmentGetPayload<{
+  include: {
+    building: {
+      select: {
+        id: true;
+        name: true;
+        code: true;
+      };
+    };
+    _count: {
+      select: {
+        apartmentResidents: true;
+        waterMeters: true;
+      };
+    };
   };
-};
+}>;
 
 export class ApartmentService {
+  private includeBuildingDetails = {
+    building: {
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        organizationId: true,
+      },
+    },
+  };
+
+  private includeApartmentCounts = {
+    _count: {
+      select: {
+        apartmentResidents: true,
+        waterMeters: true,
+      },
+    },
+  };
+
+  private notFoundError: ErrorServiceResult = {
+    success: false,
+    statusCode: 404,
+    error: "Apartment not found",
+  };
+
+  private internalError: ErrorServiceResult = {
+    success: false,
+    statusCode: 500,
+    error: "Internal server error",
+  };
+
   /**
    * Create a new apartment
    */
@@ -219,6 +246,9 @@ export class ApartmentService {
               surface: apartmentData.surface,
               description: apartmentData.description,
             },
+            include: {
+              building: true,
+            },
           });
 
           results.created.push(apartment);
@@ -266,7 +296,7 @@ export class ApartmentService {
   async getApartmentById(
     apartmentId: string,
     organizationId: string
-  ): Promise<ServiceResult<ApartmentWithBuilding>> {
+  ): Promise<ServiceResult<GetApartmentByIdResult>> {
     try {
       const apartment = await prisma.apartment.findFirst({
         where: {
@@ -276,22 +306,12 @@ export class ApartmentService {
           },
         },
         include: {
-          building: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-              organizationId: true,
-            },
-          },
+          building: this.includeBuildingDetails.building,
         },
       });
 
       if (!apartment) {
-        return {
-          success: false,
-          error: "Apartment not found",
-        };
+        return this.notFoundError;
       }
 
       return {
@@ -300,10 +320,7 @@ export class ApartmentService {
       };
     } catch (error) {
       console.error("Error fetching apartment:", error);
-      return {
-        success: false,
-        error: "Failed to fetch apartment",
-      };
+      return this.internalError;
     }
   }
 
@@ -313,7 +330,7 @@ export class ApartmentService {
   async getApartmentsByBuilding(
     buildingId: string,
     organizationId: string
-  ): Promise<ServiceResult<ApartmentWithCounts[]>> {
+  ): Promise<ServiceResult<GetApartmentsByBuildingResult[]>> {
     try {
       // Verify building belongs to organization
       const building = await prisma.building.findFirst({
@@ -335,19 +352,8 @@ export class ApartmentService {
           buildingId: buildingId,
         },
         include: {
-          building: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
-          _count: {
-            select: {
-              apartmentResidents: true,
-              waterMeters: true,
-            },
-          },
+          building: this.includeBuildingDetails.building,
+          _count: this.includeApartmentCounts._count,
         },
         orderBy: [{ floor: "asc" }, { number: "asc" }],
       });
@@ -358,10 +364,7 @@ export class ApartmentService {
       };
     } catch (error) {
       console.error("Error fetching apartments:", error);
-      return {
-        success: false,
-        error: "Failed to fetch apartments",
-      };
+      return this.internalError;
     }
   }
 
@@ -370,7 +373,7 @@ export class ApartmentService {
    */
   async getApartmentsByOrganization(
     organizationId: string
-  ): Promise<ServiceResult<ApartmentWithCounts[]>> {
+  ): Promise<ServiceResult<GetApartmentsByOrganization[]>> {
     try {
       const apartments = await prisma.apartment.findMany({
         where: {
@@ -379,19 +382,8 @@ export class ApartmentService {
           },
         },
         include: {
-          building: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
-          _count: {
-            select: {
-              apartmentResidents: true,
-              waterMeters: true,
-            },
-          },
+          building: this.includeBuildingDetails.building,
+          _count: this.includeApartmentCounts._count,
         },
         orderBy: [
           { building: { name: "asc" } },
@@ -406,10 +398,7 @@ export class ApartmentService {
       };
     } catch (error) {
       console.error("Error fetching apartments:", error);
-      return {
-        success: false,
-        error: "Failed to fetch apartments",
-      };
+      return this.internalError;
     }
   }
 
@@ -419,7 +408,9 @@ export class ApartmentService {
   async updateApartment(
     apartmentId: string,
     organizationId: string,
-    updateData: Partial<CreateApartmentFormData>
+    updateData: Partial<
+      Omit<CreateApartmentInput, "buildingId" | "organizationId">
+    >
   ): Promise<ServiceResult<Apartment>> {
     try {
       // Verify apartment exists and belongs to organization
@@ -429,10 +420,7 @@ export class ApartmentService {
       );
 
       if (!existingApartment.success || !existingApartment.data) {
-        return {
-          success: false,
-          error: "Apartment not found",
-        };
+        return this.notFoundError;
       }
 
       // If updating apartment number, check for duplicates
@@ -484,10 +472,7 @@ export class ApartmentService {
       };
     } catch (error) {
       console.error("Error updating apartment:", error);
-      return {
-        success: false,
-        error: "Failed to update apartment",
-      };
+      return this.internalError;
     }
   }
 
@@ -497,54 +482,14 @@ export class ApartmentService {
   async deleteApartment(
     apartmentId: string,
     organizationId: string
-  ): Promise<ServiceResult<void>> {
+  ): Promise<ServiceResult<null>> {
     try {
-      // Verify apartment exists and belongs to organization
-      const existingApartment = await this.getApartmentById(
+      const canDeleteResult = await this.canDeleteApartment(
         apartmentId,
         organizationId
       );
-
-      if (!existingApartment.success || !existingApartment.data) {
-        return {
-          success: false,
-          error: "Apartment not found",
-        };
-      }
-
-      // Check if apartment has residents or water meters
-      const apartmentDetails = await prisma.apartment.findUnique({
-        where: { id: apartmentId },
-        include: {
-          _count: {
-            select: {
-              apartmentResidents: true,
-              waterMeters: true,
-            },
-          },
-        },
-      });
-
-      if (
-        apartmentDetails &&
-        apartmentDetails._count &&
-        apartmentDetails._count.apartmentResidents! > 0
-      ) {
-        return {
-          success: false,
-          error: "Cannot delete apartment with existing residents",
-        };
-      }
-
-      if (
-        apartmentDetails &&
-        apartmentDetails._count &&
-        apartmentDetails._count.waterMeters! > 0
-      ) {
-        return {
-          success: false,
-          error: "Cannot delete apartment with existing water meters",
-        };
+      if (!canDeleteResult.success) {
+        return canDeleteResult;
       }
 
       // Soft delete the apartment
@@ -555,14 +500,61 @@ export class ApartmentService {
 
       return {
         success: true,
+        data: null,
       };
     } catch (error) {
       console.error("Error deleting apartment:", error);
+      return this.internalError;
+    }
+  }
+
+  private async canDeleteApartment(
+    apartmentId: string,
+    organizationId: string
+  ): Promise<ServiceResult<null>> {
+    // Verify apartment exists and belongs to organization
+    const existingApartment = await this.getApartmentById(
+      apartmentId,
+      organizationId
+    );
+
+    if (!existingApartment.success || !existingApartment.data) {
+      return this.notFoundError;
+    }
+
+    // Check if apartment has residents or water meters
+    const apartmentDetails = await prisma.apartment.findUnique({
+      where: { id: apartmentId },
+      include: {
+        _count: this.includeApartmentCounts._count,
+      },
+    });
+
+    if (
+      apartmentDetails &&
+      apartmentDetails._count &&
+      apartmentDetails._count.apartmentResidents! > 0
+    ) {
       return {
         success: false,
-        error: "Failed to delete apartment",
+        error: "Cannot delete apartment with existing residents",
       };
     }
+
+    if (
+      apartmentDetails &&
+      apartmentDetails._count &&
+      apartmentDetails._count.waterMeters! > 0
+    ) {
+      return {
+        success: false,
+        error: "Cannot delete apartment with existing water meters",
+      };
+    }
+    return {
+      success: true,
+      data: null,
+    };
   }
 }
 

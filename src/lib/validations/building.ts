@@ -65,6 +65,56 @@ export const buildingIdSchema = z.object({
   id: z.string().uuid("Invalid building ID format"),
 });
 
+// CreateBuildingInput schema and type
+export const createBuildingInputSchema = z.object({
+  name: z.string(),
+  address: z.string(),
+  type: z.enum([
+    BuildingType.COMMERCIAL,
+    BuildingType.MIXED,
+    BuildingType.RESIDENTIAL,
+  ]),
+  floors: z.number().int().min(1, "Clădirea trebuie să aibă cel puțin un etaj"),
+  totalApartments: z
+    .number()
+    .int()
+    .min(1, "Clădirea trebuie să aibă cel puțin un apartament"),
+  description: z
+    .string()
+    .max(500, "Descrierea nu poate depăși 500 de caractere")
+    .nullable()
+    .optional(),
+  readingDay: z
+    .number()
+    .int()
+    .min(1, "Ziua de citire trebuie să fie între 1 și 31")
+    .max(31, "Ziua de citire trebuie să fie între 1 și 31")
+    .nullable()
+    .optional(),
+  organizationId: z
+    .string()
+    .uuid("ID-ul organizației trebuie să fie un UUID valid"),
+});
+
+// UpdateBuildingInput schema and type
+export const updateBuildingInputSchema = z.object({
+  name: z.string().optional(),
+  address: z.string().optional(),
+  floors: z
+    .number()
+    .int()
+    .min(1, "Clădirea trebuie să aibă cel puțin un etaj")
+    .optional(),
+  description: z
+    .string()
+    .max(500, "Descrierea nu poate depăși 500 de caractere")
+    .nullable()
+    .optional(),
+});
+
+export type UpdateBuildingInput = z.infer<typeof updateBuildingInputSchema>;
+export type CreateBuildingInput = z.infer<typeof createBuildingInputSchema>;
+
 export type CreateBuildingFormData = z.infer<typeof createBuildingSchema>;
 export type GetBuildingByCodeFormData = z.infer<typeof getBuildingByCodeSchema>;
 export type BuildingIdFormData = z.infer<typeof buildingIdSchema>;
