@@ -148,7 +148,7 @@ export default function BuildingDetailsPage() {
   }
 
   // Sort floors for display (ground floor first, then ascending)
-  const sortedFloors = Object.keys(building.apartmentsByFloor)
+  const sortedFloors = Object.keys(building.apartmentsByFloor ?? [])
     .map(Number)
     .sort((a, b) => a - b);
 
@@ -335,7 +335,7 @@ export default function BuildingDetailsPage() {
           />
           <StatCard
             title="Apartamente Ocupate"
-            value={building.occupiedApartments.toString()}
+            value={(building.occupiedApartments ?? 0).toString()}
             description="Unități cu proprietari"
             icon={CheckCircle2}
             iconColor={ICON_COLOR_MAPPINGS.buildingPage.occupiedApartments}
@@ -349,7 +349,7 @@ export default function BuildingDetailsPage() {
           />
           <StatCard
             title="Apartamente Libere"
-            value={building.vacantApartments.toString()}
+            value={(building.vacantApartments ?? 0).toString()}
             description="Unități disponibile"
             icon={XCircle}
             iconColor={ICON_COLOR_MAPPINGS.buildingPage.vacantApartments}

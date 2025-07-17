@@ -26,7 +26,7 @@ import {
   useCreateBuilding,
   isBuildingValidationError,
   getBuildingValidationErrors,
-} from "@/hooks/api";
+} from "@/hooks/api/use-buildings";
 import { BuildingType } from "@prisma/client";
 
 // Building form data type is imported from validations

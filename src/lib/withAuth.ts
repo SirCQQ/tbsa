@@ -13,7 +13,8 @@ import { getPermissionString } from "./auth-helpers";
 
 export type Handler<T extends Response> = (
   request: NextRequest,
-  session: any
+  session?: any,
+  params?: Record<string, Promise<any>>
 ) => Promise<T> | T;
 
 export function withAuth<T extends Response>(
@@ -21,7 +22,10 @@ export function withAuth<T extends Response>(
   requiredPermissions: Pick<Permission, "resource" | "action">[],
   withOrgPermissions: boolean = false
 ) {
-  return async function (request: NextRequest) {
+  return async function (
+    request: NextRequest,
+    queryParams?: Record<string, Promise<any>>
+  ) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
@@ -29,6 +33,10 @@ export function withAuth<T extends Response>(
         { error: "Authentication required" },
         { status: 401 }
       );
+    }
+
+    if (requiredPermissions.length === 0) {
+      return handler(request, session, queryParams);
     }
 
     // Check all required permissions
@@ -52,15 +60,18 @@ export function withAuth<T extends Response>(
       }
     }
 
-    return handler(request, session);
+    return handler(request, session, queryParams);
   };
 }
 
-export function errorServiceResultResponse<T>(result: ErrorServiceResult<T>) {
+export function errorServiceResultResponse<T>(
+  result: ErrorServiceResult<T>,
+  alternativeError?: string
+) {
   return NextResponse.json(
     {
       success: false,
-      error: result.error,
+      error: alternativeError ?? result.error,
       data: result.data,
     } as ErrorApiResponse,
     { status: result.statusCode ?? 500 }

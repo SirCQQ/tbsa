@@ -33,15 +33,15 @@ export function Header() {
   } = useCurrentUser();
 
   const navigationItems = [
-    { name: "Acasă", href: "#hero" },
-    { name: "Funcționalități", href: "#features" },
-    { name: "Despre", href: "#about" },
-    { name: "Abonamente", href: "#subscription" },
-    { name: "Contact", href: "#contact" },
+    { name: "Acasă", href: "/#hero" },
+    { name: "Funcționalități", href: "/#features" },
+    { name: "Despre", href: "/#about" },
+    { name: "Abonamente", href: "/#subscription" },
+    { name: "Contact", href: "/#contact" },
   ];
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 scroll-smooth">
       <div className=" w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/App Name and Mobile Page Title */}

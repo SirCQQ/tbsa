@@ -18,7 +18,7 @@ import {
   ControlledInput,
   ControlledCheckbox,
 } from "@/components/ui/inputs/form";
-import { useUpdateWaterMeter } from "@/hooks/api";
+import { useUpdateWaterMeter } from "@/hooks/api/use-water-meters";
 import {
   updateWaterMeterSchema,
   type UpdateWaterMeterFormData,

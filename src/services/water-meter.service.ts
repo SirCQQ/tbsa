@@ -493,7 +493,7 @@ export class WaterMeterService {
   /**
    * Delete a water meter (soft delete)
    */
-  static async deleteWaterMeter(id: string): Promise<ServiceResult<boolean>> {
+  static async deleteWaterMeter(id: string): Promise<ServiceResult<null>> {
     try {
       // Check if water meter exists and has readings
       const waterMeter = await prisma.waterMeter.findUnique({
@@ -541,6 +541,7 @@ export class WaterMeterService {
 
       return {
         success: true,
+        data: null,
       };
     } catch (error) {
       console.error("Error deleting water meter:", error);

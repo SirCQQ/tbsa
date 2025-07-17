@@ -23,7 +23,7 @@ import {
   useRegisterOrganization,
   isValidationError,
   getValidationErrors,
-} from "@/hooks/api";
+} from "@/hooks/api/use-auth";
 import {
   ControlledInput,
   ControlledTextarea,

@@ -4,9 +4,43 @@ import {
   UpdateBuildingInput,
 } from "@/lib/validations/building";
 import { ServiceResult } from "@/types/api-response";
-import type { Building } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+export type BuildingWithOrganization = Prisma.BuildingGetPayload<{
+  include: {
+    organization: {
+      select: {
+        id: true;
+        name: true;
+        code: true;
+      };
+    };
+  };
+}>;
+
+export type BuildingWithApartmentsAndOrganization = Prisma.BuildingGetPayload<{
+  include: {
+    organization: {
+      select: {
+        id: true;
+        name: true;
+        code: true;
+      };
+    };
+  };
+}>;
 
 class BuildingService {
+  private includeOrganization = {
+    organization: {
+      select: {
+        id: true,
+        name: true,
+        code: true,
+      },
+    },
+  };
+
   /**
    * Generate a unique 8-character alphanumeric building code (A-Z, 0-9)
    */
@@ -51,7 +85,7 @@ class BuildingService {
 
       if (attempts > maxAttempts) {
         throw new Error(
-          "Unable to generate unique building code after maximum attempts"
+          "Nu s-a putut genera un cod unic pentru clădire după mai multe încercări"
         );
       }
     } while (!(await this.isCodeUnique(code, organizationId)));
@@ -64,7 +98,7 @@ class BuildingService {
    */
   async createBuilding(
     input: CreateBuildingInput
-  ): Promise<ServiceResult<Building>> {
+  ): Promise<ServiceResult<BuildingWithOrganization | undefined>> {
     try {
       // First, verify the organization exists
       const orgExists = await prisma.organization.findUnique({
@@ -75,7 +109,7 @@ class BuildingService {
       if (!orgExists) {
         return {
           success: false,
-          error: `Organization with ID ${input.organizationId} does not exist`,
+          error: `Organizatia cu id-ul ${input.organizationId} nu a fost găsită`,
         };
       }
 
@@ -97,13 +131,7 @@ class BuildingService {
           organizationId: input.organizationId,
         },
         include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
+          organization: this.includeOrganization.organization,
         },
       });
 
@@ -120,7 +148,9 @@ class BuildingService {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Failed to create building",
+          error instanceof Error
+            ? error.message
+            : "A intervenit o eroare la crearea clădirii",
       };
     }
   }
@@ -130,7 +160,7 @@ class BuildingService {
    */
   async getBuildingsByOrganization(
     organizationId: string
-  ): Promise<ServiceResult<Building[]>> {
+  ): Promise<ServiceResult<BuildingWithApartmentsAndOrganization[]>> {
     try {
       const buildings = await prisma.building.findMany({
         where: {
@@ -138,25 +168,7 @@ class BuildingService {
           deletedAt: null,
         },
         include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
-          apartments: {
-            where: {
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              number: true,
-              floor: true,
-              isOccupied: true,
-              occupantCount: true,
-            },
-          },
+          organization: this.includeOrganization.organization,
         },
         orderBy: {
           createdAt: "desc",
@@ -175,7 +187,7 @@ class BuildingService {
       );
       return {
         success: false,
-        error: "Failed to fetch buildings",
+        error: "Eroare la preluarea clădirilor",
       };
     }
   }
@@ -186,7 +198,7 @@ class BuildingService {
   async getBuildingById(
     buildingId: string,
     organizationId: string
-  ): Promise<ServiceResult<Building | null>> {
+  ): Promise<ServiceResult<BuildingWithApartmentsAndOrganization | null>> {
     try {
       const building = await prisma.building.findFirst({
         where: {
@@ -195,26 +207,7 @@ class BuildingService {
           deletedAt: null,
         },
         include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
-          apartments: {
-            where: {
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              number: true,
-              floor: true,
-              isOccupied: true,
-              occupantCount: true,
-              surface: true,
-            },
-          },
+          organization: this.includeOrganization.organization,
         },
       });
 
@@ -229,7 +222,7 @@ class BuildingService {
       );
       return {
         success: false,
-        error: "Failed to fetch building",
+        error: "Eroare la preluarea clădirii",
       };
     }
   }
@@ -240,7 +233,7 @@ class BuildingService {
   async getBuildingByCode(
     code: string,
     organizationId: string
-  ): Promise<ServiceResult<Building | null>> {
+  ): Promise<ServiceResult<BuildingWithOrganization | null>> {
     try {
       const building = await prisma.building.findFirst({
         where: {
@@ -249,13 +242,7 @@ class BuildingService {
           deletedAt: null,
         },
         include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
+          organization: this.includeOrganization.organization,
         },
       });
 
@@ -270,7 +257,7 @@ class BuildingService {
       );
       return {
         success: false,
-        error: "Failed to fetch building by code",
+        error: "Eroare la preluarea clădirii după cod",
       };
     }
   }
@@ -282,7 +269,7 @@ class BuildingService {
     buildingId: string,
     organizationId: string,
     input: UpdateBuildingInput
-  ): Promise<ServiceResult<Building>> {
+  ): Promise<ServiceResult<BuildingWithApartmentsAndOrganization>> {
     try {
       // First, get the current building
       const currentBuilding = await prisma.building.findFirst({
@@ -342,26 +329,7 @@ class BuildingService {
           updatedAt: new Date(),
         },
         include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
-          apartments: {
-            where: {
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              number: true,
-              floor: true,
-              isOccupied: true,
-              occupantCount: true,
-              surface: true,
-            },
-          },
+          organization: this.includeOrganization.organization,
         },
       });
 
@@ -377,7 +345,61 @@ class BuildingService {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Failed to update building",
+          error instanceof Error
+            ? error.message
+            : "A intervenit o eroare la actualizarea clădirii",
+      };
+    }
+  }
+
+  async deleteBuilding(
+    buildingId: string,
+    organizationId: string
+  ): Promise<ServiceResult<BuildingWithOrganization | null>> {
+    try {
+      // First, check if the building exists
+      const existingBuilding = await prisma.building.findFirst({
+        where: {
+          id: buildingId,
+          organizationId,
+          deletedAt: null,
+        },
+        include: {
+          organization: this.includeOrganization.organization,
+        },
+      });
+
+      if (!existingBuilding) {
+        return {
+          success: false,
+          error: "Clădirea nu a fost găsită sau nu aveți permisiunile necesare",
+        };
+      }
+
+      // Soft delete the building
+      const deletedBuilding = await prisma.building.update({
+        where: { id: buildingId },
+        data: { deletedAt: new Date() },
+        include: {
+          organization: this.includeOrganization.organization,
+        },
+      });
+
+      return {
+        success: true,
+        data: deletedBuilding,
+      };
+    } catch (error) {
+      console.error(
+        "Building deletion error:",
+        error instanceof Error ? error.message : String(error)
+      );
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "A intervenit o eroare la ștergerea clădirii",
       };
     }
   }

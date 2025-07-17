@@ -301,6 +301,7 @@ export class ApartmentService {
       const apartment = await prisma.apartment.findFirst({
         where: {
           id: apartmentId,
+
           building: {
             organizationId: organizationId,
           },
@@ -324,6 +325,40 @@ export class ApartmentService {
     }
   }
 
+  /**
+   * Get Apartment by ID with UserId Validation
+   */
+
+  async getApartmentByIdWithUserId(
+    apartmentId: string,
+    userId: string
+  ): Promise<ServiceResult<GetApartmentByIdResult>> {
+    try {
+      const apartment = await prisma.apartment.findFirst({
+        where: {
+          id: apartmentId,
+          apartmentResidents: {
+            some: {
+              userId: userId,
+            },
+          },
+        },
+        include: {
+          building: this.includeBuildingDetails.building,
+        },
+      });
+      if (!apartment) {
+        return this.notFoundError;
+      }
+      return {
+        success: true,
+        data: apartment,
+      };
+    } catch (error) {
+      console.error("Error fetching apartment:", error);
+      return this.internalError;
+    }
+  }
   /**
    * Get apartments by building with organization validation
    */
@@ -537,7 +572,7 @@ export class ApartmentService {
     ) {
       return {
         success: false,
-        error: "Cannot delete apartment with existing residents",
+        error: "Nu se poate șterge apartamentul cu rezidenți existenți",
       };
     }
 
@@ -548,7 +583,7 @@ export class ApartmentService {
     ) {
       return {
         success: false,
-        error: "Cannot delete apartment with existing water meters",
+        error: "Nu se poate șterge apartamentul cu contoare de apă existente",
       };
     }
     return {

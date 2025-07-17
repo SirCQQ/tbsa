@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-const pageVariants = cva("min-h-screen w-full py-24", {
+const pageVariants = cva("min-h-screen w-full py-16", {
   variants: {
     display: {
       block: "block",

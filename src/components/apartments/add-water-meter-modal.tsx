@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ControlledInput } from "@/components/ui/inputs/form/controlled-input";
 import { ControlledCheckbox } from "@/components/ui/inputs/form/controlled-checkbox";
 
-import { useCreateWaterMeter } from "@/hooks/api";
+import { useCreateWaterMeter } from "@/hooks/api/use-water-meters";
 import {
   addWaterMeterFormSchema,
   type AddWaterMeterFormData,

@@ -22,7 +22,7 @@ import {
   useUpdateBuilding,
   isBuildingValidationError,
   getBuildingValidationErrors,
-} from "@/hooks/api";
+} from "@/hooks/api/use-buildings";
 import type { BuildingWithOrganization } from "@/lib/api/buildings";
 
 // Edit building schema - only editable fields
