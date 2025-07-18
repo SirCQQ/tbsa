@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Building2, Users, Crown, ArrowRight } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { NoOrg } from "@/components/dashboard/no-org";
 
 export default function DashboardPage() {
   const { user, isLoading } = useCurrentUser();
@@ -22,19 +23,19 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <Page
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        background="gradient-ocean"
-        className="min-h-screen"
-      >
-        <div className="text-center space-y-4">
-          <LoadingSpinner size="lg" />
-          <Typography variant="p" className="text-muted-foreground">
-            Se încarcă dashboard-ul...
-          </Typography>
-        </div>
-      </Page>
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      background="gradient-ocean"
+      className="min-h-screen"
+    >
+      <div className="text-center space-y-4">
+        <LoadingSpinner size="lg" />
+        <Typography variant="p" className="text-muted-foreground">
+          Se încarcă dashboard-ul...
+        </Typography>
+      </div>
+    </Page>
     );
   }
 
@@ -45,42 +46,7 @@ export default function DashboardPage() {
 
   // If user has no organizations
   if (!user.organizations || user.organizations.length === 0) {
-    return (
-      <Page
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        background="gradient-ocean"
-        padding="lg"
-        className="min-h-screen"
-      >
-        <Card className="backdrop-blur-md max-w-md w-full">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              Nicio Organizație
-            </CardTitle>
-            <CardDescription>
-              Nu faceți parte din nicio organizație momentan.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <Typography variant="p" className="text-sm text-muted-foreground">
-              Pentru a accesa dashboard-ul, trebuie să faceți parte dintr-o
-              organizație. Contactați administratorul pentru a primi un cod de
-              invitație.
-            </Typography>
-            <Button
-              onClick={() => router.push("/auth/register")}
-              borderRadius="full"
-              className="w-full"
-            >
-              Înregistrați-vă cu cod de invitație
-            </Button>
-          </CardContent>
-        </Card>
-      </Page>
-    );
+    return <NoOrg />;
   }
 
   // If user has multiple organizations, show selection

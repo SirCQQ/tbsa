@@ -1,5 +1,6 @@
 export type SuccessServiceResult<T> = {
   success: true;
+  message?: string;
   data: T;
 };
 
@@ -35,6 +36,7 @@ export type SuccessApiPaginatedResponse<T> = {
 
 export type SuccessApiResponse<T> = {
   success: true;
+  message?: string;
   data: T;
 };
 

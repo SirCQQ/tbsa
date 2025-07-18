@@ -39,29 +39,9 @@ const baseUserFields = z.object({
   confirmPassword: z.string(),
 });
 
-// Organization registration schema
+// Organization registration schema (simplified - user info only)
 export const organizationRegistrationSchema = baseUserFields
   .extend({
-    organizationName: z
-      .string()
-      .min(2, "Numele organizației trebuie să aibă cel puțin 2 caractere")
-      .max(100, "Numele organizației nu poate depăși 100 de caractere"),
-
-    organizationCode: z
-      .string()
-      .min(3, "Codul organizației trebuie să aibă cel puțin 3 caractere")
-      .max(50, "Codul organizației nu poate depăși 50 de caractere")
-      .regex(
-        /^[a-zA-Z0-9-_]+$/,
-        "Codul poate conține doar litere, cifre, liniuțe și underscore"
-      )
-      .toLowerCase(),
-
-    organizationDescription: z
-      .string()
-      .max(500, "Descrierea nu poate depăși 500 de caractere")
-      .optional(),
-
     phone: z
       .string()
       .optional()
@@ -74,8 +54,6 @@ export const organizationRegistrationSchema = baseUserFields
     agreeToTerms: z.boolean().refine((val) => val === true, {
       message: "Trebuie să acceptați termenii și condițiile",
     }),
-
-    subscriptionPlanId: z.string().optional(), // For future subscription selection
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Parolele nu se potrivesc",

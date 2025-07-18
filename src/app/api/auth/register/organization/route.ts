@@ -17,9 +17,7 @@ export async function POST(request: NextRequest) {
       lastName,
       email,
       password,
-      organizationName,
-      organizationCode,
-      organizationDescription,
+      phone,
     } = validatedData;
 
     // Check if email already exists
@@ -34,50 +32,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if organization code already exists
-    const existingOrganization = await prisma.organization.findUnique({
-      where: { code: organizationCode },
-    });
-
-    if (existingOrganization) {
-      return NextResponse.json(
-        { error: "Codul organizației este deja folosit" },
-        { status: 400 }
-      );
-    }
-
     // Hash password
     const hashedPassword = await hash(password, 12);
 
-    // Get available subscription plans for random assignment
-    // TODO: Update this to allow user selection of subscription plan
-    const availablePlans = await prisma.subscriptionPlan.findMany({
-      where: { deletedAt: null },
-    });
-
-    if (availablePlans.length === 0) {
-      return NextResponse.json(
-        { error: "Nu sunt disponibile planuri de abonament" },
-        { status: 500 }
-      );
-    }
-
-    // Select a random subscription plan (for now)
-    const randomPlan =
-      availablePlans[Math.floor(Math.random() * availablePlans.length)];
-
-    // Create organization, user, and assign role in a transaction
+    // Create user and assign ADMINISTRATOR role
     const result = await prisma.$transaction(async (tx) => {
-      // Create organization with random subscription
-      const organization = await tx.organization.create({
-        data: {
-          name: organizationName,
-          code: organizationCode,
-          description: organizationDescription,
-          subscriptionPlanId: randomPlan.id,
-        },
-      });
-
       // Create user (not verified initially - will be verified via email)
       const user = await tx.user.create({
         data: {
@@ -101,14 +60,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Link user to organization
-      await tx.userOrganization.create({
-        data: {
-          userId: user.id,
-          organizationId: organization.id,
-        },
-      });
-
       // Assign ADMINISTRATOR role to user
       await tx.userRole.create({
         data: {
@@ -118,17 +69,6 @@ export async function POST(request: NextRequest) {
       });
 
       return {
-        organization: {
-          id: organization.id,
-          name: organization.name,
-          code: organization.code,
-          description: organization.description,
-          subscriptionPlan: {
-            id: randomPlan.id,
-            name: randomPlan.name,
-            price: randomPlan.price,
-          },
-        },
         user: {
           id: user.id,
           email: user.email,
@@ -178,7 +118,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message:
-        "Înregistrarea a fost completată cu succes. Verificați email-ul pentru confirmarea contului.",
+        "Contul a fost creat cu succes și vi s-a atribuit rolul de Administrator. Verificați email-ul pentru confirmarea contului.",
       data: result,
     });
   } catch (error) {
@@ -205,7 +145,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: "Email-ul sau codul organizației sunt deja folosite",
+            error: "Email-ul este deja folosit",
           },
           { status: 400 }
         );

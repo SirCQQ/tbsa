@@ -54,7 +54,7 @@ export function OrganizationRegisterForm() {
       toast({
         title: "Înregistrare reușită!",
         description:
-          "Contul a fost creat cu succes. Verificați email-ul pentru confirmare.",
+          "Contul a fost creat cu succes și vi s-a atribuit rolul de Administrator. Verificați email-ul pentru confirmare.",
       });
     },
     onError: (error) => {
@@ -87,9 +87,6 @@ export function OrganizationRegisterForm() {
       email: "",
       password: "",
       confirmPassword: "",
-      organizationName: "",
-      organizationCode: "",
-      organizationDescription: "",
       phone: "",
       agreeToTerms: false,
     },
@@ -131,36 +128,9 @@ export function OrganizationRegisterForm() {
           </Alert>
 
           <div className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">
-                  Organizație
-                </h4>
-                <p className="font-medium">
-                  {registrationData.data.organization.name}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Cod: {registrationData.data.organization.code}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">
-                  Abonament
-                </h4>
-                <p className="font-medium">
-                  {registrationData.data.organization.subscriptionPlan.name}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {Number(
-                    registrationData.data.organization.subscriptionPlan.price
-                  ) / 100}{" "}
-                  RON/lună
-                </p>
-              </div>
-            </div>
             <div>
               <h4 className="font-semibold text-sm text-muted-foreground">
-                Administrator
+                Utilizator
               </h4>
               <p className="font-medium">
                 {registrationData.data.user.firstName}{" "}
@@ -279,37 +249,6 @@ export function OrganizationRegisterForm() {
                 placeholder="+40 123 456 789"
               />
             </div>
-
-            <Separator />
-
-            {/* Organization Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Informații organizație</h3>
-
-              <ControlledInput
-                name="organizationName"
-                label="Numele organizației"
-                placeholder="Asociația Proprietarilor Bloc..."
-                required
-              />
-
-              <ControlledInput
-                name="organizationCode"
-                label="Cod organizație"
-                placeholder="ap-bloc-1"
-                helperText="Codul unic pentru organizația dvs. (doar litere, cifre, liniuțe și underscore)"
-                required
-              />
-
-              <ControlledTextarea
-                name="organizationDescription"
-                label="Descriere"
-                placeholder="Descriere scurtă a asociației..."
-                rows={3}
-              />
-            </div>
-
-            <Separator />
 
             {/* Security Information */}
             <div className="space-y-4">

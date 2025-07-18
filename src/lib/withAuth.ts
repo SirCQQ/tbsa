@@ -72,6 +72,7 @@ export function errorServiceResultResponse<T>(
     {
       success: false,
       error: alternativeError ?? result.error,
+
       data: result.data,
     } as ErrorApiResponse,
     { status: result.statusCode ?? 500 }
@@ -85,6 +86,7 @@ export function toSuccessApiResponse<T>(
   const apiResponse: SuccessApiResponse<T> = {
     success: true,
     data: serviceResult.data,
+    message: serviceResult.message,
   };
   return NextResponse.json(apiResponse, { status });
 }

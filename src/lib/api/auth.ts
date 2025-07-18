@@ -82,17 +82,6 @@ export type OrganizationRegistrationResponse = {
   success: true;
   message: string;
   data: {
-    organization: {
-      id: string;
-      name: string;
-      code: string;
-      description?: string;
-      subscriptionPlan: {
-        id: string;
-        name: string;
-        price: string;
-      };
-    };
     user: {
       id: string;
       email: string;
