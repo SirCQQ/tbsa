@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { organizationRegistrationSchema } from "@/lib/validations/auth";
 import { sendWelcomeEmail } from "@/lib/email";
 import { z } from "zod";
+import { errorApiResultResponse, zodErrorToNextResponse } from "@/lib/withAuth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,13 +13,7 @@ export async function POST(request: NextRequest) {
     // Validate the request data
     const validatedData = organizationRegistrationSchema.parse(body);
 
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      phone,
-    } = validatedData;
+    const { firstName, lastName, email, password } = validatedData;
 
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
@@ -126,49 +121,13 @@ export async function POST(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Datele introduse nu sunt valide",
-          details: error.errors.map((err) => ({
-            field: err.path.join("."),
-            message: err.message,
-          })),
-        },
-        { status: 400 }
-      );
+      return zodErrorToNextResponse(error);
     }
-
-    // Handle Prisma errors
-    if (error instanceof Error) {
-      if (error.message.includes("Unique constraint")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Email-ul este deja folosit",
-          },
-          { status: 400 }
-        );
-      }
-
-      if (error.message.includes("Foreign key constraint")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Eroare de integritate a datelor",
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          "A apărut o eroare la înregistrare. Vă rugăm să încercați din nou.",
-      },
-      { status: 500 }
-    );
+    return errorApiResultResponse({
+      success: false,
+      error: "Internal server error",
+      data: null,
+      statusCode: 500,
+    });
   }
 }

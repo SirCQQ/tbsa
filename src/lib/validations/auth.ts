@@ -42,15 +42,6 @@ const baseUserFields = z.object({
 // Organization registration schema (simplified - user info only)
 export const organizationRegistrationSchema = baseUserFields
   .extend({
-    phone: z
-      .string()
-      .optional()
-      .refine(
-        (val) =>
-          !val || /^(\+40|0040|0)[0-9]{9}$/.test(val.replace(/\s|-/g, "")),
-        "Numărul de telefon trebuie să fie în format românesc valid (ex: +40123456789 sau 0123456789)"
-      ),
-
     agreeToTerms: z.boolean().refine((val) => val === true, {
       message: "Trebuie să acceptați termenii și condițiile",
     }),

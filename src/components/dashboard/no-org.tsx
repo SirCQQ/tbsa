@@ -36,7 +36,6 @@ export const NoOrg = () => {
                 </Typography>
                 <Button asChild>
                     <Link href="/org">
-
                         Creați o organizație
                     </Link>
                 </Button>

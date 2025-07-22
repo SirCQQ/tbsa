@@ -72,6 +72,7 @@ function VerifyEmailContent() {
 
     // Automatically trigger verification when component mounts
     verifyEmail.mutate(token);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const getIcon = () => {

@@ -26,7 +26,6 @@ import {
 } from "@/hooks/api/use-auth";
 import {
   ControlledInput,
-  ControlledTextarea,
   ControlledPasswordInput,
 } from "@/components/ui/inputs/form";
 
@@ -87,7 +86,6 @@ export function OrganizationRegisterForm() {
       email: "",
       password: "",
       confirmPassword: "",
-      phone: "",
       agreeToTerms: false,
     },
   });
@@ -241,13 +239,6 @@ export function OrganizationRegisterForm() {
                 placeholder="administrator@asociatia.ro"
                 required
               />
-
-              <ControlledInput
-                name="phone"
-                type="tel"
-                label="Telefon"
-                placeholder="+40 123 456 789"
-              />
             </div>
 
             {/* Security Information */}
@@ -260,7 +251,6 @@ export function OrganizationRegisterForm() {
                 placeholder="Introduceți parola"
                 helperText="Parola trebuie să aibă cel puțin 8 caractere, o literă mare, o literă mică, o cifră și un caracter special"
                 required
-                control={form.control}
               />
 
               <ControlledPasswordInput
@@ -268,7 +258,6 @@ export function OrganizationRegisterForm() {
                 label="Confirmă parola"
                 placeholder="Confirmați parola"
                 required
-                control={form.control}
               />
             </div>
 

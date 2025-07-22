@@ -79,17 +79,36 @@ enum PriorityEnum {
   URGENT
 }
 
+enum SubscriptionTypeEnum {
+  Bronze
+  Silver
+  Gold
+  Platinum
+  Diamond
+  Enterprise
+  Custom
+}
+
+enum SubscriptionBillingIntervalEnum {
+  Monthly
+  Yearly
+}
+
 // ======= Subscription & Organization Models =======
 
 /// Subscription plan model defining available features and limits
 model SubscriptionPlan {
-  id            String  @id @default(uuid())
-  name          String // Plan name (e.g., "Basic", "Pro")
-  price         Decimal // Monthly price
-  billingPeriod String  @map("billing_period") // Billing frequency (e.g., "monthly", "yearly")
-  features      Json // JSON object containing feature flags
-  maxBuildings  Int?    @map("max_buildings") // Maximum number of buildings allowed
-  maxApartments Int?    @map("max_apartments") // Maximum number of apartments allowed
+  id               String                          @id @default(uuid())
+  name             String
+  description      String? // Short description for UI
+  price            Decimal
+  billingInterval  SubscriptionBillingIntervalEnum @default(Monthly) @map("billing_interval")
+  features         Json
+  maxBuildings     Int?                            @map("max_buildings")
+  maxApartments    Int?                            @map("max_apartments")
+  popular          Boolean                         @default(false) // Mark as popular in UI
+  cta              String? // Call to action text for UI
+  subscriptionType SubscriptionTypeEnum            @default(Bronze) @map("subscription_type")
 
   // Relations
   organizations Organization[]

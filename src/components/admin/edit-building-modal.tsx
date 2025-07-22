@@ -29,9 +29,7 @@ import type { BuildingWithOrganization } from "@/lib/api/buildings";
 const editBuildingSchema = z.object({
   name: z.string().min(1, "Numele clădirii este obligatoriu"),
   address: z.string().min(1, "Adresa este obligatorie"),
-  floors: z.coerce
-    .number()
-    .min(1, "Numărul de etaje trebuie să fie cel puțin 1"),
+  floors: z.number().min(1, "Numărul de etaje trebuie să fie cel puțin 1"),
   description: z.string().optional(),
 });
 

@@ -3,7 +3,7 @@ import {
   createBulkApartmentsSchema,
 } from "@/lib/validations/apartment";
 import {
-  errorServiceResultResponse,
+  errorApiResultResponse,
   Handler,
   internalServerErrorResponse,
   toSuccessApiResponse,
@@ -30,7 +30,7 @@ export const createApartment: Handler<Response> = async (
     });
 
     if (!result.success) {
-      return errorServiceResultResponse(result);
+      return errorApiResultResponse(result);
     }
 
     return toSuccessApiResponse(result, 201);
@@ -56,7 +56,7 @@ export const createBulkApartments: Handler<Response> = async (
     });
 
     if (!result.success) {
-      return errorServiceResultResponse(
+      return errorApiResultResponse(
         result,
         "A aparut o problemă la crearea apartamentelor"
       );
@@ -102,7 +102,7 @@ export const getBuildingApartments: Handler<Response> = async (
     const url = new URL(request.url);
     const buildingId = url.searchParams.get("buildingId");
     if (!buildingId) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Building ID is required",
         statusCode: 400,
@@ -114,7 +114,7 @@ export const getBuildingApartments: Handler<Response> = async (
       session.user.currentOrganizationId
     );
     if (!result.success) {
-      return errorServiceResultResponse(
+      return errorApiResultResponse(
         result,
         "Nu s-au găsit apartamente pentru acest bloc"
       );
@@ -155,7 +155,7 @@ export const getOrgApartmentById: Handler<Response> = async (
 ): Promise<Response> => {
   try {
     if (!queryParams) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Apartment ID is required",
         statusCode: 400,
@@ -165,7 +165,7 @@ export const getOrgApartmentById: Handler<Response> = async (
 
     // Validate apartment ID
     if (!apartmentId) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Apartment ID is required",
         statusCode: 400,
@@ -178,7 +178,7 @@ export const getOrgApartmentById: Handler<Response> = async (
       session.user.currentOrganizationId
     );
     if (!result.success) {
-      return errorServiceResultResponse(result, "Apartmentul nu a fost găsit");
+      return errorApiResultResponse(result, "Apartmentul nu a fost găsit");
     }
     return toSuccessApiResponse({
       success: true,
@@ -197,7 +197,7 @@ export const updateApartment: Handler<Response> = async (
 ): Promise<Response> => {
   try {
     if (!queryParams) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Apartment ID is required",
         statusCode: 400,
@@ -215,7 +215,7 @@ export const updateApartment: Handler<Response> = async (
     );
 
     if (!result.success) {
-      return errorServiceResultResponse(
+      return errorApiResultResponse(
         result,
         "A aparut o problemă la actualizarea apartamentului"
       );
@@ -238,7 +238,7 @@ export const deleteApartment: Handler<Response> = async (
 ): Promise<Response> => {
   try {
     if (!queryParams) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Apartment ID is required",
         statusCode: 400,
@@ -247,7 +247,7 @@ export const deleteApartment: Handler<Response> = async (
     const { apartmentId } = await queryParams.params;
     // Validate apartment ID
     if (!apartmentId) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Apartment ID is required",
         statusCode: 400,
@@ -259,7 +259,7 @@ export const deleteApartment: Handler<Response> = async (
       session.user.currentOrganizationId
     );
     if (!result.success) {
-      return errorServiceResultResponse(
+      return errorApiResultResponse(
         result,
         "A aparut o problemă la ștergerea apartamentului"
       );

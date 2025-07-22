@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  errorApiResultResponse,
+  internalServerErrorResponse,
+  toSuccessApiResponse,
+  zodErrorToNextResponse,
+} from "@/lib/withAuth";
 
 // Validation schema for verification request
 const verifyEmailSchema = z.object({
@@ -18,13 +24,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!verificationRecord) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Token invalid sau expirat",
-        },
-        { status: 400 }
-      );
+      return errorApiResultResponse({
+        success: false,
+        error: "Token invalid sau expirat",
+        statusCode: 400,
+      });
     }
 
     // Check if token has expired
@@ -34,14 +38,12 @@ export async function POST(request: NextRequest) {
         where: { token },
       });
 
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Token-ul a expirat. Vă rugăm să solicitați un nou email de confirmare.",
-        },
-        { status: 400 }
-      );
+      return errorApiResultResponse({
+        success: false,
+        error:
+          "Token-ul a expirat. Vă rugăm să solicitați un nou email de confirmare.",
+        statusCode: 400,
+      });
     }
 
     // Find and update the user
@@ -50,13 +52,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Utilizatorul nu a fost găsit",
-        },
-        { status: 404 }
-      );
+      return errorApiResultResponse({
+        success: false,
+        error: "Utilizatorul nu a fost găsit",
+        statusCode: 404,
+      });
     }
 
     if (user.isVerified) {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         where: { token },
       });
 
-      return NextResponse.json({
+      return toSuccessApiResponse({
         success: true,
         message: "Contul este deja verificat",
         data: {
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       return updatedUser;
     });
 
-    return NextResponse.json({
+    return toSuccessApiResponse({
       success: true,
       message: "Email verificat cu succes! Contul dvs. este acum activ.",
       data: {
@@ -117,27 +117,10 @@ export async function POST(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Token invalid",
-          details: error.errors.map((err) => ({
-            field: err.path.join("."),
-            message: err.message,
-          })),
-        },
-        { status: 400 }
-      );
+      return zodErrorToNextResponse(error);
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          "A apărut o eroare la verificarea email-ului. Vă rugăm să încercați din nou.",
-      },
-      { status: 500 }
-    );
+    return internalServerErrorResponse();
   }
 }
 
@@ -148,13 +131,11 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get("token");
 
     if (!token) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Token lipsește",
-        },
-        { status: 400 }
-      );
+      return errorApiResultResponse({
+        success: false,
+        error: "Token lipsește",
+        statusCode: 400,
+      });
     }
 
     // Use the same verification logic as POST
@@ -163,13 +144,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!verificationRecord) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Token invalid sau expirat",
-        },
-        { status: 400 }
-      );
+      return errorApiResultResponse({
+        success: false,
+        error: "Token invalid sau expirat",
+        statusCode: 400,
+      });
     }
 
     if (verificationRecord.expires < new Date()) {
@@ -177,13 +156,11 @@ export async function GET(request: NextRequest) {
         where: { token },
       });
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Token-ul a expirat",
-        },
-        { status: 400 }
-      );
+      return errorApiResultResponse({
+        success: false,
+        error: "Token-ul a expirat",
+        statusCode: 400,
+      });
     }
 
     const user = await prisma.user.findUnique({
@@ -191,13 +168,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Utilizatorul nu a fost găsit",
-        },
-        { status: 404 }
-      );
+      return errorApiResultResponse({
+        success: false,
+        error: "Utilizatorul nu a fost găsit",
+        statusCode: 404,
+      });
     }
 
     if (user.isVerified) {
@@ -205,7 +180,7 @@ export async function GET(request: NextRequest) {
         where: { token },
       });
 
-      return NextResponse.json({
+      return toSuccessApiResponse({
         success: true,
         message: "Contul este deja verificat",
         data: {
@@ -235,7 +210,7 @@ export async function GET(request: NextRequest) {
       return updatedUser;
     });
 
-    return NextResponse.json({
+    return toSuccessApiResponse({
       success: true,
       message: "Email verificat cu succes!",
       data: {
@@ -250,12 +225,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Email verification error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "A apărut o eroare la verificarea email-ului",
-      },
-      { status: 500 }
-    );
+    return errorApiResultResponse({
+      success: false,
+      error: "A apărut o eroare la verificarea email-ului",
+      statusCode: 500,
+    });
   }
 }

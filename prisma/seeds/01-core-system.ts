@@ -1,4 +1,4 @@
-import { PrismaClient, ResourcesEnum, ActionsEnum } from "@prisma/client";
+import { PrismaClient, ResourcesEnum, ActionsEnum, SubscriptionBillingIntervalEnum } from "@prisma/client";
 import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -69,9 +69,12 @@ export async function seedCoreSystem() {
     {
       name: "Starter",
       price: 499,
-      billingPeriod: "monthly",
+      billingInterval: SubscriptionBillingIntervalEnum.Monthly,
       maxBuildings: 1,
       maxApartments: 50,
+      description: "Perfect pentru asociații mici",
+      popular: false,
+      cta: "Începe perioada de probă",
       features: {
         waterReadings: true,
         automaticBilling: true,
@@ -88,9 +91,12 @@ export async function seedCoreSystem() {
     {
       name: "Professional",
       price: 1299,
-      billingPeriod: "monthly",
+      billingInterval: SubscriptionBillingIntervalEnum.Monthly,
       maxBuildings: 3,
       maxApartments: 200,
+      description: "Ideal pentru asociații medii și mari",
+      popular: true,
+      cta: "Solicită demo",
       features: {
         waterReadings: true,
         automaticBilling: true,
@@ -110,9 +116,12 @@ export async function seedCoreSystem() {
     {
       name: "Enterprise",
       price: 1999,
-      billingPeriod: "monthly",
+      billingInterval: SubscriptionBillingIntervalEnum.Monthly,
       maxBuildings: null, // Unlimited
       maxApartments: 500,
+      description: "Soluție completă pentru asociații mari",
+      popular: false,
+      cta: "Contactează-ne",
       features: {
         waterReadings: true,
         automaticBilling: true,
@@ -146,10 +155,13 @@ export async function seedCoreSystem() {
         where: { id: existingPlan.id },
         data: {
           price: plan.price,
-          billingPeriod: plan.billingPeriod,
+          billingInterval: plan.billingInterval,
           maxBuildings: plan.maxBuildings,
           maxApartments: plan.maxApartments,
           features: plan.features,
+          description: plan.description,
+          popular: plan.popular,
+          cta: plan.cta,
         },
       });
       createdPlans.push(updatedPlan);

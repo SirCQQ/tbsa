@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { contactFormSchema } from "@/lib/validations/contact";
 import { contactService } from "@/services/contact.service";
 import { z } from "zod";
+import {
+  errorApiResultResponse,
+  internalServerErrorResponse,
+  zodErrorToNextResponse,
+} from "@/lib/withAuth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,31 +33,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result, { status: 500 });
     }
   } catch (error) {
-    console.error("Contact form error:", error);
-
-    // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Datele introduse nu sunt valide",
-          errors: error.errors.map((err) => ({
-            field: err.path.join("."),
-            message: err.message,
-          })),
-        },
-        { status: 400 }
-      );
+      return zodErrorToNextResponse(error);
     }
-
-    // Handle other errors
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          "A apărut o eroare la trimiterea mesajului. Vă rugăm să încercați din nou.",
-      },
-      { status: 500 }
-    );
+    return internalServerErrorResponse();
   }
 }

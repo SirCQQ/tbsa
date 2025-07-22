@@ -3,7 +3,7 @@ import {
   updateBuildingInputSchema,
 } from "@/lib/validations/building";
 import {
-  errorServiceResultResponse,
+  errorApiResultResponse,
   Handler,
   internalServerErrorResponse,
   toSuccessApiResponse,
@@ -25,7 +25,7 @@ const createBuilding: Handler<Response> = async (request, session) => {
 
     const result = await buildingService.createBuilding(buildingInput);
     if (!result.success) {
-      return errorServiceResultResponse(result);
+      return errorApiResultResponse(result);
     }
     return toSuccessApiResponse(result, 201);
   } catch (error) {
@@ -43,7 +43,7 @@ const getBuildings: Handler<Response> = async (request, session) => {
       session.user.currentOrganizationId
     );
     if (!result.success) {
-      return errorServiceResultResponse(result);
+      return errorApiResultResponse(result);
     }
     return toSuccessApiResponse(result);
   } catch (error) {
@@ -60,7 +60,7 @@ const getBuildingById: Handler<Response> = async (
   queryParams: Record<string, Promise<{ buildingId: string }>> | undefined
 ) => {
   if (!queryParams) {
-    return errorServiceResultResponse({
+    return errorApiResultResponse({
       success: false,
       error: "Apartment ID is required",
       statusCode: 400,
@@ -69,7 +69,7 @@ const getBuildingById: Handler<Response> = async (
   const { buildingId } = await queryParams.params;
 
   if (!buildingId) {
-    return errorServiceResultResponse({
+    return errorApiResultResponse({
       success: false,
       error: "Building ID is required",
       statusCode: 400,
@@ -82,11 +82,11 @@ const getBuildingById: Handler<Response> = async (
       session.user.currentOrganizationId
     );
     if (!result.success) {
-      return errorServiceResultResponse(result, "Blocul nu a fost găsit");
+      return errorApiResultResponse(result, "Blocul nu a fost găsit");
     }
 
     if (!result.data) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Nu s-a găsit niciun bloc cu acest ID",
         statusCode: 404,
@@ -112,7 +112,7 @@ const updateBuilding: Handler<Response> = async (
 ) => {
   try {
     if (!queryParams) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Building ID is required",
         statusCode: 400,
@@ -120,7 +120,7 @@ const updateBuilding: Handler<Response> = async (
     }
     const { buildingId } = await queryParams.params;
     if (!buildingId) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Building ID is required",
         statusCode: 400,
@@ -140,13 +140,10 @@ const updateBuilding: Handler<Response> = async (
     );
 
     if (!result.success) {
-      return errorServiceResultResponse(
-        result,
-        "Nu s-a putut actualiza blocul"
-      );
+      return errorApiResultResponse(result, "Nu s-a putut actualiza blocul");
     }
     if (!result.data) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Blocul nu a fost găsită",
         statusCode: 404,
@@ -171,7 +168,7 @@ const deleteBuilding: Handler<Response> = async (
 ) => {
   try {
     if (!queryParams) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Building ID is required",
         statusCode: 400,
@@ -179,7 +176,7 @@ const deleteBuilding: Handler<Response> = async (
     }
     const { buildingId } = await queryParams.params;
     if (!buildingId) {
-      return errorServiceResultResponse({
+      return errorApiResultResponse({
         success: false,
         error: "Building ID is required",
         statusCode: 400,
@@ -191,7 +188,7 @@ const deleteBuilding: Handler<Response> = async (
       session.user.currentOrganizationId
     );
     if (!result.success) {
-      return errorServiceResultResponse(result, "Nu s-a putut șterge blocul");
+      return errorApiResultResponse(result, "Nu s-a putut șterge blocul");
     }
     return toSuccessApiResponse({
       success: true,

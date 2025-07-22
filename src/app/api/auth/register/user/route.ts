@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { userRegistrationSchema } from "@/lib/validations/auth";
 import { sendWelcomeEmail } from "@/lib/email";
 import { z } from "zod";
+import {
+  internalServerErrorResponse,
+  zodErrorToNextResponse,
+} from "@/lib/withAuth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -202,61 +206,9 @@ export async function POST(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Datele introduse nu sunt valide",
-          details: error.errors.map((err) => ({
-            field: err.path.join("."),
-            message: err.message,
-          })),
-        },
-        { status: 400 }
-      );
+      return zodErrorToNextResponse(error);
     }
 
-    // Handle Prisma errors
-    if (error instanceof Error) {
-      if (error.message.includes("Unique constraint")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Email-ul este deja folosit",
-          },
-          { status: 400 }
-        );
-      }
-
-      if (error.message.includes("Foreign key constraint")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Eroare de integritate a datelor",
-          },
-          { status: 400 }
-        );
-      }
-
-      // Handle specific business logic errors
-      if (error.message.includes("No default role found")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              "Configurare incompletă a sistemului. Contactați administratorul.",
-          },
-          { status: 500 }
-        );
-      }
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          "A apărut o eroare la înregistrare. Vă rugăm să încercați din nou.",
-      },
-      { status: 500 }
-    );
+    return internalServerErrorResponse();
   }
 }

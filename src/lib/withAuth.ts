@@ -64,7 +64,7 @@ export function withAuth<T extends Response>(
   };
 }
 
-export function errorServiceResultResponse<T>(
+export function errorApiResultResponse<T>(
   result: ErrorServiceResult<T>,
   alternativeError?: string
 ) {
@@ -95,7 +95,7 @@ export function zodErrorToNextResponse(error: ZodError) {
   const apiError: ErrorApiResponse = {
     success: false,
     error: "Validation error",
-    details: error.errors.map((e) => ({
+    details: error.issues.map((e) => ({
       field: e.path.join("."),
       message: e.message,
     })),

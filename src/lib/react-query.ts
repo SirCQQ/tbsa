@@ -85,4 +85,7 @@ export const queryKeys = {
     stats: () => ["dashboard", "stats"] as const,
     activity: () => ["dashboard", "activity"] as const,
   },
+  subscriptions: {
+    all: () => ["subscriptions"] as const,
+  },
 } as const;
