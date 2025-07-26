@@ -17,7 +17,6 @@ export function SecuritySection({ control }: SecuritySectionProps) {
         placeholder="Introduceți parola"
         helperText="Parola trebuie să aibă cel puțin 8 caractere, o literă mare, o literă mică, o cifră și un caracter special"
         required
-        control={control}
       />
 
       <ControlledPasswordInput
@@ -25,7 +24,6 @@ export function SecuritySection({ control }: SecuritySectionProps) {
         label="Confirmă parola"
         placeholder="Confirmați parola"
         required
-        control={control}
       />
     </div>
   );

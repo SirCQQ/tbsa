@@ -1,17 +1,55 @@
-import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  type UseMutationOptions,
+} from "@tanstack/react-query";
 import {
   authApi,
   type OrganizationRegistrationResponse,
   type UserRegistrationResponse,
   type EmailVerificationResponse,
   type AuthErrorResponse,
+  type OrganizationCodeCheckResponse,
 } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/axios";
 import type {
   OrganizationRegistrationData,
   UserRegistrationData,
+  OrganizationCreationData,
 } from "@/lib/validations/auth";
 import type { AxiosError } from "axios";
+
+// Organization creation mutation hook (for authenticated users)
+export function useCreateOrganization(
+  options?: UseMutationOptions<
+    any, // We'll define this type properly in the API response types
+    AxiosError<AuthErrorResponse>,
+    OrganizationCreationData
+  >
+) {
+  const { onSuccess, onError, ...rest } = options || {};
+
+  return useMutation({
+    mutationFn: (data: OrganizationCreationData) =>
+      authApi.createOrganization(data),
+    onSuccess: (data, variables, context) => {
+      // Hook's success logic (always runs)
+      // No cache invalidation needed for organization creation
+
+      // Call user-provided onSuccess callback if provided
+      onSuccess?.(data, variables, context);
+    },
+    onError: (error, variables, context) => {
+      // Hook's error handling (always runs)
+      console.error("Organization creation error:", getErrorMessage(error));
+
+      // Call user-provided onError callback if provided
+      onError?.(error, variables, context);
+    },
+    // Spread other options (excluding onSuccess and onError which we handle above)
+    ...rest,
+  });
+}
 
 // Organization registration mutation hook
 export function useRegisterOrganization(
@@ -90,6 +128,20 @@ export function useVerifyEmail(
       console.error("Email verification error:", getErrorMessage(error));
     },
     ...options,
+  });
+}
+
+// Check organization code availability query hook
+export function useCheckOrganizationCode(
+  code: string,
+  options?: { enabled?: boolean }
+) {
+  return useQuery<OrganizationCodeCheckResponse>({
+    queryKey: ["organization-code", code],
+    queryFn: () => authApi.checkOrganizationCode(code),
+    enabled: options?.enabled && code.length >= 3, // Only check if code has minimum length
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false, // Don't retry on errors for code checking
   });
 }
 

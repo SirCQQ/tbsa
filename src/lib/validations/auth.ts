@@ -39,8 +39,46 @@ const baseUserFields = z.object({
   confirmPassword: z.string(),
 });
 
+// Organization creation schema
+export const organizationCreationSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Numele organizației trebuie să aibă cel puțin 2 caractere")
+    .max(100, "Numele organizației nu poate depăși 100 de caractere")
+    .regex(
+      /^[a-zA-ZăâîșțĂÂÎȘȚ0-9\s\-\.,"'()&]+$/,
+      "Numele organizației conține caractere nevalide"
+    ),
+
+  code: z
+    .string()
+    .min(3, "Codul organizației trebuie să aibă cel puțin 3 caractere")
+    .max(20, "Codul organizației nu poate depăși 20 de caractere")
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      "Codul poate conține doar litere, cifre, liniuțe și underscore"
+    )
+    .toLowerCase(),
+
+  description: z
+    .string()
+    .max(500, "Descrierea nu poate depăși 500 de caractere")
+    .optional(),
+
+  address: z
+    .string()
+    .min(5, "Adresa trebuie să aibă cel puțin 5 caractere")
+    .max(200, "Adresa nu poate depăși 200 de caractere")
+    .optional(),
+
+  subscriptionPlanId: z
+    .string()
+    .uuid("ID-ul planului de abonament trebuie să fie valid")
+    .optional(),
+});
+
 // Organization registration schema (simplified - user info only)
-export const organizationRegistrationSchema = baseUserFields
+export const organizationUserRegistrationSchema = baseUserFields
   .extend({
     agreeToTerms: z.boolean().refine((val) => val === true, {
       message: "Trebuie să acceptați termenii și condițiile",
@@ -115,8 +153,11 @@ export const passwordResetSchema = z
   });
 
 // Type exports
+export type OrganizationCreationData = z.infer<
+  typeof organizationCreationSchema
+>;
 export type OrganizationRegistrationData = z.infer<
-  typeof organizationRegistrationSchema
+  typeof organizationUserRegistrationSchema
 >;
 export type UserRegistrationData = z.infer<typeof userRegistrationSchema>;
 export type SignInData = z.infer<typeof signInSchema>;

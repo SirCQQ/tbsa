@@ -35,7 +35,7 @@ const generateApartmentsSchema = z.object({
       return !isNaN(num) && num >= 1 && num <= 999;
     }, "Numărul de început trebuie să fie între 1 și 999"),
   numberingPattern: z.enum(["sequential", "floor_based"], {
-    required_error: "Selectați un pattern de numerotare",
+    error: "Selectați un pattern de numerotare",
   }),
 });
 

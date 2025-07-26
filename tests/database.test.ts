@@ -3,6 +3,8 @@ import {
   createMockUser,
   createMockBuilding,
   createMockWaterReading,
+  createMockWaterMeter,
+  createMockApartment,
   createMockAdministratorContext,
 } from "./__mocks__/data.mock";
 
@@ -18,34 +20,22 @@ describe("Database Operations", () => {
 
   describe("User Operations", () => {
     it("should create a new user", async () => {
-      const userData = createMockUser("ADMINISTRATOR");
+      const userData = createMockUser();
 
       mockPrisma.user.create.mockResolvedValue(userData);
 
       const result = await mockPrisma.user.create({
-        data: {
-          email: userData.email,
-          password: userData.password,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          role: userData.role,
-        },
+        data: userData,
       });
 
       expect(mockPrisma.user.create).toHaveBeenCalledWith({
-        data: {
-          email: userData.email,
-          password: userData.password,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          role: userData.ro,
-        },
+        data: userData,
       });
       expect(result).toEqual(userData);
     });
 
     it("should find user by email", async () => {
-      const userData = createMockUser("ADMINISTRATOR");
+      const userData = createMockUser();
 
       mockPrisma.user.findUnique.mockResolvedValue(userData);
 
@@ -73,47 +63,35 @@ describe("Database Operations", () => {
   describe("Building Operations", () => {
     it("should create a new building", async () => {
       const adminContext = createMockAdministratorContext();
-      const buildingData = createMockBuilding(adminContext.administratorId!);
+      const buildingData = createMockBuilding(adminContext.organizationId);
 
       mockPrisma.building.create.mockResolvedValue(buildingData);
 
       const result = await mockPrisma.building.create({
-        data: {
-          name: buildingData.name,
-          address: buildingData.address,
-          city: buildingData.city,
-          administratorId: buildingData.administratorId,
-          readingDeadline: buildingData.readingDeadline,
-        },
+        data: buildingData,
       });
 
       expect(mockPrisma.building.create).toHaveBeenCalledWith({
-        data: {
-          name: buildingData.name,
-          address: buildingData.address,
-          city: buildingData.city,
-          administratorId: buildingData.administratorId,
-          readingDeadline: buildingData.readingDeadline,
-        },
+        data: buildingData,
       });
       expect(result).toEqual(buildingData);
     });
 
-    it("should find buildings by administrator", async () => {
+    it("should find buildings by organization", async () => {
       const adminContext = createMockAdministratorContext();
       const buildingsData = [
-        createMockBuilding(adminContext.administratorId!),
-        createMockBuilding(adminContext.administratorId!),
+        createMockBuilding(adminContext.organizationId),
+        createMockBuilding(adminContext.organizationId),
       ];
 
       mockPrisma.building.findMany.mockResolvedValue(buildingsData);
 
       const result = await mockPrisma.building.findMany({
-        where: { administratorId: adminContext.administratorId },
+        where: { organizationId: adminContext.organizationId },
       });
 
       expect(mockPrisma.building.findMany).toHaveBeenCalledWith({
-        where: { administratorId: adminContext.administratorId },
+        where: { organizationId: adminContext.organizationId },
       });
       expect(result).toEqual(buildingsData);
       expect(result).toHaveLength(2);
@@ -122,114 +100,90 @@ describe("Database Operations", () => {
 
   describe("Water Reading Operations", () => {
     it("should create a new water reading", async () => {
-      const apartmentId = "apartment-123";
-      const submittedBy = "user-123";
-      const readingData = createMockWaterReading(apartmentId, submittedBy);
+      const waterMeterId = "water-meter-123";
+      const submittedById = "user-123";
+      const readingData = createMockWaterReading(waterMeterId, submittedById);
 
       mockPrisma.waterReading.create.mockResolvedValue(readingData);
 
       const result = await mockPrisma.waterReading.create({
-        data: {
-          apartmentId: readingData.apartmentId,
-          day: readingData.day,
-          month: readingData.month,
-          year: readingData.year,
-          reading: readingData.reading,
-          submittedBy: readingData.submittedBy,
-        },
+        data: readingData,
       });
 
       expect(mockPrisma.waterReading.create).toHaveBeenCalledWith({
-        data: {
-          apartmentId: readingData.apartmentId,
-          day: readingData.day,
-          month: readingData.month,
-          year: readingData.year,
-          reading: readingData.reading,
-          submittedBy: readingData.submittedBy,
-        },
+        data: readingData,
       });
       expect(result).toEqual(readingData);
     });
 
-    it("should find water readings by apartment", async () => {
-      const apartmentId = "apartment-123";
-      const submittedBy = "user-123";
+    it("should find water readings by water meter", async () => {
+      const waterMeterId = "water-meter-123";
+      const submittedById = "user-123";
       const readingsData = [
-        createMockWaterReading(apartmentId, submittedBy),
-        createMockWaterReading(apartmentId, submittedBy),
+        createMockWaterReading(waterMeterId, submittedById),
+        createMockWaterReading(waterMeterId, submittedById),
       ];
 
       mockPrisma.waterReading.findMany.mockResolvedValue(readingsData);
 
       const result = await mockPrisma.waterReading.findMany({
-        where: { apartmentId },
+        where: { waterMeterId },
       });
 
       expect(mockPrisma.waterReading.findMany).toHaveBeenCalledWith({
-        where: { apartmentId },
+        where: { waterMeterId },
       });
       expect(result).toEqual(readingsData);
       expect(result).toHaveLength(2);
     });
 
-    it("should update water reading validation", async () => {
-      const apartmentId = "apartment-123";
-      const submittedBy = "user-123";
-      const readingData = createMockWaterReading(apartmentId, submittedBy);
-      const updatedReading = { ...readingData, isValidated: true };
+    it("should update water reading approval", async () => {
+      const waterMeterId = "water-meter-123";
+      const submittedById = "user-123";
+      const approvedById = "admin-123";
+      const readingData = createMockWaterReading(waterMeterId, submittedById);
+      const updatedReading = {
+        ...readingData,
+        isApproved: true,
+        approvedById,
+      };
 
       mockPrisma.waterReading.update.mockResolvedValue(updatedReading);
 
       const result = await mockPrisma.waterReading.update({
         where: { id: readingData.id },
-        data: { isValidated: true },
+        data: {
+          isApproved: true,
+          approvedById,
+        },
       });
 
       expect(mockPrisma.waterReading.update).toHaveBeenCalledWith({
         where: { id: readingData.id },
-        data: { isValidated: true },
+        data: {
+          isApproved: true,
+          approvedById,
+        },
       });
       expect(result).toEqual(updatedReading);
-      expect(result.isValidated).toBe(true);
+      expect(result.isApproved).toBe(true);
+      expect(result.approvedById).toBe(approvedById);
     });
   });
 
   describe("Apartment Operations", () => {
     it("should create a new apartment", async () => {
       const buildingId = "building-123";
-      const ownerId = "owner-123";
-      const apartmentData = {
-        id: "apartment-123",
-        number: "101",
-        floor: 1,
-        rooms: 3,
-        buildingId,
-        ownerId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      const apartmentData = createMockApartment(buildingId);
 
       mockPrisma.apartment.create.mockResolvedValue(apartmentData);
 
       const result = await mockPrisma.apartment.create({
-        data: {
-          number: apartmentData.number,
-          floor: apartmentData.floor,
-          rooms: apartmentData.rooms,
-          buildingId: apartmentData.buildingId,
-          ownerId: apartmentData.ownerId,
-        },
+        data: apartmentData,
       });
 
       expect(mockPrisma.apartment.create).toHaveBeenCalledWith({
-        data: {
-          number: apartmentData.number,
-          floor: apartmentData.floor,
-          rooms: apartmentData.rooms,
-          buildingId: apartmentData.buildingId,
-          ownerId: apartmentData.ownerId,
-        },
+        data: apartmentData,
       });
       expect(result).toEqual(apartmentData);
     });
@@ -237,18 +191,8 @@ describe("Database Operations", () => {
     it("should find apartments by building", async () => {
       const buildingId = "building-123";
       const apartmentsData = [
-        {
-          id: "apartment-1",
-          number: "101",
-          buildingId,
-          ownerId: "owner-1",
-        },
-        {
-          id: "apartment-2",
-          number: "102",
-          buildingId,
-          ownerId: "owner-2",
-        },
+        createMockApartment(buildingId),
+        createMockApartment(buildingId),
       ];
 
       mockPrisma.apartment.findMany.mockResolvedValue(apartmentsData);
@@ -261,6 +205,44 @@ describe("Database Operations", () => {
         where: { buildingId },
       });
       expect(result).toEqual(apartmentsData);
+      expect(result).toHaveLength(2);
+    });
+  });
+
+  describe("Water Meter Operations", () => {
+    it("should create a new water meter", async () => {
+      const apartmentId = "apartment-123";
+      const waterMeterData = createMockWaterMeter(apartmentId);
+
+      mockPrisma.waterMeter.create.mockResolvedValue(waterMeterData);
+
+      const result = await mockPrisma.waterMeter.create({
+        data: waterMeterData,
+      });
+
+      expect(mockPrisma.waterMeter.create).toHaveBeenCalledWith({
+        data: waterMeterData,
+      });
+      expect(result).toEqual(waterMeterData);
+    });
+
+    it("should find water meters by apartment", async () => {
+      const apartmentId = "apartment-123";
+      const waterMetersData = [
+        createMockWaterMeter(apartmentId),
+        createMockWaterMeter(apartmentId),
+      ];
+
+      mockPrisma.waterMeter.findMany.mockResolvedValue(waterMetersData);
+
+      const result = await mockPrisma.waterMeter.findMany({
+        where: { apartmentId },
+      });
+
+      expect(mockPrisma.waterMeter.findMany).toHaveBeenCalledWith({
+        where: { apartmentId },
+      });
+      expect(result).toEqual(waterMetersData);
       expect(result).toHaveLength(2);
     });
   });

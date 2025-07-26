@@ -27,7 +27,7 @@ const inviteSchema = z.object({
     .min(1, "Adresa de email este obligatorie")
     .email("Adresa de email nu este validă"),
   role: z.enum(["TENANT", "OWNER", "MANAGER"], {
-    required_error: "Rolul este obligatoriu",
+    error: '"Rolul este obligatoriu"',
   }),
   expiryDays: z
     .number()

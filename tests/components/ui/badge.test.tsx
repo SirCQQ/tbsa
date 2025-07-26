@@ -149,15 +149,20 @@ describe("Badge Component", () => {
 
     it("supports style prop", () => {
       render(
-        <Badge style={{ backgroundColor: "red", color: "white" }}>
+        <Badge
+          style={{
+            backgroundColor: "rgb(255, 0, 0)",
+            color: "rgb(255, 255, 255)",
+          }}
+        >
           Styled Badge
         </Badge>
       );
 
       const badge = screen.getByText("Styled Badge");
       expect(badge).toHaveStyle({
-        "background-color": "red",
-        color: "white",
+        backgroundColor: "rgb(255, 0, 0)",
+        color: "rgb(255, 255, 255)",
       });
     });
   });

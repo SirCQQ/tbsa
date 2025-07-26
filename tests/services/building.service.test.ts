@@ -1,10 +1,9 @@
+import { CreateBuildingInput } from "@/lib/validations/building";
 import { mockPrisma, resetPrismaMocks } from "../__mocks__/prisma.mock";
-import {
-  buildingService,
-  CreateBuildingInput,
-} from "@/services/building.service";
+import { buildingService } from "@/services/building.service";
 import { faker } from "@faker-js/faker";
 import type { BuildingType } from "@prisma/client";
+import { ErrorServiceResult } from "@/types/api-response";
 
 describe("BuildingService", () => {
   beforeEach(() => {
@@ -216,7 +215,9 @@ describe("BuildingService", () => {
       const result = await buildingService.createBuilding(mockInput);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Unable to generate unique building code");
+      expect((result as ErrorServiceResult).error).toContain(
+        "Nu s-a putut genera un cod unic pentru clădire după mai multe încercări"
+      );
       expect(mockPrisma.building.create).not.toHaveBeenCalled();
     });
 
@@ -247,7 +248,9 @@ describe("BuildingService", () => {
       const result = await buildingService.createBuilding(mockInput);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Database connection failed");
+      expect((result as ErrorServiceResult).error).toBe(
+        "Database connection failed"
+      );
     });
   });
 
@@ -320,18 +323,6 @@ describe("BuildingService", () => {
               code: true,
             },
           },
-          apartments: {
-            where: {
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              number: true,
-              floor: true,
-              isOccupied: true,
-              occupantCount: true,
-            },
-          },
         },
         orderBy: {
           createdAt: "desc",
@@ -362,7 +353,9 @@ describe("BuildingService", () => {
         await buildingService.getBuildingsByOrganization(organizationId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Failed to fetch buildings");
+      expect((result as ErrorServiceResult).error).toBe(
+        "Eroare la preluarea clădirilor"
+      );
     });
   });
 

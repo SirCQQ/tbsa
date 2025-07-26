@@ -18,24 +18,26 @@ import { NoOrg } from "@/components/dashboard/no-org";
 
 export default function DashboardPage() {
   const { user, isLoading } = useCurrentUser();
+
   const router = useRouter();
+  console.log({ user });
 
   if (isLoading) {
     return (
       <Page
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      background="gradient-ocean"
-      className="min-h-screen"
-    >
-      <div className="text-center space-y-4">
-        <LoadingSpinner size="lg" />
-        <Typography variant="p" className="text-muted-foreground">
-          Se încarcă dashboard-ul...
-        </Typography>
-      </div>
-    </Page>
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        background="gradient-ocean"
+        className="min-h-screen"
+      >
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <Typography variant="p" className="text-muted-foreground">
+            Se încarcă dashboard-ul...
+          </Typography>
+        </div>
+      </Page>
     );
   }
 
@@ -78,7 +80,8 @@ export default function DashboardPage() {
           {user.organizations.map((org) => (
             <Card
               key={org.id}
-              className="backdrop-blur-md hover:shadow-lg transition-all duration-300"
+              className="backdrop-blur-md hover:shadow-lg transition-all duration-300 hover:cursor-pointer"
+              onClick={() => router.push(`/org/${org.code}/dashboard`)}
             >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -114,7 +117,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions
         <Card className="backdrop-blur-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -155,7 +158,7 @@ export default function DashboardPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </Page>
   );

@@ -149,7 +149,6 @@ export function LoginForm({ callbackUrl = "/" }: LoginFormProps) {
 
             {/* Password Field */}
             <ControlledPasswordInput
-              control={form.control}
               name="password"
               label="Parola"
               placeholder="Introdu parola"

@@ -168,6 +168,7 @@ model Organization {
   name               String // Organization name
   code               String  @unique // Unique identifier/slug
   description        String? // Organization description
+  address            String? // Organization address
   subscriptionPlanId String? @map("subscription_plan_id") // Current subscription plan
 
   // Relations

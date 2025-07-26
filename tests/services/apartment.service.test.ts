@@ -1,5 +1,6 @@
 import { mockPrisma, resetPrismaMocks } from "../__mocks__/prisma.mock";
 import { apartmentService } from "@/services/apartment.service";
+import { ErrorServiceResult } from "@/types/api-response";
 import { faker } from "@faker-js/faker";
 import type { Building, Apartment } from "@prisma/client";
 
@@ -98,9 +99,11 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
+
+      expect((result as ErrorServiceResult).error).toBe(
         "Building not found or does not belong to your organization"
       );
+
       expect(mockPrisma.apartment.create).not.toHaveBeenCalled();
     });
 
@@ -113,7 +116,7 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
+      expect((result as ErrorServiceResult).error).toBe(
         "An apartment with this number already exists in this building"
       );
       expect(mockPrisma.apartment.create).not.toHaveBeenCalled();
@@ -131,7 +134,7 @@ describe("ApartmentService", () => {
       const result = await apartmentService.createApartment(invalidInput);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
+      expect((result as ErrorServiceResult).error).toBe(
         `Floor cannot exceed building's maximum floors (${mockBuilding.floors})`
       );
       expect(mockPrisma.apartment.create).not.toHaveBeenCalled();
@@ -147,7 +150,9 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Failed to create apartment");
+      expect((result as ErrorServiceResult).error).toBe(
+        "Failed to create apartment"
+      );
     });
   });
 
@@ -203,7 +208,7 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Apartment not found");
+      expect((result as ErrorServiceResult).error).toBe("Apartment not found");
     });
 
     it("should handle database errors gracefully", async () => {
@@ -217,7 +222,9 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Failed to fetch apartment");
+      expect((result as ErrorServiceResult).error).toBe(
+        "Internal server error"
+      );
     });
   });
 
@@ -264,6 +271,7 @@ describe("ApartmentService", () => {
               id: true,
               name: true,
               code: true,
+              organizationId: true,
             },
           },
           _count: {
@@ -286,7 +294,7 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
+      expect((result as ErrorServiceResult).error).toBe(
         "Building not found or does not belong to your organization"
       );
       expect(mockPrisma.apartment.findMany).not.toHaveBeenCalled();
@@ -329,6 +337,7 @@ describe("ApartmentService", () => {
               id: true,
               name: true,
               code: true,
+              organizationId: true,
             },
           },
           _count: {
@@ -355,7 +364,9 @@ describe("ApartmentService", () => {
         await apartmentService.getApartmentsByOrganization(mockOrganizationId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Failed to fetch apartments");
+      expect((result as ErrorServiceResult).error).toBe(
+        "Internal server error"
+      );
     });
   });
 
@@ -418,8 +429,8 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Cannot delete apartment with existing residents"
+      expect((result as ErrorServiceResult).error).toBe(
+        "Nu se poate șterge apartamentul cu rezidenți existenți"
       );
       expect(mockPrisma.apartment.update).not.toHaveBeenCalled();
     });
@@ -442,8 +453,8 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Cannot delete apartment with existing water meters"
+      expect((result as ErrorServiceResult).error).toBe(
+        "Nu se poate șterge apartamentul cu contoare de apă existente"
       );
       expect(mockPrisma.apartment.update).not.toHaveBeenCalled();
     });
@@ -460,7 +471,7 @@ describe("ApartmentService", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Apartment not found");
+      expect((result as ErrorServiceResult).error).toBe("Apartment not found");
       expect(mockPrisma.apartment.update).not.toHaveBeenCalled();
     });
   });

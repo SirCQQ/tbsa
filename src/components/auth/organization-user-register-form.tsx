@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/inputs/form";
 
 import {
-  organizationRegistrationSchema,
+  organizationUserRegistrationSchema,
   type OrganizationRegistrationData,
 } from "@/lib/validations/auth";
 
@@ -38,7 +38,7 @@ type RegistrationStep = "form" | "success" | "error";
 
 import type { OrganizationRegistrationResponse } from "@/lib/api/auth";
 
-export function OrganizationRegisterForm() {
+export function OrganizationUserRegisterForm() {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>("form");
   const [registrationData, setRegistrationData] =
     useState<OrganizationRegistrationResponse | null>(null);
@@ -79,7 +79,7 @@ export function OrganizationRegisterForm() {
   });
 
   const form = useForm<OrganizationRegistrationData>({
-    resolver: zodResolver(organizationRegistrationSchema),
+    resolver: zodResolver(organizationUserRegistrationSchema),
     defaultValues: {
       firstName: "",
       lastName: "",

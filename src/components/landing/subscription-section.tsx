@@ -1,10 +1,23 @@
 'use client'
+import { useSubscriptions } from "@/hooks/api/use-subscriptions";
+import { getEnabledFeatures } from "@/lib/mappers/subscription-features.mapper";
+import { getSubscriptionIcon, getSubscriptionTypeColor } from "@/lib/mappers/subscription.mapper";
+import { SubscriptionPlan } from "@prisma/client";
+import { Building2 } from "lucide-react";
+import { useMemo } from "react";
 import { SubscriptionPlans } from "./subscription-plans";
+import { useGetSubscriptions } from "@/hooks/use-get-subsriptions";
+
 
 
 
 
 export function SubscriptionSection() {
+
+
+  const { subscriptions, isLoading, error } = useGetSubscriptions();
+
+
   const handlePlanSelect = (planId: string) => {
     // Handle plan selection logic here
     console.log('Selected plan:', planId);
@@ -33,7 +46,7 @@ export function SubscriptionSection() {
         </div>
 
         {/* Subscription Plans Component */}
-        <SubscriptionPlans onPlanSelect={handlePlanSelect} />
+        <SubscriptionPlans onPlanSelect={handlePlanSelect} subscriptions={subscriptions} isLoading={isLoading} error={error} />
 
         <div className="text-center mt-16">
           <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-2xl p-8 backdrop-blur-sm border border-primary/20">

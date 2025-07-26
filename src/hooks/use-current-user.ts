@@ -9,7 +9,7 @@ export function useCurrentUser() {
 
   // Helper functions
   const hasPermission = (resource: string, action: string) => {
-    const permissionCode = `${resource}:${action}`;
+    const permissionCode = `${resource}:${action}`.toUpperCase();
     return user?.permissions.includes(permissionCode) || false;
   };
 

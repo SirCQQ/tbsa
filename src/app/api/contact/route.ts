@@ -3,7 +3,6 @@ import { contactFormSchema } from "@/lib/validations/contact";
 import { contactService } from "@/services/contact.service";
 import { z } from "zod";
 import {
-  errorApiResultResponse,
   internalServerErrorResponse,
   zodErrorToNextResponse,
 } from "@/lib/withAuth";

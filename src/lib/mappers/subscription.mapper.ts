@@ -83,7 +83,7 @@ export function getSubscriptionTypeColor(subscriptionType: SubscriptionTypeEnum)
   const colorMap: Record<SubscriptionTypeEnum, string> = {
     [SubscriptionTypeEnum.Bronze]: "text-amber-600",
     [SubscriptionTypeEnum.Silver]: "text-gray-500",
-    [SubscriptionTypeEnum.Gold]: "text-yellow-500",
+    [SubscriptionTypeEnum.Gold]: "text-primary-500",
     [SubscriptionTypeEnum.Platinum]: "text-blue-500",
     [SubscriptionTypeEnum.Diamond]: "text-purple-500",
     [SubscriptionTypeEnum.Enterprise]: "text-indigo-600",

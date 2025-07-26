@@ -3,7 +3,9 @@ import { toSuccessApiResponse } from "@/lib/withAuth";
 import { NextRequest } from "next/server";
 
 export const GET = async (_request: NextRequest) => {
-  const subscriptions = await prisma.subscriptionPlan.findMany();
+  const subscriptions = await prisma.subscriptionPlan.findMany({
+    orderBy: { maxApartments: "asc" },
+  });
 
   return toSuccessApiResponse(
     {

@@ -8,7 +8,6 @@ import {
   usePermissions,
 } from "@/components/auth/permission-guard";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { ActionsEnum, ResourcesEnum } from "@prisma/client";
 import { Session } from "next-auth";
 
 // Mock the dependencies
@@ -45,11 +44,7 @@ describe("PermissionGuard", () => {
     email: "test@example.com",
     firstName: "Test",
     lastName: "User",
-    permissions: [
-      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-      `${ResourcesEnum.USERS}:${ActionsEnum.CREATE}`,
-      `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
-    ],
+    permissions: [`BUILDINGS:READ`, `USERS:CREATE`, `ORGANIZATIONS:READ`],
     roles: ["admin"],
     organizations: [{ id: "org-1", name: "Test Org", code: "TEST" }],
     currentOrganizationId: "org-1",
@@ -80,12 +75,7 @@ describe("PermissionGuard", () => {
       );
 
       render(
-        <PermissionGuard
-          orPermissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
-          ]}
-        >
+        <PermissionGuard orPermissions={[`BUILDINGS:READ`, `BUILDINGS:CREATE`]}>
           <div>Protected Content</div>
         </PermissionGuard>
       );
@@ -113,10 +103,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          andPermissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
-          ]}
+          andPermissions={[`BUILDINGS:READ`, `ORGANIZATIONS:READ`]}
         >
           <div>Protected Content</div>
         </PermissionGuard>
@@ -145,10 +132,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
-          ]}
+          orPermissions={[`BUILDINGS:DELETE`, `BUILDINGS:UPDATE`]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -179,10 +163,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          andPermissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
-          ]} // User has read but not delete
+          andPermissions={[`BUILDINGS:READ`, `BUILDINGS:DELETE`]} // User has read but not delete
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -215,13 +196,8 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
-          ]} // User has buildings:read
-          andPermissions={[
-            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
-          ]} // User has organizations:read
+          orPermissions={[`BUILDINGS:READ`, `BUILDINGS:CREATE`]} // User has buildings:read
+          andPermissions={[`ORGANIZATIONS:READ`]} // User has organizations:read
         >
           <div>Protected Content</div>
         </PermissionGuard>
@@ -250,13 +226,8 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
-          ]} // User has neither
-          andPermissions={[
-            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
-          ]} // User has this
+          orPermissions={[`BUILDINGS:DELETE`, `BUILDINGS:UPDATE`]} // User has neither
+          andPermissions={[`ORGANIZATIONS:READ`]} // User has this
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -287,11 +258,8 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]} // User has this
-          andPermissions={[
-            `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`,
-          ]} // User missing buildings:delete
+          orPermissions={[`BUILDINGS:READ`]} // User has this
+          andPermissions={[`ORGANIZATIONS:READ`, `BUILDINGS:DELETE`]} // User missing buildings:delete
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -319,7 +287,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]}
+          orPermissions={[`BUILDINGS:READ`]}
           fallback={<div>Please log in</div>}
         >
           <div>Protected Content</div>
@@ -345,7 +313,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]}
+          orPermissions={[`BUILDINGS:READ`]}
           loading={<div>Loading permissions...</div>}
           fallback={<div>Access Denied</div>}
         >
@@ -373,7 +341,7 @@ describe("PermissionGuard", () => {
 
       const { container } = render(
         <PermissionGuard
-          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]}
+          orPermissions={[`BUILDINGS:READ`]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -405,7 +373,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`]} // User doesn't have this
+          orPermissions={[`BUILDINGS:DELETE`]} // User doesn't have this
           withRedirect={true}
           redirectUrl="/access-denied"
         >
@@ -438,7 +406,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.DELETE}`]} // User doesn't have this
+          orPermissions={[`BUILDINGS:DELETE`]} // User doesn't have this
           withRedirect={true}
         >
           <div>Protected Content</div>
@@ -470,7 +438,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[`${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`]} // User has this
+          orPermissions={[`BUILDINGS:READ`]} // User has this
           withRedirect={true}
           redirectUrl="/access-denied"
         >
@@ -504,10 +472,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuardOr
-          permissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
-          ]}
+          permissions={[`BUILDINGS:READ`, `BUILDINGS:CREATE`]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -537,10 +502,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuardAnd
-          permissions={[
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-            "organizations:read",
-          ]}
+          permissions={[`BUILDINGS:READ`, "ORGANIZATIONS:READ"]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -574,10 +536,7 @@ describe("PermissionGuard", () => {
 
       render(
         <PermissionGuard
-          orPermissions={[
-            "invalid-permission",
-            `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-          ]}
+          orPermissions={["invalid-permission", `BUILDINGS:READ`]}
           fallback={<div>Access Denied</div>}
         >
           <div>Protected Content</div>
@@ -623,19 +582,16 @@ describe("usePermissions hook", () => {
       usePermissions();
 
     const canManageBuildings = hasAnyPermission([
-      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.CREATE}`,
-      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.UPDATE}`,
+      `BUILDINGS:CREATE`,
+      `BUILDINGS:UPDATE`,
     ]);
     const canFullyManageUsers = hasAllPermissions([
-      `${ResourcesEnum.USERS}:${ActionsEnum.CREATE}`,
-      `${ResourcesEnum.USERS}:${ActionsEnum.READ}`,
+      `USERS:CREATE`,
+      `USERS:READ`,
     ]);
     const canAccessDashboard = hasExactPermissions(
-      [
-        `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-        `${ResourcesEnum.APARTMENTS}:${ActionsEnum.READ}`,
-      ],
-      [`${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`]
+      [`BUILDINGS:READ`, `APARTMENTS:READ`],
+      [`ORGANIZATIONS:READ`]
     );
 
     return (
@@ -660,11 +616,7 @@ describe("usePermissions hook", () => {
     email: "test@example.com",
     firstName: "Test",
     lastName: "User",
-    permissions: [
-      `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
-      `${ResourcesEnum.USERS}:${ActionsEnum.CREATE}`,
-      `${ResourcesEnum.ORGANIZATIONS}:${ActionsEnum.READ}`,
-    ],
+    permissions: [`BUILDINGS:READ`, `USERS:CREATE`, `ORGANIZATIONS:READ`],
     roles: ["admin"],
     organizations: [{ id: "org-1", name: "Test Org", code: "TEST" }],
     currentOrganizationId: "org-1",

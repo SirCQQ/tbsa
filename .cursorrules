@@ -105,10 +105,10 @@ type ComponentNameProps = ComponentProps<'div'> & {
   // Define props here
 }
 
-export function ComponentName({ 
-  className, 
-  children, 
-  ...props 
+export function ComponentName({
+  className,
+  children,
+  ...props
 }: ComponentNameProps) {
   return (
     <div className={cn('default-classes', className)} {...props}>
@@ -157,34 +157,65 @@ export function FormComponent() {
 ### API Route Pattern
 
 ```typescript
-// Always use this pattern for API routes
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+// Always use this pattern for API routes - USE CONSISTENT HELPER FUNCTIONS
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import {
+  toSuccessApiResponse,
+  errorApiResultResponse,
+  zodErrorToNextResponse,
+  internalServerErrorResponse,
+} from "@/lib/withAuth";
+import { ServiceClass } from "@/services/service-name.service";
 
 const requestSchema = z.object({
   // Define request schema
-})
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const validatedData = requestSchema.parse(body)
-    
-    // Use Prisma for database operations
-    const result = await prisma.model.create({
-      data: validatedData
-    })
-    
-    return NextResponse.json(result)
+    const body = await request.json();
+    const validatedData = requestSchema.parse(body);
+
+    // Use service for business logic (never direct Prisma in routes)
+    const result = await ServiceClass.createSomething(validatedData);
+
+    // Use consistent response functions
+    if (!result.success) {
+      return errorApiResultResponse(result);
+    }
+
+    return toSuccessApiResponse(result);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    if (error instanceof z.ZodError) {
+      return zodErrorToNextResponse(error);
+    }
+    return internalServerErrorResponse();
   }
 }
 ```
+
+### API Response Helper Functions
+
+**Always use these consistent functions from `@/lib/withAuth`:**
+
+- **`toSuccessApiResponse(serviceResult, status?)`** - For successful service results
+- **`errorApiResultResponse(serviceResult, alternativeError?)`** - For service error results
+- **`zodErrorToNextResponse(zodError)`** - For Zod validation errors
+- **`internalServerErrorResponse()`** - For unexpected server errors
+
+**Service Layer Pattern:**
+
+- API routes should NEVER call Prisma directly
+- Always use service classes for business logic
+- Services return `ServiceResult<T>` type (`SuccessServiceResult<T>` | `ErrorServiceResult<T>`)
+- Routes handle only HTTP concerns (parsing, authentication, response formatting)
+
+**Response Type Consistency:**
+
+- All API responses follow `ApiResponse<T>` pattern from `@/types/api-response`
+- Success responses: `{ success: true, data: T, message?: string }`
+- Error responses: `{ success: false, error: string, details?: Array }`
 
 ## Database Rules
 
@@ -384,37 +415,44 @@ EMAIL_FROM="..."
 
 ```typescript
 // Import the API services
-import { api } from '@/lib/api'
+import { api } from "@/lib/api";
 
 // Use for server-side operations, middleware, or when React Query isn't available
-const organization = await api.organizations.getById('org-id')
-const newUser = await api.users.create(userData)
+const organization = await api.organizations.getById("org-id");
+const newUser = await api.users.create(userData);
 ```
 
 #### 2. React Query Hooks (Recommended for Components)
 
 ```typescript
 // Import the hooks
-import { useOrganizations, useCreateUser, useWaterReadings } from '@/hooks/useApi'
+import {
+  useOrganizations,
+  useCreateUser,
+  useWaterReadings,
+} from "@/hooks/useApi";
 
 // Queries (GET operations)
-const { data: organizations, isLoading, error } = useOrganizations()
-const { data: readings } = useWaterReadings({ organizationId: 'org-id', status: 'pending' })
+const { data: organizations, isLoading, error } = useOrganizations();
+const { data: readings } = useWaterReadings({
+  organizationId: "org-id",
+  status: "pending",
+});
 
 // Mutations (POST, PUT, DELETE operations)
 const createUser = useCreateUser({
   onSuccess: (data) => {
-    toast.success(`User ${data.data.firstName} created successfully`)
+    toast.success(`User ${data.data.firstName} created successfully`);
   },
   onError: (error) => {
-    toast.error(error.message)
-  }
-})
+    toast.error(error.message);
+  },
+});
 
 // Usage in component
 const handleCreateUser = (userData: Partial<User>) => {
-  createUser.mutate(userData)
-}
+  createUser.mutate(userData);
+};
 ```
 
 #### 3. Error Handling Patterns
@@ -446,69 +484,69 @@ const createReading = useCreateWaterReading({
 ```typescript
 // The axios client automatically adds authentication headers
 // Filter by organization for multi-tenant data
-const { data: buildings } = useBuildings({ 
-  organizationId: currentOrganization.id 
-})
+const { data: buildings } = useBuildings({
+  organizationId: currentOrganization.id,
+});
 
 // Always include organizationId in mutations for tenant isolation
 const createBuilding = useCreateBuilding({
   onSuccess: () => {
     // React Query automatically invalidates related queries
-  }
-})
+  },
+});
 
 const handleSubmit = (data: Partial<Building>) => {
   createBuilding.mutate({
     ...data,
-    organizationId: currentOrganization.id
-  })
-}
+    organizationId: currentOrganization.id,
+  });
+};
 ```
 
 #### 5. Query Keys & Cache Management
 
 ```typescript
 // Use the provided queryKeys for manual cache operations
-import { queryKeys } from '@/hooks/useApi'
-import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from "@/hooks/useApi";
+import { useQueryClient } from "@tanstack/react-query";
 
-const queryClient = useQueryClient()
+const queryClient = useQueryClient();
 
 // Manual cache invalidation
-queryClient.invalidateQueries({ queryKey: queryKeys.waterReadings.lists() })
+queryClient.invalidateQueries({ queryKey: queryKeys.waterReadings.lists() });
 
 // Manual cache updates
 queryClient.setQueryData(
-  queryKeys.organizations.detail(orgId), 
+  queryKeys.organizations.detail(orgId),
   updatedOrganization
-)
+);
 
 // Prefetch data
 queryClient.prefetchQuery({
-  queryKey: queryKeys.users.list({ organizationId: 'org-id' }),
-  queryFn: () => api.users.getAll({ organizationId: 'org-id' })
-})
+  queryKey: queryKeys.users.list({ organizationId: "org-id" }),
+  queryFn: () => api.users.getAll({ organizationId: "org-id" }),
+});
 ```
 
 #### 6. Pagination & Filtering
 
 ```typescript
 // Use pagination parameters consistently
-const [page, setPage] = useState(1)
-const [search, setSearch] = useState('')
+const [page, setPage] = useState(1);
+const [search, setSearch] = useState("");
 
 const { data: users, isLoading } = useUsers({
   page,
   limit: 20,
   search,
-  organizationId: currentOrg.id
-})
+  organizationId: currentOrg.id,
+});
 
 // Handle pagination
 const handlePageChange = (newPage: number) => {
-  setPage(newPage)
+  setPage(newPage);
   // React Query automatically refetches with new parameters
-}
+};
 ```
 
 #### 7. Optimistic Updates
@@ -518,26 +556,36 @@ const handlePageChange = (newPage: number) => {
 const approveReading = useApproveWaterReading({
   onMutate: async ({ id }) => {
     // Cancel outgoing refetches
-    await queryClient.cancelQueries({ queryKey: queryKeys.waterReadings.detail(id) })
-    
+    await queryClient.cancelQueries({
+      queryKey: queryKeys.waterReadings.detail(id),
+    });
+
     // Snapshot previous value
-    const previousReading = queryClient.getQueryData(queryKeys.waterReadings.detail(id))
-    
+    const previousReading = queryClient.getQueryData(
+      queryKeys.waterReadings.detail(id)
+    );
+
     // Optimistically update
-    queryClient.setQueryData(queryKeys.waterReadings.detail(id), (old: any) => ({
-      ...old,
-      data: { ...old.data, status: 'approved' }
-    }))
-    
-    return { previousReading }
+    queryClient.setQueryData(
+      queryKeys.waterReadings.detail(id),
+      (old: any) => ({
+        ...old,
+        data: { ...old.data, status: "approved" },
+      })
+    );
+
+    return { previousReading };
   },
   onError: (err, variables, context) => {
     // Rollback on error
     if (context?.previousReading) {
-      queryClient.setQueryData(queryKeys.waterReadings.detail(variables.id), context.previousReading)
+      queryClient.setQueryData(
+        queryKeys.waterReadings.detail(variables.id),
+        context.previousReading
+      );
     }
-  }
-})
+  },
+});
 ```
 
 #### 8. Loading States & Skeletons
@@ -558,7 +606,7 @@ if (isError) {
 const createReading = useCreateWaterReading()
 
 return (
-  <Button 
+  <Button
     onClick={() => createReading.mutate(data)}
     disabled={createReading.isPending}
   >
@@ -571,29 +619,29 @@ return (
 
 ```typescript
 // Combine with React Hook Form for seamless form handling
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const createUser = useCreateUser({
   onSuccess: () => {
-    form.reset()
-    router.push('/users')
+    form.reset();
+    router.push("/users");
   },
   onError: (error) => {
     if (isValidationError(error)) {
-      const errors = getValidationErrors(error)
+      const errors = getValidationErrors(error);
       Object.entries(errors).forEach(([field, messages]) => {
-        form.setError(field as keyof FormData, { 
-          message: messages[0] 
-        })
-      })
+        form.setError(field as keyof FormData, {
+          message: messages[0],
+        });
+      });
     }
-  }
-})
+  },
+});
 
 const onSubmit = (data: FormData) => {
-  createUser.mutate(data)
-}
+  createUser.mutate(data);
+};
 ```
 
 #### 10. Environment-Specific Configurations
@@ -626,16 +674,16 @@ const onSubmit = (data: FormData) => {
 
 ```typescript
 // Direct fetch calls
-const response = await fetch('/api/users')
+const response = await fetch("/api/users");
 
 // Bypassing error handling
-const { data } = useUsers() // No error handling
+const { data } = useUsers(); // No error handling
 
 // Manual loading states
-const [loading, setLoading] = useState(false)
+const [loading, setLoading] = useState(false);
 
 // Ignoring multi-tenancy
-const { data } = useBuildings() // Missing organizationId
+const { data } = useBuildings(); // Missing organizationId
 ```
 
 ✅ **Do this instead:**
@@ -684,11 +732,8 @@ const { data: buildings } = useBuildings({ organizationId: currentOrg.id })
 try {
   // Operation
 } catch (error) {
-  console.error('Error context:', error)
-  return NextResponse.json(
-    { error: 'User-friendly message' },
-    { status: 500 }
-  )
+  console.error("Error context:", error);
+  return NextResponse.json({ error: "User-friendly message" }, { status: 500 });
 }
 ```
 
@@ -704,12 +749,12 @@ if (isLoading) return <LoadingSpinner />
 ### Data Fetching
 
 ```typescript
-import { useQuery } from '@tanstack/react-query'
+import { useQuery } from "@tanstack/react-query";
 
 const { data, isLoading, error } = useQuery({
-  queryKey: ['key'],
-  queryFn: fetchFunction
-})
+  queryKey: ["key"],
+  queryFn: fetchFunction,
+});
 ```
 
 ## Communication & Feedback Style
@@ -748,9 +793,9 @@ The Button component has been customized with an additional `borderRadius` prop 
 
 ```typescript
 // Button component usage with borderRadius
-<Button 
-  variant="default" 
-  size="lg" 
+<Button
+  variant="default"
+  size="lg"
   borderRadius="full"
 >
   Call to Action
@@ -769,6 +814,7 @@ Available borderRadius options:
 Use `borderRadius="full"` for primary call-to-action buttons to create a more modern, fluid appearance.
 
 #### BackgroundGradient Component
+
 The BackgroundGradient component provides a subtle animated gradient background that enhances the visual appeal of the application:
 
 ```typescript
@@ -779,6 +825,7 @@ The BackgroundGradient component provides a subtle animated gradient background 
 ```
 
 Key features:
+
 - Multiple gradient blobs positioned strategically
 - Subtle animations with long durations for a gentle floating effect
 - Optimized for both light and dark modes

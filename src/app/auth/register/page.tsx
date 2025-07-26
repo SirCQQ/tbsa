@@ -10,7 +10,7 @@ import {
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
-import { OrganizationRegisterForm } from "@/components/auth/organization-register-form";
+import { OrganizationUserRegisterForm } from "@/components/auth/organization-user-register-form";
 import { UserRegisterForm } from "@/components/auth/user-register-form";
 import Link from "next/link";
 
@@ -43,7 +43,7 @@ export default function RegisterPage() {
 
             {/* Organization Registration */}
             <TabsContent value="organization" className="space-y-6">
-              <OrganizationRegisterForm />
+              <OrganizationUserRegisterForm />
             </TabsContent>
 
             {/* User Registration */}

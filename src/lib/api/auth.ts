@@ -3,13 +3,76 @@ import type {
   OrganizationRegistrationData,
   UserRegistrationData,
   SignInData,
+  OrganizationCreationData,
 } from "@/lib/validations/auth";
+
+// Response types
+export type OrganizationRegistrationResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    };
+    organization: {
+      id: string;
+      name: string;
+      code: string;
+    };
+    paymentLink?: string;
+  };
+};
+
+export type UserRegistrationResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+};
+
+export type EmailVerificationResponse = {
+  success: boolean;
+  message: string;
+};
+
+export type OrganizationCodeCheckResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    available: boolean;
+    code: string;
+  };
+};
+
+export type AuthErrorResponse = {
+  success: false;
+  error: string;
+  details?: Array<{
+    field: string;
+    message: string;
+  }>;
+};
 
 // Registration API functions
 export const authApi = {
+  // Organization creation (for authenticated users)
+  createOrganization: async (data: OrganizationCreationData) => {
+    const response = await api.post("/auth/register/organization", data);
+    return response.data;
+  },
+
   // Organization registration
   registerOrganization: async (data: OrganizationRegistrationData) => {
-    const response = await api.post("/auth/register/organization", data);
+    const response = await api.post("/auth/register/organization/user", data);
     return response.data;
   },
 
@@ -62,74 +125,6 @@ export const authApi = {
   },
 };
 
-// Response types
-export type AuthUser = {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  isActive: boolean;
-  isVerified: boolean;
-  organizations: Array<{
-    id: string;
-    name: string;
-    code: string;
-    role: string;
-  }>;
-};
-
-export type OrganizationRegistrationResponse = {
-  success: true;
-  message: string;
-  data: {
-    user: {
-      id: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      isVerified: boolean;
-    };
-    role: {
-      id: string;
-      name: string;
-      code: string;
-    };
-  };
-};
-
-export type UserRegistrationResponse = {
-  success: true;
-  message: string;
-  data: {
-    user: {
-      id: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      isVerified: boolean;
-    };
-    organization: {
-      id: string;
-      name: string;
-      code: string;
-    };
-    role: {
-      id: string;
-      name: string;
-      code: string;
-    };
-  };
-};
-
-export type AuthErrorResponse = {
-  success: false;
-  error: string;
-  details?: Array<{
-    field: string;
-    message: string;
-  }>;
-};
-
 export type InviteCodeVerification = {
   isValid: boolean;
   organizationName?: string;
@@ -140,18 +135,4 @@ export type InviteCodeVerification = {
 export type OrganizationCodeCheck = {
   isAvailable: boolean;
   suggestion?: string;
-};
-
-export type EmailVerificationResponse = {
-  success: true;
-  message: string;
-  data: {
-    user: {
-      id: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      isVerified: boolean;
-    };
-  };
 };

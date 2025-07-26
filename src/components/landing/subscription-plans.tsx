@@ -1,6 +1,5 @@
-"use client";
 import React from "react";
-import { Check, Building2 } from "lucide-react";
+import { Check, LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,62 +10,41 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useSubscriptions } from "@/hooks/api/use-subscriptions";
-import { getEnabledFeatures } from "@/lib/mappers/subscription-features.mapper";
-import { SubscriptionPlan } from "@prisma/client";
+import { SubscriptionBillingIntervalEnum } from "@prisma/client";
+
+export type Subscription = {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  period: SubscriptionBillingIntervalEnum;
+  popular: boolean;
+  cta: string;
+  features: string[];
+  icon: LucideIcon;
+  iconColor: string;
+  color: string;
+  borderColor: string;
+};
 
 type SubscriptionPlansProps = {
   onPlanSelect?: (planId: string) => void;
+  subscriptions: Subscription[];
+  isLoading: boolean;
+  error: Error | null;
 };
 
-export function SubscriptionPlans({ onPlanSelect }: SubscriptionPlansProps) {
-  const { data: subscriptionsResponse, isLoading, error } = useSubscriptions();
-
-  // Transform API data with icons and prepare for display
-  const plans = React.useMemo(() => {
-    if (!subscriptionsResponse?.success || !subscriptionsResponse.data) {
-      return [];
-    }
-
-    const data = subscriptionsResponse.data as SubscriptionPlan[];
-    console.log({ data });
-
-    return data.map((plan) => {
-      const enabledFeatures = getEnabledFeatures(
-        (plan.features as Record<string, any>) ?? {}
-      );
-      const featureLabels = Array.isArray(enabledFeatures)
-        ? enabledFeatures.map((f) => f.label)
-        : [];
-
-      return {
-        id: plan.id,
-        name: plan.name,
-        description: plan.description || "",
-        // Format price for display
-        price: Number(plan.price).toString(),
-        period: plan.billingInterval || "Monthly",
-        popular: plan.popular || false,
-        cta: plan.cta || "Începe perioada de probă",
-        features: featureLabels,
-        // Use Building2 as default icon for now
-        icon: Building2,
-        // Default colors
-        iconColor: "text-primary",
-        color: plan.popular
-          ? "from-primary/30 to-purple-500/30"
-          : "from-blue-500/20 to-cyan-500/20",
-        borderColor: plan.popular ? "border-primary" : "border-blue-500/30",
-      };
-    });
-  }, [subscriptionsResponse]);
-
-  // Loading state
+export function SubscriptionPlans({
+  onPlanSelect,
+  subscriptions,
+  isLoading = false,
+  error,
+}: SubscriptionPlansProps) {
   if (isLoading) {
     return (
-      <div className="grid md:grid-cols-3 gap-8 mt-16">
+      <div className="grid md:grid-cols-3 gap-8 mt-16 min-h-[500px]">
         {[...Array(3)].map((_, i) => (
-          <Card key={i} className="relative animate-pulse">
+          <Card key={i} className="relative animate-pulse min-w-[300px]">
             <CardHeader className="text-center pb-4">
               <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-4"></div>
               <div className="h-6 bg-gray-200 rounded mb-2"></div>
@@ -106,7 +84,7 @@ export function SubscriptionPlans({ onPlanSelect }: SubscriptionPlansProps) {
   // Plans display
   return (
     <div className="grid md:grid-cols-3 gap-8 mt-16">
-      {plans.map((plan) => {
+      {subscriptions.map((plan) => {
         const Icon = plan.icon;
 
         return (

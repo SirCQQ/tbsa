@@ -1,133 +1,88 @@
-import { NextRequest, NextResponse } from "next/server";
-import { hash } from "bcryptjs";
-import { prisma } from "@/lib/prisma";
-import { organizationRegistrationSchema } from "@/lib/validations/auth";
-import { sendWelcomeEmail } from "@/lib/email";
+import { NextRequest } from "next/server";
+import { organizationCreationSchema } from "@/lib/validations/auth";
+import { OrganizationService } from "@/services/organization.service";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { z } from "zod";
-import { errorApiResultResponse, zodErrorToNextResponse } from "@/lib/withAuth";
+import {
+  toSuccessApiResponse,
+  errorApiResultResponse,
+  zodErrorToNextResponse,
+  internalServerErrorResponse,
+} from "@/lib/withAuth";
 
 export async function POST(request: NextRequest) {
   try {
+    // Get current user session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return errorApiResultResponse({
+        success: false,
+        error: "Nu sunteți autentificat",
+        statusCode: 401,
+      });
+    }
+
+    // Parse and validate request body
     const body = await request.json();
+    const validatedData = organizationCreationSchema.parse(body);
 
-    // Validate the request data
-    const validatedData = organizationRegistrationSchema.parse(body);
-
-    const { firstName, lastName, email, password } = validatedData;
-
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Un utilizator cu acest email există deja" },
-        { status: 400 }
-      );
+    // Create the organization
+    const createResult =
+      await OrganizationService.createOrganization(validatedData);
+    if (!createResult.success) {
+      return errorApiResultResponse(createResult);
     }
 
-    // Hash password
-    const hashedPassword = await hash(password, 12);
+    // At this point we know createResult.success is true and data exists
+    const organization = createResult.data!;
 
-    // Create user and assign ADMINISTRATOR role
-    const result = await prisma.$transaction(async (tx) => {
-      // Create user (not verified initially - will be verified via email)
-      const user = await tx.user.create({
-        data: {
-          email,
-          firstName,
-          lastName,
-          password: hashedPassword,
-          isActive: true,
-          isVerified: false, // User needs to verify email
-        },
+    // Assign current user to the organization as administrator
+    const assignResult = await OrganizationService.assignUserToOrganization(
+      session.user.id,
+      organization.id,
+      "ADMINISTRATOR"
+    );
+
+    if (!assignResult.success) {
+      // Rollback organization creation if user assignment fails
+      await OrganizationService.deleteOrganization(organization.id);
+      return errorApiResultResponse({
+        success: false,
+        error: assignResult.error || "Eroare la asignarea utilizatorului",
+        statusCode: 500,
+      });
+    }
+
+    // Generate payment link if subscription plan is provided
+    let paymentLink = null;
+    if (validatedData.subscriptionPlanId) {
+      const paymentResult = await OrganizationService.generatePaymentLink({
+        organizationId: organization.id,
+        subscriptionPlanId: validatedData.subscriptionPlanId,
+        userId: session.user.id,
       });
 
-      // Get the existing global ADMINISTRATOR role (created by seed data)
-      const adminRole = await tx.role.findUnique({
-        where: { code: "ADMINISTRATOR" },
-      });
-
-      if (!adminRole) {
-        throw new Error(
-          "ADMINISTRATOR role not found. Please run database seed first."
-        );
+      if (paymentResult.success) {
+        paymentLink = paymentResult.data;
       }
-
-      // Assign ADMINISTRATOR role to user
-      await tx.userRole.create({
-        data: {
-          userId: user.id,
-          roleId: adminRole.id,
-        },
-      });
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          isVerified: user.isVerified,
-        },
-        role: {
-          id: adminRole.id,
-          name: adminRole.name,
-          code: adminRole.code,
-        },
-      };
-    });
-
-    // Send welcome/confirmation email
-    try {
-      // Generate verification token (simple timestamp-based for now)
-      const verificationToken = Buffer.from(
-        `${result.user.id}:${Date.now()}:${Math.random()}`
-      ).toString("base64url");
-
-      // Save verification token to database
-      await prisma.verificationToken.create({
-        data: {
-          identifier: result.user.email,
-          token: verificationToken,
-          expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        },
-      });
-
-      const emailResult = await sendWelcomeEmail(
-        result.user.email,
-        result.user.firstName,
-        verificationToken
-      );
-
-      console.log(
-        `Welcome email sent to ${result.user.email}:`,
-        emailResult.success
-      );
-    } catch (emailError) {
-      console.error("Failed to send welcome email:", emailError);
-      // Don't fail the registration if email fails - user can still verify later
     }
 
-    return NextResponse.json({
+    return toSuccessApiResponse({
       success: true,
-      message:
-        "Contul a fost creat cu succes și vi s-a atribuit rolul de Administrator. Verificați email-ul pentru confirmarea contului.",
-      data: result,
+      data: {
+        organization,
+        paymentLink,
+      },
+      message: "Organizația a fost creată cu succes",
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("Error in organization registration:", error);
 
-    // Handle validation errors
     if (error instanceof z.ZodError) {
       return zodErrorToNextResponse(error);
     }
-    return errorApiResultResponse({
-      success: false,
-      error: "Internal server error",
-      data: null,
-      statusCode: 500,
-    });
+
+    return internalServerErrorResponse();
   }
 }
