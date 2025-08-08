@@ -56,6 +56,29 @@ export type GetApartmentsByOrganization = Prisma.ApartmentGetPayload<{
   };
 }>;
 
+export type BuildingApartmentStats = {
+  totalApartments: number;
+  occupiedApartments: number;
+  vacantApartments: number;
+  averageOccupancy: number;
+  apartmentsByFloor: Record<
+    string,
+    {
+      floor: number;
+      totalApartments: number;
+      occupiedApartments: number;
+      vacantApartments: number;
+      apartments: {
+        id: string;
+        number: string;
+        isOccupied: boolean;
+        occupantCount: number;
+        surface: number | null;
+      }[];
+    }
+  >;
+};
+
 export class ApartmentService {
   private includeBuildingDetails = {
     building: {
@@ -291,41 +314,6 @@ export class ApartmentService {
   }
 
   /**
-   * Get apartment by ID with organization validation
-   */
-  async getApartmentById(
-    apartmentId: string,
-    organizationId: string
-  ): Promise<ServiceResult<GetApartmentByIdResult>> {
-    try {
-      const apartment = await prisma.apartment.findFirst({
-        where: {
-          id: apartmentId,
-
-          building: {
-            organizationId: organizationId,
-          },
-        },
-        include: {
-          building: this.includeBuildingDetails.building,
-        },
-      });
-
-      if (!apartment) {
-        return this.notFoundError;
-      }
-
-      return {
-        success: true,
-        data: apartment,
-      };
-    } catch (error) {
-      console.error("Error fetching apartment:", error);
-      return this.internalError;
-    }
-  }
-
-  /**
    * Get Apartment by ID with UserId Validation
    */
 
@@ -356,49 +344,6 @@ export class ApartmentService {
       };
     } catch (error) {
       console.error("Error fetching apartment:", error);
-      return this.internalError;
-    }
-  }
-  /**
-   * Get apartments by building with organization validation
-   */
-  async getApartmentsByBuilding(
-    buildingId: string,
-    organizationId: string
-  ): Promise<ServiceResult<GetApartmentsByBuildingResult[]>> {
-    try {
-      // Verify building belongs to organization
-      const building = await prisma.building.findFirst({
-        where: {
-          id: buildingId,
-          organizationId: organizationId,
-        },
-      });
-
-      if (!building) {
-        return {
-          success: false,
-          error: "Building not found or does not belong to your organization",
-        };
-      }
-
-      const apartments = await prisma.apartment.findMany({
-        where: {
-          buildingId: buildingId,
-        },
-        include: {
-          building: this.includeBuildingDetails.building,
-          _count: this.includeApartmentCounts._count,
-        },
-        orderBy: [{ floor: "asc" }, { number: "asc" }],
-      });
-
-      return {
-        success: true,
-        data: apartments,
-      };
-    } catch (error) {
-      console.error("Error fetching apartments:", error);
       return this.internalError;
     }
   }
@@ -445,13 +390,16 @@ export class ApartmentService {
     organizationId: string,
     updateData: Partial<
       Omit<CreateApartmentInput, "buildingId" | "organizationId">
-    >
+    >,
+    userId: string,
+    userRoles: string[]
   ): Promise<ServiceResult<Apartment>> {
     try {
-      // Verify apartment exists and belongs to organization
+      // Verify apartment exists and user has access
       const existingApartment = await this.getApartmentById(
         apartmentId,
-        organizationId
+        userId,
+        userRoles
       );
 
       if (!existingApartment.success || !existingApartment.data) {
@@ -516,12 +464,16 @@ export class ApartmentService {
    */
   async deleteApartment(
     apartmentId: string,
-    organizationId: string
+    organizationId: string,
+    userId: string,
+    userRoles: string[]
   ): Promise<ServiceResult<null>> {
     try {
       const canDeleteResult = await this.canDeleteApartment(
         apartmentId,
-        organizationId
+        organizationId,
+        userId,
+        userRoles
       );
       if (!canDeleteResult.success) {
         return canDeleteResult;
@@ -545,12 +497,15 @@ export class ApartmentService {
 
   private async canDeleteApartment(
     apartmentId: string,
-    organizationId: string
+    organizationId: string,
+    userId: string,
+    userRoles: string[]
   ): Promise<ServiceResult<null>> {
-    // Verify apartment exists and belongs to organization
+    // Verify apartment exists and user has access
     const existingApartment = await this.getApartmentById(
       apartmentId,
-      organizationId
+      userId,
+      userRoles
     );
 
     if (!existingApartment.success || !existingApartment.data) {
@@ -590,6 +545,283 @@ export class ApartmentService {
       success: true,
       data: null,
     };
+  }
+
+  // ==========================================
+  // NEW ACCESS-CONTROLLED METHODS
+  // ==========================================
+
+  /**
+   * Get apartments by building with access control
+   */
+  async getApartmentsByBuilding(
+    buildingId: string,
+    userId: string,
+    userRoles: string[]
+  ): Promise<ServiceResult<GetApartmentsByBuildingResult[]>> {
+    try {
+      // Check if user is super admin (has full access)
+      const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
+
+      let building;
+
+      if (isSuperAdmin) {
+        // Super admin can access any building's apartments
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+          },
+        });
+      } else {
+        // Regular users can only access buildings in their organizations
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+            organization: {
+              users: {
+                some: {
+                  userId: userId,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      if (!building) {
+        return {
+          success: false,
+          error: "Clădirea nu a fost găsită sau nu aveți acces la ea",
+        };
+      }
+
+      const apartments = await prisma.apartment.findMany({
+        where: {
+          buildingId: buildingId,
+          deletedAt: null,
+        },
+        include: {
+          building: this.includeBuildingDetails.building,
+          _count: this.includeApartmentCounts._count,
+        },
+        orderBy: [{ floor: "asc" }, { number: "asc" }],
+      });
+
+      return {
+        success: true,
+        data: apartments,
+      };
+    } catch (error) {
+      console.error("Error fetching apartments by building:", error);
+      return {
+        success: false,
+        error: "Eroare la încărcarea apartamentelor",
+      };
+    }
+  }
+
+  /**
+   * Get apartment by ID with access control
+   */
+  async getApartmentById(
+    apartmentId: string,
+    userId: string,
+    userRoles: string[]
+  ): Promise<ServiceResult<GetApartmentByIdResult>> {
+    try {
+      // Check if user is super admin (has full access)
+      const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
+
+      let apartment;
+
+      if (isSuperAdmin) {
+        // Super admin can access any apartment
+        apartment = await prisma.apartment.findFirst({
+          where: {
+            id: apartmentId,
+            deletedAt: null,
+          },
+          include: {
+            building: this.includeBuildingDetails.building,
+          },
+        });
+      } else {
+        // Regular users can only access apartments in their organizations
+        apartment = await prisma.apartment.findFirst({
+          where: {
+            id: apartmentId,
+            deletedAt: null,
+            building: {
+              organization: {
+                users: {
+                  some: {
+                    userId: userId,
+                  },
+                },
+              },
+            },
+          },
+          include: {
+            building: this.includeBuildingDetails.building,
+          },
+        });
+      }
+
+      if (!apartment) {
+        return {
+          success: false,
+          error: "Apartamentul nu a fost găsit sau nu aveți acces la el",
+        };
+      }
+
+      return {
+        success: true,
+        data: apartment,
+      };
+    } catch (error) {
+      console.error("Error fetching apartment:", error);
+      return {
+        success: false,
+        error: "Eroare la încărcarea apartamentului",
+      };
+    }
+  }
+
+  /**
+   * Get building apartment statistics with access control
+   */
+  async getBuildingApartmentStats(
+    buildingId: string,
+    userId: string,
+    userRoles: string[]
+  ): Promise<ServiceResult<BuildingApartmentStats>> {
+    try {
+      // Check if user is super admin (has full access)
+      const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
+
+      let building;
+
+      if (isSuperAdmin) {
+        // Super admin can access any building stats
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+          },
+        });
+      } else {
+        // Regular users can only access buildings in their organizations
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+            organization: {
+              users: {
+                some: {
+                  userId: userId,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      if (!building) {
+        return {
+          success: false,
+          error: "Clădirea nu a fost găsită sau nu aveți acces la ea",
+        };
+      }
+
+      // Get all apartments for the building
+      const apartments = await prisma.apartment.findMany({
+        where: {
+          buildingId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          number: true,
+          floor: true,
+          isOccupied: true,
+          occupantCount: true,
+          surface: true,
+        },
+        orderBy: [{ floor: "asc" }, { number: "asc" }],
+      });
+
+      // Calculate basic statistics
+      const totalApartments = apartments.length;
+      const occupiedApartments = apartments.filter(
+        (apt) => apt.isOccupied
+      ).length;
+      const vacantApartments = totalApartments - occupiedApartments;
+
+      // Calculate average occupancy (people per apartment)
+      const totalOccupants = apartments.reduce(
+        (sum, apt) => sum + apt.occupantCount,
+        0
+      );
+      const averageOccupancy =
+        totalApartments > 0 ? totalOccupants / totalApartments : 0;
+
+      // Group apartments by floor with detailed statistics
+      const apartmentsByFloor = apartments.reduce(
+        (acc, apartment) => {
+          const floorKey = apartment.floor.toString();
+
+          if (!acc[floorKey]) {
+            acc[floorKey] = {
+              floor: apartment.floor,
+              totalApartments: 0,
+              occupiedApartments: 0,
+              vacantApartments: 0,
+              apartments: [],
+            };
+          }
+
+          acc[floorKey].totalApartments++;
+
+          if (apartment.isOccupied) {
+            acc[floorKey].occupiedApartments++;
+          } else {
+            acc[floorKey].vacantApartments++;
+          }
+
+          acc[floorKey].apartments.push({
+            id: apartment.id,
+            number: apartment.number,
+            isOccupied: apartment.isOccupied,
+            occupantCount: apartment.occupantCount,
+            surface: apartment.surface,
+          });
+
+          return acc;
+        },
+        {} as Record<string, any>
+      );
+
+      const stats: BuildingApartmentStats = {
+        totalApartments,
+        occupiedApartments,
+        vacantApartments,
+        averageOccupancy: Math.round(averageOccupancy * 100) / 100, // Round to 2 decimal places
+        apartmentsByFloor,
+      };
+
+      return {
+        success: true,
+        data: stats,
+      };
+    } catch (error) {
+      console.error("Error fetching building apartment stats:", error);
+      return {
+        success: false,
+        error: "Eroare la încărcarea statisticilor apartamentelor",
+      };
+    }
   }
 }
 

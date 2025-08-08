@@ -56,13 +56,6 @@ enum ResourcesEnum {
   ROLES
   PERMISSIONS
   INVITE_CODES
-  ADMIN_GRANT
-  SUBSCRIPTION_PLANS
-  MODULES
-  PLAN_MODULES
-  APARTMENT_RESIDENTS
-  ADMINISTRATOR
-  SUPER_ADMIN
 }
 
 enum ActionsEnum {
@@ -96,23 +89,26 @@ enum SubscriptionBillingIntervalEnum {
 
 // ======= Subscription & Organization Models =======
 
-/// Subscription plan model defining available features and limits
+/// Subscription plan model - contains all subscription information
 model SubscriptionPlan {
   id               String                          @id @default(uuid())
-  name             String
+  name             String                          @unique()
   description      String? // Short description for UI
-  price            Decimal
+  basePrice        Decimal                         @map("base_price")
   billingInterval  SubscriptionBillingIntervalEnum @default(Monthly) @map("billing_interval")
-  features         Json
   maxBuildings     Int?                            @map("max_buildings")
   maxApartments    Int?                            @map("max_apartments")
+  maxUsers         Int?                            @map("max_users")
   popular          Boolean                         @default(false) // Mark as popular in UI
   cta              String? // Call to action text for UI
   subscriptionType SubscriptionTypeEnum            @default(Bronze) @map("subscription_type")
 
+  //Metadata
+  metadata Json? @map("metadata")
+
   // Relations
   organizations Organization[]
-  planModules   PlanModule[]
+  subscriptions Subscription[]
 
   // Timestamps
   createdAt DateTime  @default(now()) @map("created_at")
@@ -122,44 +118,36 @@ model SubscriptionPlan {
   @@map("subscription_plans")
 }
 
-/// Feature module that can be enabled/disabled per subscription plan
-model Module {
-  id          String  @id @default(uuid())
-  name        String // Module name
-  code        String  @unique // Unique identifier for the module
-  description String? // Module description
-  isActive    Boolean @default(true) @map("is_active")
+/// Subscription history for organizations
+model Subscription {
+  id               String    @id @default(uuid())
+  organizationId   String    @map("organization_id")
+  planId           String    @map("plan_id")
+  startDate        DateTime  @map("start_date") // Billing cycle start
+  endDate          DateTime  @map("end_date") // Billing cycle end
+  subscriptionDate DateTime  @default(now()) @map("subscription_date") // When subscription was created/renewed
+  isPaid           Boolean   @default(false) @map("is_paid") // Payment status for this cycle
+  isActive         Boolean   @default(true) @map("is_active") // Whether subscription is currently active
+  totalAmount      Decimal   @map("total_amount") // Total amount for this billing cycle
+  paidAt           DateTime? @map("paid_at") // When payment was completed
+  notes            String? // Additional notes
 
   // Relations
-  permissions Permission[]
-  planModules PlanModule[]
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  plan         SubscriptionPlan @relation(fields: [planId], references: [id])
 
   // Timestamps
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  @@map("modules")
-}
-
-/// Junction table between subscription plans and modules
-model PlanModule {
-  id                 String  @id @default(uuid())
-  subscriptionPlanId String  @map("subscription_plan_id")
-  moduleId           String  @map("module_id")
-  isIncluded         Boolean @default(true) @map("is_included")
-
-  // Relations
-  module           Module           @relation(fields: [moduleId], references: [id])
-  subscriptionPlan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
-
-  // Timestamps
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@unique([subscriptionPlanId, moduleId])
-  @@map("plan_modules")
+  @@index([organizationId])
+  @@index([planId])
+  @@index([startDate, endDate])
+  @@index([isPaid])
+  @@index([isActive])
+  @@index([subscriptionDate])
+  @@map("subscriptions")
 }
 
 /// Organization/tenant model for multi-tenant support
@@ -172,9 +160,9 @@ model Organization {
   subscriptionPlanId String? @map("subscription_plan_id") // Current subscription plan
 
   // Relations
-  roles     OrganizationRole[]
-  users     UserOrganization[]
-  buildings Building[]
+  users         UserOrganization[]
+  buildings     Building[]
+  subscriptions Subscription[] // New relation
 
   subscriptionPlan SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
 
@@ -275,9 +263,8 @@ model Permission {
   resource    ResourcesEnum
   action      ActionsEnum
   description String?
-  moduleId    String?       @map("module_id") // Associated feature module
 
-  module            Module?            @relation(fields: [moduleId], references: [id])
+  // Relations
   rolePermissions   RolePermission[]
   userOrganizations UserOrganization[]
 
@@ -300,9 +287,8 @@ model Role {
   isSystem    Boolean @default(false) @map("is_system") // True for built-in roles
 
   // Relations
-  organizationRoles OrganizationRole[]
-  userRoles         UserRole[]
-  rolePermissions   RolePermission[]
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
 
   // Timestamps
   createdAt DateTime  @default(now()) @map("created_at")
@@ -311,26 +297,6 @@ model Role {
 
   @@index([code])
   @@map("roles")
-}
-
-/// Junction table between organizations and roles
-model OrganizationRole {
-  id             String @id @default(uuid())
-  organizationId String @map("organization_id")
-  roleId         String @map("role_id")
-
-  // Relations
-  organization Organization @relation(fields: [organizationId], references: [id])
-  role         Role         @relation(fields: [roleId], references: [id])
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([organizationId, roleId])
-  @@index([organizationId])
-  @@index([roleId])
-  @@map("organization_roles")
 }
 
 /// Junction table between users and roles

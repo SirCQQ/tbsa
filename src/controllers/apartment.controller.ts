@@ -108,10 +108,11 @@ export const getBuildingApartments: Handler<Response> = async (
         statusCode: 400,
       });
     }
-    // 5. Fetch apartments using service
+    // 5. Fetch apartments using service with access control
     const result = await apartmentService.getApartmentsByBuilding(
       buildingId,
-      session.user.currentOrganizationId
+      session.user.id,
+      session.user.roles
     );
     if (!result.success) {
       return errorApiResultResponse(
@@ -172,10 +173,11 @@ export const getOrgApartmentById: Handler<Response> = async (
       });
     }
 
-    // Get apartment by ID
+    // Get apartment by ID with access control
     const result = await apartmentService.getApartmentById(
       apartmentId,
-      session.user.currentOrganizationId
+      session.user.id,
+      session.user.roles
     );
     if (!result.success) {
       return errorApiResultResponse(result, "Apartmentul nu a fost găsit");
@@ -211,7 +213,9 @@ export const updateApartment: Handler<Response> = async (
     const result = await apartmentService.updateApartment(
       apartmentId,
       session.user.currentOrganizationId,
-      body
+      body,
+      session.user.id,
+      session.user.roles
     );
 
     if (!result.success) {
@@ -256,7 +260,9 @@ export const deleteApartment: Handler<Response> = async (
     // Delete apartment
     const result = await apartmentService.deleteApartment(
       apartmentId,
-      session.user.currentOrganizationId
+      session.user.currentOrganizationId,
+      session.user.id,
+      session.user.roles
     );
     if (!result.success) {
       return errorApiResultResponse(
@@ -277,6 +283,50 @@ export const deleteApartment: Handler<Response> = async (
   }
 };
 
+export const getBuildingApartmentStats: Handler<Response> = async (
+  _request,
+  session,
+  queryParams: Record<string, Promise<{ buildingId: string }>> | undefined
+): Promise<Response> => {
+  try {
+    if (!queryParams) {
+      return errorApiResultResponse({
+        success: false,
+        error: "Building ID is required",
+        statusCode: 400,
+      });
+    }
+    const { buildingId } = await queryParams.params;
+
+    if (!buildingId) {
+      return errorApiResultResponse({
+        success: false,
+        error: "Building ID is required",
+        statusCode: 400,
+      });
+    }
+
+    // Get building apartment statistics with access control
+    const result = await apartmentService.getBuildingApartmentStats(
+      buildingId,
+      session.user.id,
+      session.user.roles
+    );
+
+    if (!result.success) {
+      return errorApiResultResponse(
+        result,
+        "Nu s-au putut încărca statisticile apartamentelor"
+      );
+    }
+
+    return toSuccessApiResponse(result, 200);
+  } catch (error) {
+    console.error("Building apartment stats fetch API error:", error);
+    return internalServerErrorResponse();
+  }
+};
+
 export const ApartmentController = {
   createApartment,
   createBulkApartments,
@@ -284,4 +334,5 @@ export const ApartmentController = {
   getOrgApartmentById,
   updateApartment,
   deleteApartment,
+  getBuildingApartmentStats,
 };

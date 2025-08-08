@@ -38,9 +38,11 @@ const createBuilding: Handler<Response> = async (request, session) => {
 
 const getBuildings: Handler<Response> = async (request, session) => {
   try {
-    // 4. Get buildings using service
-    const result = await buildingService.getBuildingsByOrganization(
-      session.user.currentOrganizationId
+    // Get buildings using service with access control
+    const result = await buildingService.getBuildingsByOrg(
+      session.user.currentOrganizationId,
+      session.user.id,
+      session.user.roles
     );
     if (!result.success) {
       return errorApiResultResponse(result);
@@ -79,7 +81,8 @@ const getBuildingById: Handler<Response> = async (
   try {
     const result = await buildingService.getBuildingById(
       buildingId,
-      session.user.currentOrganizationId
+      session.user.id,
+      session.user.roles
     );
     if (!result.success) {
       return errorApiResultResponse(result, "Blocul nu a fost găsit");
@@ -203,10 +206,55 @@ const deleteBuilding: Handler<Response> = async (
     return internalServerErrorResponse();
   }
 };
+const getBuildingStats: Handler<Response> = async (
+  _request,
+  session,
+  queryParams: Record<string, Promise<{ buildingId: string }>> | undefined
+) => {
+  try {
+    if (!queryParams) {
+      return errorApiResultResponse({
+        success: false,
+        error: "Building ID is required",
+        statusCode: 400,
+      });
+    }
+    const { buildingId } = await queryParams.params;
+
+    if (!buildingId) {
+      return errorApiResultResponse({
+        success: false,
+        error: "Building ID is required",
+        statusCode: 400,
+      });
+    }
+
+    // Get building statistics
+    const result = await buildingService.getBuildingStatsById(
+      buildingId,
+      session.user.id,
+      session.user.roles
+    );
+
+    if (!result.success) {
+      return errorApiResultResponse(
+        result,
+        "Nu s-au putut încărca statisticile clădirii"
+      );
+    }
+
+    return toSuccessApiResponse(result, 200);
+  } catch (error) {
+    console.error("Building stats fetch API error:", error);
+    return internalServerErrorResponse();
+  }
+};
+
 export const BuildingController = {
   createBuilding,
   getBuildings,
   getBuildingById,
   updateBuilding,
   deleteBuilding,
+  getBuildingStats,
 };

@@ -174,7 +174,8 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.getApartmentById(
         mockApartment.id,
-        mockOrganizationId
+        mockOrganizationId,
+        ["SUPER_ADMIN"]
       );
 
       expect(result.success).toBe(true);
@@ -182,9 +183,10 @@ describe("ApartmentService", () => {
       expect(mockPrisma.apartment.findFirst).toHaveBeenCalledWith({
         where: {
           id: mockApartment.id,
-          building: {
-            organizationId: mockOrganizationId,
-          },
+          // building: {
+          //   organizationId: mockOrganizationId,
+          // },
+          deletedAt: null,
         },
         include: {
           building: {
@@ -204,11 +206,14 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.getApartmentById(
         "non-existent-id",
-        mockOrganizationId
+        mockOrganizationId,
+        ["SUPER_ADMIN"]
       );
 
       expect(result.success).toBe(false);
-      expect((result as ErrorServiceResult).error).toBe("Apartment not found");
+      expect((result as ErrorServiceResult).error).toBe(
+        "Apartamentul nu a fost găsit sau nu aveți acces la el"
+      );
     });
 
     it("should handle database errors gracefully", async () => {
@@ -218,12 +223,13 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.getApartmentById(
         mockApartment.id,
-        mockOrganizationId
+        mockOrganizationId,
+        ["SUPER_ADMIN"]
       );
 
       expect(result.success).toBe(false);
       expect((result as ErrorServiceResult).error).toBe(
-        "Internal server error"
+        "Eroare la încărcarea apartamentului"
       );
     });
   });
@@ -250,7 +256,8 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.getApartmentsByBuilding(
         mockBuildingId,
-        mockOrganizationId
+        mockOrganizationId,
+        ["SUPER_ADMIN"]
       );
 
       expect(result.success).toBe(true);
@@ -258,12 +265,13 @@ describe("ApartmentService", () => {
       expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
         where: {
           id: mockBuildingId,
-          organizationId: mockOrganizationId,
+          deletedAt: null,
         },
       });
       expect(mockPrisma.apartment.findMany).toHaveBeenCalledWith({
         where: {
           buildingId: mockBuildingId,
+          deletedAt: null,
         },
         include: {
           building: {
@@ -290,12 +298,13 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.getApartmentsByBuilding(
         "non-existent-id",
-        mockOrganizationId
+        mockOrganizationId,
+        ["SUPER_ADMIN"]
       );
 
       expect(result.success).toBe(false);
       expect((result as ErrorServiceResult).error).toBe(
-        "Building not found or does not belong to your organization"
+        "Clădirea nu a fost găsită sau nu aveți acces la ea"
       );
       expect(mockPrisma.apartment.findMany).not.toHaveBeenCalled();
     });
@@ -401,7 +410,9 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.deleteApartment(
         mockApartment.id,
-        mockOrganizationId
+        mockOrganizationId,
+        faker.string.uuid(),
+        ["MEMBER"]
       );
 
       expect(result.success).toBe(true);
@@ -425,7 +436,9 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.deleteApartment(
         mockApartment.id,
-        mockOrganizationId
+        mockOrganizationId,
+        faker.string.uuid(),
+        ["MEMBER"]
       );
 
       expect(result.success).toBe(false);
@@ -449,7 +462,9 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.deleteApartment(
         mockApartment.id,
-        mockOrganizationId
+        mockOrganizationId,
+        faker.string.uuid(),
+        ["MEMBER"]
       );
 
       expect(result.success).toBe(false);
@@ -467,7 +482,9 @@ describe("ApartmentService", () => {
 
       const result = await apartmentService.deleteApartment(
         "non-existent-id",
-        mockOrganizationId
+        mockOrganizationId,
+        faker.string.uuid(),
+        ["MEMBER"]
       );
 
       expect(result.success).toBe(false);

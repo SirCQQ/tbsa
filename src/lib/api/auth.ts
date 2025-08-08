@@ -35,6 +35,17 @@ export type UserRegistrationResponse = {
       email: string;
       firstName: string;
       lastName: string;
+      isVerified: boolean;
+    };
+    organization: {
+      id: string;
+      name: string;
+      code: string;
+    };
+    role: {
+      id: string;
+      name: string;
+      code: string;
     };
   };
 };
@@ -42,6 +53,15 @@ export type UserRegistrationResponse = {
 export type EmailVerificationResponse = {
   success: boolean;
   message: string;
+  data?: {
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      isVerified: boolean;
+    };
+  };
 };
 
 export type OrganizationCodeCheckResponse = {

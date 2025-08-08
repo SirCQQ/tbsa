@@ -1,26 +1,14 @@
-'use client'
-import { useSubscriptions } from "@/hooks/api/use-subscriptions";
-import { getEnabledFeatures } from "@/lib/mappers/subscription-features.mapper";
-import { getSubscriptionIcon, getSubscriptionTypeColor } from "@/lib/mappers/subscription.mapper";
-import { SubscriptionPlan } from "@prisma/client";
-import { Building2 } from "lucide-react";
-import { useMemo } from "react";
+"use client";
+
 import { SubscriptionPlans } from "./subscription-plans";
 import { useGetSubscriptions } from "@/hooks/use-get-subsriptions";
 
-
-
-
-
 export function SubscriptionSection() {
-
-
   const { subscriptions, isLoading, error } = useGetSubscriptions();
-
 
   const handlePlanSelect = (planId: string) => {
     // Handle plan selection logic here
-    console.log('Selected plan:', planId);
+    console.log("Selected plan:", planId);
   };
 
   return (
@@ -46,7 +34,18 @@ export function SubscriptionSection() {
         </div>
 
         {/* Subscription Plans Component */}
-        <SubscriptionPlans onPlanSelect={handlePlanSelect} subscriptions={subscriptions} isLoading={isLoading} error={error} />
+        <SubscriptionPlans
+          onPlanSelect={handlePlanSelect}
+          subscriptions={subscriptions}
+          isLoading={isLoading}
+          error={error}
+        />
+        {/* Add a very small disclaimer that this is a preseted price and the price can be different depending on the number of apartments */}
+        <span className="text-[10px] text-muted-foreground ">
+          * Prețul este prezentat pentru numarul maxim de apartamente per
+          abonament. Prețul real poate fi diferit în funcție de numărul de
+          apartamente disponibile în clădire/clădiri.
+        </span>
 
         <div className="text-center mt-16">
           <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-2xl p-8 backdrop-blur-sm border border-primary/20">

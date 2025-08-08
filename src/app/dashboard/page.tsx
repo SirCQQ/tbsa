@@ -1,7 +1,9 @@
 "use client";
 
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useUserOrganizations } from "@/hooks/api/use-organizations";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Page } from "@/components/ui/page";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -12,15 +14,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, Crown, ArrowRight } from "lucide-react";
+import { Crown, ArrowRight } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { NoOrg } from "@/components/dashboard/no-org";
 
 export default function DashboardPage() {
-  const { user, isLoading } = useCurrentUser();
-
+  const { user, isLoading: userLoading } = useCurrentUser();
+  const {
+    data: organizations,
+    isLoading: orgsLoading,
+    error,
+  } = useUserOrganizations();
   const router = useRouter();
-  console.log({ user });
+
+  const isLoading = userLoading || orgsLoading;
+
+  // Handle redirect in useEffect to avoid React error
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, userLoading, router]);
+
+  // Auto-redirect if user has only one organization
+  useEffect(() => {
+    if (Array.isArray(organizations) && organizations.length === 1) {
+      router.push(`/org/${organizations[0].code}/dashboard`);
+    }
+  }, [organizations, router]);
 
   if (isLoading) {
     return (
@@ -41,13 +62,33 @@ export default function DashboardPage() {
     );
   }
 
+  // Return loading state while redirecting
   if (!user) {
-    router.push("/auth/login");
-    return null;
+    return (
+      <Page
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        background="gradient-ocean"
+        className="min-h-screen"
+      >
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <Typography variant="p" className="text-muted-foreground">
+            Redirecționare către autentificare...
+          </Typography>
+        </div>
+      </Page>
+    );
+  }
+
+  // Show error state if organizations failed to load
+  if (error) {
+    return <NoOrg />;
   }
 
   // If user has no organizations
-  if (!user.organizations || user.organizations.length === 0) {
+  if (!isLoading && (!organizations || organizations.length === 0)) {
     return <NoOrg />;
   }
 
@@ -77,11 +118,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {user.organizations.map((org) => (
+          {organizations?.map((org) => (
             <Card
               key={org.id}
               className="backdrop-blur-md hover:shadow-lg transition-all duration-300 hover:cursor-pointer"
-              onClick={() => router.push(`/org/${org.code}/dashboard`)}
+              onClick={() => router.push(`/org/${org.id}/dashboard`)}
             >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -102,6 +143,14 @@ export default function DashboardPage() {
                       {org.code}
                     </span>
                   </div>
+                  {org.subscriptionPlan && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Plan:</span>
+                      <span className="font-medium">
+                        {org.subscriptionPlan.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <Button

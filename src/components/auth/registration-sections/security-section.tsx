@@ -1,12 +1,6 @@
-import { Control } from "react-hook-form";
 import { ControlledPasswordInput } from "@/components/ui/inputs/form";
-import type { UserRegistrationData } from "@/lib/validations/auth";
 
-type SecuritySectionProps = {
-  control: Control<UserRegistrationData>;
-};
-
-export function SecuritySection({ control }: SecuritySectionProps) {
+export function SecuritySection() {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Securitate</h3>

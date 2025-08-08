@@ -35,7 +35,7 @@ import {
   Filter,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useBuilding } from "@/hooks/api/use-buildings";
+import { useBuilding, useBuildingStats } from "@/hooks/api/use-buildings";
 import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { StatCard } from "@/components/ui/stat-card";
 import { AddApartmentModal } from "@/components/apartments/add-apartment-modal";
@@ -57,9 +57,16 @@ export default function BuildingDetailsPage() {
   const [occupancyFilter, setOccupancyFilter] = useState<string>("all");
   const [floorFilter, setFloorFilter] = useState<string>("all");
 
-  const { data: building, isLoading, error } = useBuilding(buildingId, orgId);
+  const { data: building, isLoading, error } = useBuilding(buildingId);
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useBuildingStats(buildingId);
 
-  if (isLoading) {
+  console.log({ building, stats });
+
+  if (isLoading || statsLoading) {
     return (
       <Page
         display="flex"
@@ -89,7 +96,7 @@ export default function BuildingDetailsPage() {
     );
   }
 
-  if (error) {
+  if (error || statsError) {
     return (
       <Page
         display="flex"
@@ -118,7 +125,7 @@ export default function BuildingDetailsPage() {
     );
   }
 
-  if (!building) {
+  if (!building || !stats) {
     return (
       <Page
         display="flex"
@@ -148,7 +155,7 @@ export default function BuildingDetailsPage() {
   }
 
   // Sort floors for display (ground floor first, then ascending)
-  const sortedFloors = Object.keys(building.apartmentsByFloor ?? [])
+  const sortedFloors = Object.keys(stats?.apartmentsByFloor ?? {})
     .map(Number)
     .sort((a, b) => a - b);
 
@@ -174,7 +181,7 @@ export default function BuildingDetailsPage() {
   // Check if there are any apartments matching the current filters
   const hasFilteredApartments = filteredFloors.some((floor) => {
     const apartments = getFilteredApartments(
-      building.apartmentsByFloor[floor.toString()]
+      stats?.apartmentsByFloor[floor.toString()] ?? []
     );
     return apartments.length > 0;
   });
@@ -328,28 +335,26 @@ export default function BuildingDetailsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <StatCard
             title="Total Apartamente"
-            value={building.totalApartments.toString()}
+            value={(stats?.totalApartments ?? 0).toString()}
             description="Unități locative"
             icon={Home}
             iconColor={ICON_COLOR_MAPPINGS.buildingPage.totalApartments}
           />
           <StatCard
             title="Apartamente Ocupate"
-            value={(building.occupiedApartments ?? 0).toString()}
+            value={(stats?.occupiedApartments ?? 0).toString()}
             description="Unități cu proprietari"
             icon={CheckCircle2}
             iconColor={ICON_COLOR_MAPPINGS.buildingPage.occupiedApartments}
             trend={{
-              value: Math.round(
-                (building.occupiedApartments / building.totalApartments) * 100
-              ),
+              value: Math.round(stats?.occupancyRate ?? 0),
               label: "rata de ocupare",
               type: "neutral",
             }}
           />
           <StatCard
             title="Apartamente Libere"
-            value={(building.vacantApartments ?? 0).toString()}
+            value={(stats?.vacantApartments ?? 0).toString()}
             description="Unități disponibile"
             icon={XCircle}
             iconColor={ICON_COLOR_MAPPINGS.buildingPage.vacantApartments}
@@ -541,7 +546,7 @@ export default function BuildingDetailsPage() {
           <div className="space-y-4">
             {filteredFloors.map((floor) => {
               const apartments = getFilteredApartments(
-                building.apartmentsByFloor[floor.toString()]
+                stats?.apartmentsByFloor[floor.toString()] ?? []
               );
               const floorName = floor === 0 ? "Parter" : `Etaj ${floor}`;
 

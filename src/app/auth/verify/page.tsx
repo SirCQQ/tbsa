@@ -34,7 +34,7 @@ function VerifyEmailContent() {
 
   const verifyEmail = useVerifyEmail({
     onSuccess: (data) => {
-      if (data.data?.user) {
+      if (data.success && data.data?.user) {
         setUserEmail(data.data.user.email);
         // Check if user was already verified
         if (data.message.includes("deja verificat")) {

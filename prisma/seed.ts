@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { seedCoreSystem } from "./seeds/01-core-system";
+import { seedDemoData } from "./seeds/02-demo-data";
 // import { seedDemoData } from "./seeds/02-demo-data";
 
 const prisma = new PrismaClient();
@@ -15,7 +16,7 @@ async function main() {
     console.log("\n" + "=".repeat(50));
 
     // Then seed demo data
-    // await seedDemoData();
+    await seedDemoData();
 
     console.log("\n" + "=".repeat(50));
     console.log("🎉 Database seeding completed successfully!");

@@ -1,4 +1,4 @@
-import { PrismaClient, ApartmentRole } from "@prisma/client";
+import { PrismaClient, BuildingType, ApartmentRole } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { base, ro, en, Faker } from "@faker-js/faker";
 
@@ -8,571 +8,261 @@ const prisma = new PrismaClient();
 const faker = new Faker({ locale: [ro, en, base] });
 
 export async function seedDemoData() {
-  console.log("🌱 Seeding demo data...");
+  console.log("🏢 Starting demo data seeding...");
 
-  // Get existing roles and subscription plans
-  const adminRole = await prisma.role.findUnique({
-    where: { code: "ADMINISTRATOR" },
-  });
-  const ownerRole = await prisma.role.findUnique({ where: { code: "OWNER" } });
-  const tenantRole = await prisma.role.findUnique({
-    where: { code: "TENANT" },
-  });
-  const managerRole = await prisma.role.findUnique({
-    where: { code: "MANAGER" },
-  });
-
-  const starterPlan = await prisma.subscriptionPlan.findFirst({
-    where: { name: "Starter" },
-  });
-  const professionalPlan = await prisma.subscriptionPlan.findFirst({
-    where: { name: "Professional" },
-  });
-  const enterprisePlan = await prisma.subscriptionPlan.findFirst({
-    where: { name: "Enterprise" },
-  });
-
-  if (!adminRole || !ownerRole || !tenantRole || !managerRole) {
-    throw new Error(
-      "System roles not found. Please run core system seed first."
-    );
-  }
-
-  // 1. Create Demo Organizations
-  console.log("🏢 Creating demo organizations...");
-
-  const organizations = [
-    {
-      name: "Asociația Proprietarilor Bloc A1",
-      code: "ap-bloc-a1",
-      description:
-        "Asociația proprietarilor pentru blocul A1 din complexul rezidențial Aviației",
-      subscriptionPlanId: professionalPlan?.id || null,
-    },
-    {
-      name: "Asociația Proprietarilor Arcul de Triumf",
-      code: "ap-arcul-triumf",
-      description:
-        "Asociația proprietarilor pentru clădirile din zona Arcul de Triumf",
-      subscriptionPlanId: enterprisePlan?.id || null,
-    },
-    {
-      name: "Asociația Proprietarilor Cartier Floreasca",
-      code: "ap-floreasca",
-      description:
-        "Asociația proprietarilor pentru complexul rezidențial Floreasca Gardens",
-      subscriptionPlanId: starterPlan?.id || null,
-    },
-    {
-      name: "Asociația Proprietarilor Primăverii Towers",
-      code: "ap-primaverii",
-      description:
-        "Asociația proprietarilor pentru ansamblul Primăverii Towers",
-      subscriptionPlanId: professionalPlan?.id || null,
-    },
-  ];
-
-  const createdOrganizations = await Promise.all(
-    organizations.map((org) =>
-      prisma.organization.upsert({
-        where: { code: org.code },
-        update: org,
-        create: org,
-      })
-    )
+  // Create one org with each type of subscription plan
+  const subscriptionPlans = await prisma.subscriptionPlan.findMany();
+  console.log(
+    `📋 Found ${subscriptionPlans.length} subscription plans to seed`
   );
 
-  console.log(`✅ Created ${createdOrganizations.length} organizations`);
-
-  // 2. Create Demo Users for each organization
-  console.log("👥 Creating demo users...");
-
-  const romanianFirstNames = [
-    "Alexandru",
-    "Maria",
-    "Ion",
-    "Elena",
-    "Gheorghe",
-    "Ana",
-    "Vasile",
-    "Ioana",
-    "Nicolae",
-    "Carmen",
-    "Radu",
-    "Cristina",
-    "Adrian",
-    "Monica",
-    "Florin",
-    "Diana",
-  ];
-  const romanianLastNames = [
-    "Popescu",
-    "Ionescu",
-    "Popa",
-    "Radu",
-    "Stoica",
-    "Stan",
-    "Dumitrescu",
-    "Gheorghe",
-    "Nicolae",
-    "Marin",
-    "Cristea",
-    "Preda",
-    "Moldovan",
-    "Ciobanu",
-    "Barbu",
-    "Rusu",
-  ];
-
-  for (const organization of createdOrganizations) {
-    // Create organization admin
-    const adminFirstName =
-      romanianFirstNames[Math.floor(Math.random() * romanianFirstNames.length)];
-    const adminLastName =
-      romanianLastNames[Math.floor(Math.random() * romanianLastNames.length)];
-    const adminEmail = `admin.${organization.code}@tbsa.demo`;
-    const adminPassword = await hash("Demo2024!", 12);
-
-    const orgAdmin = await prisma.user.upsert({
-      where: { email: adminEmail },
-      update: {},
-      create: {
-        email: adminEmail,
-        firstName: adminFirstName,
-        lastName: adminLastName,
-        password: adminPassword,
-        isActive: true,
-        isVerified: true,
-      },
-    });
-
-    // Link admin to organization
-    await prisma.userOrganization.upsert({
-      where: {
-        userId_organizationId: {
-          userId: orgAdmin.id,
-          organizationId: organization.id,
-        },
-      },
-      update: {},
-      create: {
-        userId: orgAdmin.id,
-        organizationId: organization.id,
-      },
-    });
-
-    // Assign admin role
-    await prisma.userRole.upsert({
-      where: {
-        userId_roleId: {
-          userId: orgAdmin.id,
-          roleId: adminRole.id,
-        },
-      },
-      update: {},
-      create: {
-        userId: orgAdmin.id,
-        roleId: adminRole.id,
-      },
-    });
-
+  for (const [index, plan] of subscriptionPlans.entries()) {
     console.log(
-      `👤 Created admin for ${organization.name}: ${adminEmail} / Demo2024!`
+      `\n🔄 Creating organization ${index + 1}/${subscriptionPlans.length} with plan: ${plan.name}`
     );
-
-    // Create additional users (owners, tenants, managers)
-    const additionalUsers = [];
-    for (let i = 0; i < 15; i++) {
-      const firstName =
-        romanianFirstNames[
-          Math.floor(Math.random() * romanianFirstNames.length)
-        ];
-      const lastName =
-        romanianLastNames[Math.floor(Math.random() * romanianLastNames.length)];
-      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${organization.code}@tbsa.demo`;
-      const password = await hash("Demo2024!", 12);
-
-      const user = await prisma.user.upsert({
-        where: { email },
-        update: {},
-        create: {
-          email,
-          firstName,
-          lastName,
-          password,
-          isActive: true,
-          isVerified: Math.random() > 0.2, // 80% verified
-        },
-      });
-
-      // Link to organization
-      await prisma.userOrganization.upsert({
-        where: {
-          userId_organizationId: {
-            userId: user.id,
-            organizationId: organization.id,
-          },
-        },
-        update: {},
-        create: {
-          userId: user.id,
-          organizationId: organization.id,
-        },
-      });
-
-      // Assign random role (more owners, fewer managers)
-      const roleRandom = Math.random();
-      let assignedRole;
-      if (roleRandom < 0.6) {
-        assignedRole = ownerRole;
-      } else if (roleRandom < 0.9) {
-        assignedRole = tenantRole;
-      } else {
-        assignedRole = managerRole;
-      }
-
-      await prisma.userRole.upsert({
-        where: {
-          userId_roleId: {
-            userId: user.id,
-            roleId: assignedRole.id,
-          },
-        },
-        update: {},
-        create: {
-          userId: user.id,
-          roleId: assignedRole.id,
-        },
-      });
-
-      additionalUsers.push(user);
-    }
-
-    console.log(
-      `✅ Created ${additionalUsers.length} additional users for ${organization.name}`
-    );
+    await organizationWithSubscriptionPlan(plan.id);
   }
 
-  // 3. Create Demo Buildings
-  console.log("🏗️ Creating demo buildings...");
+  console.log("\n✅ Demo data seeding completed!");
+}
 
-  const buildingNames = [
-    "Bloc A",
-    "Bloc B",
-    "Bloc C",
-    "Bloc D",
-    "Tower 1",
-    "Tower 2",
-    "Turnul Nord",
-    "Turnul Sud",
-    "Corpul A",
-    "Corpul B",
-    "Vila 1",
-    "Vila 2",
-  ];
-
-  const addresses = [
-    "Str. Aviației nr. 12, Sector 1, București",
-    "Bd. Charles de Gaulle nr. 45, Sector 1, București",
-    "Str. Floreasca nr. 78, Sector 1, București",
-    "Bd. Primăverii nr. 23, Sector 1, București",
-    "Str. Dorobanti nr. 156, Sector 1, București",
-    "Calea Victoriei nr. 89, Sector 1, București",
-    "Str. Kiseleff nr. 34, Sector 1, București",
-    "Bd. Mareșal Averescu nr. 67, Sector 1, București",
-  ];
-
-  for (const organization of createdOrganizations) {
-    const numBuildings = Math.floor(Math.random() * 3) + 1; // 1-3 buildings per organization
-
-    for (let i = 0; i < numBuildings; i++) {
-      const buildingName =
-        buildingNames[Math.floor(Math.random() * buildingNames.length)];
-      const address = addresses[Math.floor(Math.random() * addresses.length)];
-      const floors = Math.floor(Math.random() * 8) + 3; // 3-10 floors
-
-      const building = await prisma.building.create({
-        data: {
-          name: `${buildingName} - ${organization.name}`,
-          address,
-          type: "RESIDENTIAL",
-          floors,
-          organizationId: organization.id,
-          code: faker.string.alphanumeric(6),
-          description: `Clădire rezidențială cu ${floors} etaje, ${Math.floor(Math.random() * 50) + 20} apartamente`,
-        },
-      });
-
-      console.log(`🏢 Created building: ${building.name}`);
-
-      // 4. Create Apartments for each building
-      const apartmentsPerFloor = Math.floor(Math.random() * 6) + 4; // 4-9 apartments per floor
-
-      for (let floor = 0; floor <= floors; floor++) {
-        const floorsApartments =
-          floor === 0 ? Math.min(apartmentsPerFloor, 4) : apartmentsPerFloor; // Ground floor might have fewer
-
-        for (let apt = 1; apt <= floorsApartments; apt++) {
-          const apartmentNumber =
-            floor === 0
-              ? `P${apt}`
-              : `${floor}${apt.toString().padStart(2, "0")}`;
-          const surface = Math.floor(Math.random() * 60) + 40; // 40-100 sqm
-
-          const isOccupied = Math.random() > 0.1; // 90% occupied
-          const occupantCount = isOccupied
-            ? Math.floor(Math.random() * 4) + 1 // 1-4 occupants if occupied
-            : 0; // 0 occupants if not occupied
-
-          const apartment = await prisma.apartment.create({
-            data: {
-              number: apartmentNumber,
-              floor,
-              buildingId: building.id,
-              isOccupied,
-              occupantCount,
-              surface,
-              description: `Apartament cu ${Math.floor(Math.random() * 3) + 2} camere, ${surface}mp`,
-            },
-          });
-
-          // 5. Create Water Meters for each apartment
-          const numMeters = Math.floor(Math.random() * 2) + 1; // 1-2 meters per apartment
-
-          const meterBrands = [
-            "Zenner",
-            "Sensus",
-            "Honeywell",
-            "Elster",
-            "Itron",
-          ];
-          const meterModels = ["MTKD-M", "620M", "W2000", "V200", "AQUADIS+"];
-          const locations = ["Bucătărie", "Baie", "Debara", "Hol", "Balcon"];
-
-          for (let meterIndex = 0; meterIndex < numMeters; meterIndex++) {
-            const location =
-              meterIndex === 0
-                ? "Bucătărie"
-                : meterIndex === 1
-                  ? "Baie"
-                  : faker.helpers.arrayElement(locations);
-
-            const serialNumber = `${faker.helpers.arrayElement(["WM", "AQ", "SN"])}${Date.now().toString().slice(-6)}${Math.floor(
-              Math.random() * 1000
-            )
-              .toString()
-              .padStart(3, "0")}`;
-            const brand = faker.helpers.arrayElement(meterBrands);
-            const model = faker.helpers.arrayElement(meterModels);
-
-            await prisma.waterMeter.create({
-              data: {
-                serialNumber,
-                location,
-                brand,
-                model,
-                apartmentId: apartment.id,
-                isActive: Math.random() > 0.05, // 95% active
-              },
-            });
-          }
-        }
-      }
-
-      console.log(
-        `🏠 Created ${apartmentsPerFloor * (floors + 1)} apartments for ${building.name}`
-      );
-    }
-  }
-
-  // 6. Create Apartment Residents relationships
-  console.log("👥 Creating apartment-resident relationships...");
-
-  const apartments = await prisma.apartment.findMany({
-    include: {
-      building: {
-        include: {
-          organization: {
-            include: {
-              users: {
-                include: {
-                  user: true,
-                },
-              },
-            },
-          },
-        },
-      },
+async function organizationWithSubscriptionPlan(subscriptionPlanId: string) {
+  console.log("  👥 Finding administrator role...");
+  const administratorRole = await prisma.role.findFirst({
+    where: {
+      code: "ADMINISTRATOR",
     },
   });
 
-  for (const apartment of apartments) {
-    if (apartment.isOccupied) {
-      const organizationUsers = apartment.building.organization.users;
-      const availableUsers = organizationUsers.filter(
-        (ou) =>
-          ou.user.email !==
-          `admin.${apartment.building.organization.code}@tbsa.demo`
-      );
-
-      if (availableUsers.length > 0) {
-        // Assign 1-2 residents per apartment
-        const numResidents = Math.floor(Math.random() * 2) + 1;
-        const selectedUsers = faker.helpers.arrayElements(
-          availableUsers,
-          Math.min(numResidents, availableUsers.length)
-        );
-
-        for (let i = 0; i < selectedUsers.length; i++) {
-          const user = selectedUsers[i];
-          let role: ApartmentRole;
-
-          if (i === 0) {
-            role = ApartmentRole.OWNER;
-          } else {
-            const roleRandom = Math.random();
-            if (roleRandom < 0.5) {
-              role = ApartmentRole.CO_OWNER;
-            } else if (roleRandom < 0.8) {
-              role = ApartmentRole.FAMILY;
-            } else {
-              role = ApartmentRole.TENANT;
-            }
-          }
-          const firstApartementResident =
-            await prisma.apartmentResident.findFirst({
-              where: {
-                apartmentId: apartment.id,
-                userId: user.user.id,
-              },
-            });
-
-          if (!firstApartementResident) {
-            await prisma.apartmentResident.create({
-              data: {
-                apartmentId: apartment.id,
-                userId: user.user.id,
-                role,
-                isActive: true,
-                startDate: faker.date.between({
-                  from: new Date("2022-01-01"),
-                  to: new Date(),
-                }),
-              },
-            });
-          }
-        }
-      }
-    }
+  if (!administratorRole) {
+    throw new Error("Administrator role not found");
   }
+  console.log("  ✅ Administrator role found");
 
-  console.log("✅ Created apartment-resident relationships");
-
-  // 7. Create some sample water readings
-  console.log("💧 Creating sample water readings...");
-
-  const waterMeters = await prisma.waterMeter.findMany({
-    include: {
-      apartment: {
-        include: {
-          apartmentResidents: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
+  console.log("\n\n\n\n", administratorRole, "\n\n\n\n\n");
+  //Create a user with faker email and password Parola123!
+  console.log("  👤 Creating administrator user...");
+  const user = await prisma.user.create({
+    data: {
+      email: faker.internet.email(),
+      password: await hash("Parola123!", 10),
+      firstName: faker.person.firstName(),
+      lastName: faker.person.lastName(),
     },
   });
 
-  for (const meter of waterMeters) {
-    const numReadings = Math.floor(Math.random() * 8) + 5; // 5-12 readings per meter
-    let currentValue = Math.floor(Math.random() * 500) + 100; // Starting value between 100-600
+  await prisma.userRole.create({
+    data: {
+      userId: user.id,
+      roleId: administratorRole.id,
+    },
+  });
 
-    // Create readings in chronological order
-    const readings = [];
-    for (let i = 0; i < numReadings; i++) {
-      const monthsAgo = numReadings - i - 1;
-      const readingDate = new Date();
-      readingDate.setMonth(readingDate.getMonth() - monthsAgo);
-      readingDate.setDate(Math.floor(Math.random() * 28) + 1); // Random day in month
+  console.log(
+    `  ✅ Created user: ${user.firstName} ${user.lastName} (${user.email})`
+  );
 
-      // Progressive increase in readings (realistic water consumption)
-      const monthlyConsumption = Math.floor(Math.random() * 15) + 5; // 5-20 m³ per month
-      currentValue += monthlyConsumption;
+  console.log("  🏢 Creating organization...");
+  const org = await prisma.organization.create({
+    data: {
+      name: faker.company.name(),
+      code: faker.string.alphanumeric().toLocaleUpperCase(),
+      subscriptionPlanId,
+    },
+  });
+  console.log(`  ✅ Created organization: ${org.name} (${org.code})`);
 
-      readings.push({
-        value: currentValue,
-        date: readingDate,
-      });
-    }
+  //assign user to organization
+  console.log("  🔗 Linking user to organization...");
+  await prisma.userOrganization.create({
+    data: {
+      userId: user.id,
+      organizationId: org.id,
+    },
+  });
+  console.log("  ✅ User linked to organization");
 
-    // Sort by date to ensure chronological order
-    readings.sort((a, b) => a.date.getTime() - b.date.getTime());
+  // ✅ Create actual subscription instance (billing cycle) - FIXED
+  console.log("  💳 Creating subscription instance...");
 
-    // Create the readings in the database
-    for (let i = 0; i < readings.length; i++) {
-      const reading = readings[i];
+  // Get the plan to calculate total amount
+  const plan = await prisma.subscriptionPlan.findUnique({
+    where: { id: subscriptionPlanId },
+  });
 
-      // Random submitter from apartment residents
-      const residents = meter.apartment.apartmentResidents;
-      const submitter =
-        residents.length > 0
-          ? residents[Math.floor(Math.random() * residents.length)]
-          : null;
+  if (!plan) throw new Error("Subscription plan not found");
 
-      if (submitter) {
-        const isRecent = i >= readings.length - 2; // Last 2 readings
-        const isApproved = isRecent ? Math.random() > 0.3 : Math.random() > 0.1; // Recent readings less likely to be approved
+  const subscription = await prisma.subscription.create({
+    data: {
+      organizationId: org.id,
+      planId: subscriptionPlanId,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      subscriptionDate: new Date(),
+      isPaid: true,
+      isActive: true,
+      totalAmount: plan.basePrice, // Use the plan's base price
+      paidAt: new Date(),
+    },
+  });
+  console.log("  ✅ Subscription instance created");
 
-        await prisma.waterReading.create({
-          data: {
-            waterMeterId: meter.id,
-            value: reading.value,
-            readingDate: reading.date,
-            submittedById: submitter.user.id,
-            approvedById: isApproved ? submitter.user.id : null,
-            isApproved,
-            notes:
-              Math.random() > 0.8
-                ? faker.helpers.arrayElement([
-                    "Citire normală",
-                    "Contor verificat",
-                    "Valoare confirmată",
-                    "Citire lunară regulată",
-                    "Verificat cu proprietarul",
-                  ])
-                : null,
-          },
-        });
-      }
-    }
-  }
+  console.log("  🏘️ Creating building with apartments...");
+  await createBuildingWithApartments(org.id, BuildingType.RESIDENTIAL);
+}
 
-  console.log("✅ Created sample water readings");
+async function createBuildingWithApartments(
+  orgId: string,
+  buildingType: BuildingType
+) {
+  const floors = faker.number.int({ min: 1, max: 10 });
+  console.log(`    🏗️ Creating building with ${floors} floors...`);
 
-  console.log("🎉 Demo data seeding completed!");
-  console.log("\n📋 Summary:");
-  console.log(`Organizations: ${createdOrganizations.length}`);
+  const building = await prisma.building.create({
+    data: {
+      name: faker.company.name(),
+      address: faker.location.streetAddress(),
+      code: faker.string.alphanumeric().toLocaleUpperCase(),
+      type: buildingType,
+      floors,
+      organizationId: orgId,
+    },
+  });
+  console.log(
+    `    ✅ Created building: ${building.name} at ${building.address}`
+  );
 
-  for (const org of createdOrganizations) {
-    console.log(`\n🏢 ${org.name}:`);
-    console.log(`  📧 Admin: admin.${org.code}@tbsa.demo / Demo2024!`);
+  const apartmentCount = faker.number.int({ min: 3, max: 15 });
+  console.log(`    🚪 Creating ${apartmentCount} apartments...`);
 
-    const buildings = await prisma.building.count({
-      where: { organizationId: org.id },
-    });
-    const apartments = await prisma.apartment.count({
+  // ✅ Create apartments with sequential numbers
+  for (let i = 0; i < apartmentCount; i++) {
+    const occupantCount = faker.number.int({ min: 0, max: 4 });
+
+    // ✅ Generate unique apartment number (sequential or floor-based)
+    const apartmentNumber = generateUniqueApartmentNumber(i, floors);
+
+    console.log(
+      `      📍 Creating apartment ${i + 1}/${apartmentCount} (Number: ${apartmentNumber})`
+    );
+
+    const residentRole = await prisma.role.findFirst({
       where: {
-        building: { organizationId: org.id },
+        code: "RESIDENT",
       },
     });
-    const users = await prisma.userOrganization.count({
-      where: { organizationId: org.id },
+
+    if (!residentRole) {
+      throw new Error("Resident role not found");
+    }
+
+    //create a user with faker email and password Parola123!
+    const user = await prisma.user.create({
+      data: {
+        email: faker.internet.email(),
+        password: await hash("Parola123!", 10),
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
+      },
     });
 
-    console.log(`  🏗️  Buildings: ${buildings}`);
-    console.log(`  🏠 Apartments: ${apartments}`);
-    console.log(`  👥 Users: ${users}`);
+    //asign user to resident role
+    await prisma.userRole.create({
+      data: {
+        userId: user.id,
+        roleId: residentRole.id,
+      },
+    });
+
+    const apartment = await prisma.apartment.create({
+      data: {
+        floor: faker.number.int({ min: 1, max: floors }),
+        number: apartmentNumber,
+        occupantCount,
+        isOccupied: occupantCount > 0,
+        surface: faker.number.int({ min: 30, max: 120 }),
+        description: faker.lorem.sentence(),
+        buildingId: building.id,
+      },
+    });
+
+    //asign user to apartment
+    await prisma.apartmentResident.create({
+      data: {
+        apartmentId: apartment.id,
+        userId: user.id,
+        role: ApartmentRole.FAMILY,
+      },
+    });
+    console.log(
+      `      ✅ Created apartment ${apartmentNumber} (${occupantCount} occupants)`
+    );
+    await createApartmentWaterMeter(apartment.id, apartmentNumber, user.id);
   }
+
+  console.log(
+    `    ✅ All ${apartmentCount} apartments created for building ${building.name}`
+  );
+}
+
+// ✅ Helper function for unique apartment numbers
+function generateUniqueApartmentNumber(
+  index: number,
+  maxFloors: number
+): string {
+  // Option 1: Simple sequential (1, 2, 3, 4, ...)
+  return (index + 1).toString();
+
+  // Option 2: Floor-based (101, 102, 201, 202, ...)
+  // const floor = Math.floor(index / 4) + 1; // 4 apartments per floor
+  // const unit = (index % 4) + 1;
+  // return `${floor}${unit.toString().padStart(2, '0')}`;
+}
+
+async function createApartmentWaterMeter(
+  apartmentId: string,
+  apartmentNumber: string,
+  userId: string
+) {
+  const serialNumber = faker.string.alphanumeric(8).toLocaleUpperCase();
+  const location = faker.helpers.arrayElement([
+    "Kitchen",
+    "Bathroom",
+    "Living Room",
+    "Bedroom",
+  ]);
+
+  console.log(
+    `        🌊 Creating water meter for apartment ${apartmentNumber}...`
+  );
+
+  const waterMeter = await prisma.waterMeter.create({
+    data: {
+      apartmentId,
+      serialNumber,
+      isActive: true,
+      location,
+    },
+  });
+
+  console.log(`        ✅ Created water meter: ${serialNumber} in ${location}`);
+
+  const readingCount = faker.number.int({ min: 2, max: 8 });
+  console.log(`        📊 Creating ${readingCount} water readings...`);
+
+  // Create readings sequentially
+  for (let i = 0; i < readingCount; i++) {
+    await prisma.waterReading.create({
+      data: {
+        waterMeterId: waterMeter.id,
+        readingDate: faker.date.recent({ days: 30 }),
+        value: faker.number.int({ min: 10, max: 500 }),
+        submittedById: userId,
+      },
+    });
+  }
+
+  console.log(
+    `        ✅ Created ${readingCount} readings for water meter ${serialNumber}`
+  );
 }

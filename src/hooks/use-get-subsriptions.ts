@@ -1,13 +1,31 @@
-import { getEnabledFeatures } from "@/lib/mappers/subscription-features.mapper";
 import {
   getSubscriptionIcon,
   getSubscriptionTypeColor,
 } from "@/lib/mappers/subscription.mapper";
-import { SubscriptionPlan } from "@prisma/client";
-import { Building2 } from "lucide-react";
+import {
+  SubscriptionBillingIntervalEnum,
+  SubscriptionPlan,
+} from "@prisma/client";
 import { useMemo } from "react";
 import { useSubscriptions } from "./api/use-subscriptions";
-import { SubscriptionFeatures } from "@/types/subscription";
+import { Building2, LucideIcon } from "lucide-react";
+
+export type SubscriptionParsed = {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  period: SubscriptionBillingIntervalEnum;
+  popular: boolean;
+  cta: string;
+  maxApartments: number | null;
+  maxBuildings: number | null;
+  maxUsers: number | null;
+  icon: LucideIcon;
+  iconColor: string;
+  color: string;
+  borderColor: string;
+};
 
 export const useGetSubscriptions = () => {
   const { data: subscriptionsResponse, isLoading, error } = useSubscriptions();
@@ -18,46 +36,21 @@ export const useGetSubscriptions = () => {
       return [];
     }
 
-    const existingFeatures: string[] = [];
+    const data = subscriptionsResponse.data as SubscriptionPlan[];
 
-    const data = subscriptionsResponse.data as (SubscriptionPlan & {
-      features: SubscriptionFeatures;
-    })[];
-
-    return data.map((plan, index) => {
-      const enabledFeatures = getEnabledFeatures(
-        (plan.features as SubscriptionFeatures) ?? {}
-      );
-      const featureLabels = Array.isArray(enabledFeatures)
-        ? (enabledFeatures
-            .map((f) => {
-              const label = f.label;
-              if (existingFeatures.includes(label)) {
-                return null;
-              }
-              if (label === "Numărul maxim de utilizatori") {
-                return `${label}: ${plan?.features?.maxUsers ?? "N/A"}`;
-              }
-              existingFeatures.push(label);
-              console.log(existingFeatures);
-              return label;
-            })
-            .filter(Boolean) as string[])
-        : [];
-
+    return data.map<SubscriptionParsed>((plan) => {
       return {
         id: plan.id,
         name: plan.name,
         description: plan.description || "",
         // Format price for display
-        price: Number(plan.price).toString(),
+        price: Number(plan.basePrice).toString(),
         period: plan.billingInterval || "Lunar",
         popular: plan.popular || false,
         cta: plan.cta || "Începe perioada de probă",
-        features: (index === 0
-          ? []
-          : [`Toate functionalitatile din ${data[index - 1].name}`]
-        ).concat(featureLabels),
+        maxApartments: plan.maxApartments,
+        maxBuildings: plan.maxBuildings,
+        maxUsers: plan.maxUsers,
         // Use Building2 as default icon for now
         icon: plan.subscriptionType
           ? getSubscriptionIcon(plan.subscriptionType)

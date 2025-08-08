@@ -56,12 +56,12 @@ export default withAuth(
       }
 
       // Extract organization slug from URL
-      const orgSlug = pathname.split("/")[2];
+      const orgId = pathname.split("/")[2];
       const userOrganizations = token.organizations || [];
 
       // Check if user has access to this organization
       const hasAccess = userOrganizations.some(
-        (org) => org.code.toLowerCase() === orgSlug.toLowerCase()
+        (org) => org.id.toLowerCase() === orgId.toLowerCase()
       );
 
       if (!hasAccess) {

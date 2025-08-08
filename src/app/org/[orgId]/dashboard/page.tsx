@@ -28,8 +28,12 @@ import { OrgBuildingsList } from "@/components/admin/org-buildings-list";
 import { PermissionGuardOr } from "@/components/auth/permission-guard";
 import { useState } from "react";
 import { StatCard } from "@/components/ui/stat-card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useParams, useRouter } from "next/navigation";
-
+import {
+  useOrganization,
+  useOrganizationStats,
+} from "@/hooks/api/use-organizations";
 import { ActionsEnum, ResourcesEnum } from "@prisma/client";
 import { ICON_COLOR_MAPPINGS } from "@/lib/constants/icon-colors";
 
@@ -40,22 +44,64 @@ export default function OrganizationDashboardPage() {
   const [showAddBuilding, setShowAddBuilding] = useState(false);
   const [showGenerateInvite, setShowGenerateInvite] = useState(false);
 
-  // Mock organization data - in real app, this would come from API
-  const organization = {
-    id: orgId,
-    name: "Asociația Proprietarilor Bloc A1",
-    code: "AP-A1-2024",
-    address: "Strada Libertății Nr. 25, Sector 1, București",
-    description:
-      "Asociația proprietarilor pentru blocul A1 din complexul rezidențial Libertatea",
-    subscriptionPlan: "Professional",
-    createdAt: "2024-01-15",
-    totalBuildings: 3,
-    totalApartments: 156,
-    totalUsers: 247,
-    activeInvites: 8,
-  };
+  const {
+    data: organization,
+    isLoading: orgLoading,
+    error: orgError,
+  } = useOrganization(orgId);
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useOrganizationStats(orgId);
 
+  const isLoading = orgLoading || statsLoading;
+  const error = orgError || statsError;
+
+  if (isLoading) {
+    return (
+      <Page
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        background="gradient-ocean"
+        className="min-h-screen"
+      >
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <Typography variant="p" className="text-muted-foreground">
+            Se încarcă organizația...
+          </Typography>
+        </div>
+      </Page>
+    );
+  }
+
+  if (error || !organization) {
+    return (
+      <Page
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        background="gradient-ocean"
+        className="min-h-screen"
+      >
+        <div className="text-center space-y-4">
+          <Typography variant="h2" className="text-destructive">
+            Eroare
+          </Typography>
+          <Typography variant="p" className="text-muted-foreground">
+            Nu s-au putut încărca detaliile organizației.
+          </Typography>
+          <Button onClick={() => router.push("/dashboard")} variant="outline">
+            Înapoi la Dashboard
+          </Button>
+        </div>
+      </Page>
+    );
+  }
+
+  console.log({ plan: organization.subscriptionPlan });
   return (
     <Page
       display="flex"
@@ -100,7 +146,7 @@ export default function OrganizationDashboardPage() {
                   variant="secondary"
                   className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                 >
-                  {organization.subscriptionPlan}
+                  {organization.subscriptionPlan?.name}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -164,39 +210,39 @@ export default function OrganizationDashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard
             title="Clădiri Totale"
-            value={organization.totalBuildings.toString()}
+            value={stats?.totalBuildings.toString() || "0"}
             description="Clădiri administrate"
             icon={Building2}
             iconColor={ICON_COLOR_MAPPINGS.adminDashboard.buildings}
-            trend={{
-              value: 1,
-              label: "adăugată luna aceasta",
-              type: "positive",
-            }}
+            // trend={{
+            //   value: 1,
+            //   label: "adăugată luna aceasta",
+            //   type: "positive",
+            // }}
           />
           <StatCard
             title="Utilizatori Activi"
-            value={organization.totalUsers.toString()}
+            value={stats?.totalUsers.toString() || "0"}
             description="Utilizatori înregistrați"
             icon={Users}
             iconColor={ICON_COLOR_MAPPINGS.adminDashboard.users}
-            trend={{ value: 12, label: "noi utilizatori", type: "positive" }}
+            // trend={{ value: 12, label: "noi utilizatori", type: "positive" }}
           />
           <StatCard
             title="Coduri Active"
-            value={organization.activeInvites.toString()}
+            value={stats?.activeInvites.toString() || "0"}
             description="Invitații în așteptare"
             icon={UserPlus}
             iconColor={ICON_COLOR_MAPPINGS.adminDashboard.add}
-            trend={{ value: 3, label: "expirate recent", type: "negative" }}
+            // trend={{ value: 3, label: "expirate recent", type: "negative" }}
           />
           <StatCard
             title="Apartamente"
-            value={organization.totalApartments.toString()}
+            value={stats?.totalApartments.toString() || "0"}
             description="Unități locative"
             icon={BarChart3}
             iconColor={ICON_COLOR_MAPPINGS.adminDashboard.stats}
-            trend={{ value: 5, label: "adăugate recent", type: "positive" }}
+            // trend={{ value: 5, label: "adăugate recent", type: "positive" }}
           />
         </div>
         {/* Main Actions */}
@@ -249,7 +295,7 @@ export default function OrganizationDashboardPage() {
                     <Building2
                       className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.buildings}`}
                     />
-                    Vezi Toate Clădirile ({organization.totalBuildings})
+                    Vezi Toate Clădirile ({stats?.totalBuildings || 0})
                   </Button>
                 </PermissionGuardOr>
 
@@ -309,7 +355,7 @@ export default function OrganizationDashboardPage() {
                   <Users
                     className={`h-4 w-4 mr-2 ${ICON_COLOR_MAPPINGS.adminDashboard.users}`}
                   />
-                  Vezi Coduri Active ({organization.activeInvites})
+                  Vezi Coduri Active ({stats?.activeInvites || 0})
                 </Button>
                 <Button variant="ghost" borderRadius="full" className="w-full">
                   <BarChart3
@@ -348,7 +394,7 @@ export default function OrganizationDashboardPage() {
                   Gestionare Utilizatori
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {organization.totalUsers} utilizatori
+                  {stats?.totalUsers || 0} utilizatori
                 </span>
               </Button>
               <Button
@@ -363,7 +409,7 @@ export default function OrganizationDashboardPage() {
                   Plan Abonament
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {organization.subscriptionPlan}
+                  {organization?.subscriptionPlan?.name}
                 </span>
               </Button>
               <Button

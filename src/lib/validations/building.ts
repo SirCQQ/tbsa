@@ -11,7 +11,7 @@ export const createBuildingSchema = z.object({
     .min(1, "Address is required")
     .max(255, "Address must be less than 255 characters"),
   type: z.nativeEnum(BuildingType, {
-    errorMap: () => ({ message: "Invalid building type" }),
+    error: () => ({ message: "Invalid building type" }),
   }),
   floors: z
     .union([z.string(), z.number()])

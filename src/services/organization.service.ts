@@ -1,13 +1,31 @@
 import { prisma } from "@/lib/prisma";
 import type { OrganizationCreationData } from "@/lib/validations/auth";
 import { ServiceResult } from "@/types/api-response";
-import type { Organization, Prisma, SubscriptionPlan } from "@prisma/client";
+import type { Organization, Prisma } from "@prisma/client";
+import { StripeService } from "./stripe.service";
 
 export type OrganizationWithSubscription = Prisma.OrganizationGetPayload<{
   include: {
     subscriptionPlan: true;
   };
 }>;
+
+export type UserOrganizationMembership = Prisma.UserOrganizationGetPayload<{
+  include: {
+    organization: {
+      include: {
+        subscriptionPlan: true;
+      };
+    };
+  };
+}>;
+
+export type OrganizationStats = {
+  totalBuildings: number;
+  totalUsers: number;
+  totalApartments: number;
+  activeInvites: number;
+};
 
 export class OrganizationService {
   /**
@@ -111,6 +129,40 @@ export class OrganizationService {
       return {
         success: false,
         error: "Eroare la încărcarea organizației",
+      };
+    }
+  }
+
+  /**
+   * Get organizations for a user
+   */
+  static async getUserOrganizations(
+    userId: string
+  ): Promise<ServiceResult<UserOrganizationMembership[]>> {
+    try {
+      const userOrganizations = await prisma.userOrganization.findMany({
+        where: { userId },
+        include: {
+          organization: {
+            include: {
+              subscriptionPlan: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+
+      return {
+        success: true,
+        data: userOrganizations,
+      };
+    } catch (error) {
+      console.error("Error fetching user organizations:", error);
+      return {
+        success: false,
+        error: "Eroare la încărcarea organizațiilor utilizatorului",
       };
     }
   }
@@ -286,25 +338,6 @@ export class OrganizationService {
           userRole = existingUserRole;
         }
 
-        // Associate role with organization if not already associated
-        const existingOrgRole = await tx.organizationRole.findUnique({
-          where: {
-            organizationId_roleId: {
-              organizationId,
-              roleId: role.id,
-            },
-          },
-        });
-
-        if (!existingOrgRole) {
-          await tx.organizationRole.create({
-            data: {
-              organizationId,
-              roleId: role.id,
-            },
-          });
-        }
-
         return { userOrganization, userRole };
       });
 
@@ -328,7 +361,7 @@ export class OrganizationService {
   }
 
   /**
-   * Generate payment link for organization subscription
+   * Generate payment link for organization subscription using Stripe
    */
   static async generatePaymentLink(data: {
     organizationId: string;
@@ -360,30 +393,30 @@ export class OrganizationService {
         };
       }
 
-      // Generate payment session/link
-      // This is a placeholder - replace with actual payment provider integration
-      // Example integrations: Stripe, PayPal, Square, etc.
-      const paymentSessionId = `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // In a real implementation, you would:
-      // 1. Create a payment session with your payment provider
-      // 2. Include organization and subscription details
-      // 3. Set success/cancel URLs
-      // 4. Return the checkout URL
-
-      // For now, returning a mock payment URL
+      // Create success and cancel URLs
       const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-      const paymentUrl = `${baseUrl}/payment/checkout?session_id=${paymentSessionId}&org_id=${data.organizationId}&plan_id=${data.subscriptionPlanId}`;
+      const successUrl = `${baseUrl}/org/${data.organizationId}/dashboard?payment=success`;
+      const cancelUrl = `${baseUrl}/org/${data.organizationId}/dashboard?payment=cancelled`;
 
-      // Store payment session info for later verification
-      // You might want to create a PaymentSession model in your schema
-      console.log(
-        `Payment session created: ${paymentSessionId} for organization: ${organization.name}`
-      );
+      // Create Stripe checkout session
+      const session = await StripeService.createCheckoutSession({
+        organizationId: data.organizationId,
+        subscriptionPlanId: data.subscriptionPlanId,
+        userId: data.userId,
+        successUrl,
+        cancelUrl,
+      });
+
+      if (!session.url) {
+        return {
+          success: false,
+          error: "Nu s-a putut genera URL-ul de plată",
+        };
+      }
 
       return {
         success: true,
-        data: paymentUrl,
+        data: session.url,
       };
     } catch (error) {
       console.error("Error generating payment link:", error);
@@ -439,6 +472,80 @@ export class OrganizationService {
       return {
         success: false,
         error: "Eroare la încărcarea statisticilor",
+      };
+    }
+  }
+
+  /**
+   * Get organization statistics with access verification
+   */
+  static async getOrganizationStatsWithAccess(
+    orgId: string,
+    userId: string
+  ): Promise<ServiceResult<OrganizationStats>> {
+    try {
+      // First verify user has access to this organization
+      const userOrg = await prisma.userOrganization.findFirst({
+        where: {
+          userId,
+          organizationId: orgId,
+        },
+      });
+
+      if (!userOrg) {
+        return {
+          success: false,
+          error: "Nu aveți acces la această organizație",
+        };
+      }
+
+      // Get statistics in parallel
+      const [buildingsCount, apartmentsCount, usersCount, activeInvitesCount] =
+        await Promise.all([
+          prisma.building.count({
+            where: { organizationId: orgId },
+          }),
+          prisma.apartment.count({
+            where: {
+              building: {
+                organizationId: orgId,
+              },
+            },
+          }),
+          prisma.userOrganization.count({
+            where: { organizationId: orgId },
+          }),
+          prisma.inviteCode.count({
+            where: {
+              apartment: {
+                building: {
+                  organizationId: orgId,
+                },
+              },
+              status: "ACTIVE",
+              expiresAt: {
+                gt: new Date(),
+              },
+            },
+          }),
+        ]);
+
+      const stats: OrganizationStats = {
+        totalBuildings: buildingsCount,
+        totalUsers: usersCount,
+        totalApartments: apartmentsCount,
+        activeInvites: activeInvitesCount,
+      };
+
+      return {
+        success: true,
+        data: stats,
+      };
+    } catch (error) {
+      console.error("Error fetching organization stats:", error);
+      return {
+        success: false,
+        error: "Eroare la încărcarea statisticilor organizației",
       };
     }
   }

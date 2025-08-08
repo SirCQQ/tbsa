@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, ChevronDown, ChevronRight, LucideIcon } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import { cn } from "@/lib/utils";
-import { Subscription } from "./subscription-plans";
+import { SubscriptionParsed } from "@/hooks/use-get-subsriptions";
 
 // Helper function to transform billing period for display
 const formatBillingPeriod = (period: string): string => {
@@ -18,7 +18,7 @@ const formatBillingPeriod = (period: string): string => {
 };
 
 type SubscriptionPlanSelectorProps = {
-  subscriptions: Subscription[];
+  subscriptions: SubscriptionParsed[];
   selectedPlanId?: string;
   onPlanSelect: (planId: string) => void;
   isLoading?: boolean;
@@ -174,25 +174,27 @@ export function SubscriptionPlanSelector({
                     </p>
                   )}
 
-                  {/* Features */}
-                  {plan.features.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">
-                        Funcționalități:
-                      </h4>
-                      <ul className="space-y-2">
-                        {plan.features.map((feature, index) => (
-                          <li
-                            key={index}
-                            className="flex items-start gap-2 text-sm"
-                          >
-                            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {/* Plan Details */}
+                  <div className="space-y-2">
+                    {plan.maxBuildings && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span>Maxim {plan.maxBuildings} clădiri</span>
+                      </div>
+                    )}
+                    {plan.maxApartments && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span>Maxim {plan.maxApartments} apartamente</span>
+                      </div>
+                    )}
+                    {plan.maxUsers && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span>Maxim {plan.maxUsers} utilizatori</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Select Button */}
                   <Button

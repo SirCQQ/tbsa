@@ -55,6 +55,32 @@ export type BulkCreationResponse = {
   };
 };
 
+export type BuildingApartmentStatsResponse = {
+  success: true;
+  data: {
+    totalApartments: number;
+    occupiedApartments: number;
+    vacantApartments: number;
+    averageOccupancy: number;
+    apartmentsByFloor: Record<
+      string,
+      {
+        floor: number;
+        totalApartments: number;
+        occupiedApartments: number;
+        vacantApartments: number;
+        apartments: {
+          id: string;
+          number: string;
+          isOccupied: boolean;
+          occupantCount: number;
+          surface: number | null;
+        }[];
+      }
+    >;
+  };
+};
+
 // API Functions
 export const apartmentsApi = {
   // Create apartment
@@ -110,6 +136,16 @@ export const apartmentsApi = {
     data: CreateBulkApartmentsFormData
   ): Promise<BulkCreationResponse> => {
     const response = await api.put<BulkCreationResponse>("/apartments", data);
+    return response.data;
+  },
+
+  // Get building apartment statistics
+  getBuildingStats: async (
+    buildingId: string
+  ): Promise<BuildingApartmentStatsResponse> => {
+    const response = await api.get<BuildingApartmentStatsResponse>(
+      `/apartments/buildings/${buildingId}/stats`
+    );
     return response.data;
   },
 };

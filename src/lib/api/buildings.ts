@@ -33,6 +33,12 @@ export const buildingsApi = {
     const response = await api.delete(`/buildings/${id}`);
     return response.data;
   },
+
+  // Get building statistics
+  getStats: async (id: string) => {
+    const response = await api.get(`/buildings/${id}/stats`);
+    return response.data;
+  },
 };
 
 // Response types
@@ -50,11 +56,13 @@ export type BuildingWithOrganization = Building & {
   apartments?: ApartmentData[];
 };
 
-export type BuildingWithApartments = BuildingWithOrganization & {
-  apartments: ApartmentData[];
-  apartmentsByFloor: Record<string, ApartmentData[]>;
+// Building statistics response (computed data)
+export type BuildingStatsResponse = {
+  totalApartments: number;
   occupiedApartments: number;
   vacantApartments: number;
+  apartmentsByFloor: Record<string, ApartmentData[]>;
+  occupancyRate: number;
 };
 
 export type CreateBuildingResponse = {
@@ -63,9 +71,9 @@ export type CreateBuildingResponse = {
   data: BuildingWithOrganization;
 };
 
-export type GetBuildingWithApartmentsResponse = {
+export type GetBuildingStatsResponse = {
   success: true;
-  data: BuildingWithApartments;
+  data: BuildingStatsResponse;
 };
 
 export type GetBuildingsResponse = {

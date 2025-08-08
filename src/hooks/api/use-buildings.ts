@@ -9,23 +9,26 @@ import {
   buildingsApi,
   type CreateBuildingResponse,
   type GetBuildingsResponse,
-  type GetBuildingWithApartmentsResponse,
+  type GetBuildingStatsResponse,
   type BuildingErrorResponse,
   type BuildingWithOrganization,
-  type BuildingWithApartments,
+  type BuildingStatsResponse,
 } from "@/lib/api/buildings";
 import { getErrorMessage } from "@/lib/axios";
 import type { CreateBuildingFormData } from "@/lib/validations/building";
 import type { AxiosError } from "axios";
+import { organizationQueryKeys } from "./use-organizations";
 
 // Query keys
 export const buildingQueryKeys = {
   all: ["buildings"] as const,
-  lists: () => [...buildingQueryKeys.all, "list"] as const,
+  lists: () => ["buildings", "list"] as const,
   list: (filters: Record<string, any>) =>
-    [...buildingQueryKeys.lists(), { filters }] as const,
-  details: () => [...buildingQueryKeys.all, "detail"] as const,
-  detail: (id: string) => [...buildingQueryKeys.details(), id] as const,
+    ["buildings", "list", { filters }] as const,
+  details: () => ["buildings", "detail"] as const,
+  detail: (id: string) => ["buildings", "detail", id] as const,
+  stats: () => ["buildings", "stats"] as const,
+  buildingStats: (id: string) => ["buildings", "stats", id] as const,
 };
 
 // Get all buildings query hook
@@ -44,7 +47,7 @@ export function useBuildings(
   });
 }
 
-// Get building by ID query hook (simple version)
+// Get building by ID query hook
 export function useBuilding(
   id: string,
   options?: UseQueryOptions<
@@ -52,56 +55,33 @@ export function useBuilding(
     AxiosError<BuildingErrorResponse>,
     BuildingWithOrganization
   >
-): ReturnType<
-  typeof useQuery<
-    CreateBuildingResponse,
-    AxiosError<BuildingErrorResponse>,
-    BuildingWithOrganization
-  >
->;
-
-// Get building by ID query hook (with apartments version)
-export function useBuilding(
-  id: string,
-  organizationId: string,
-  options?: UseQueryOptions<
-    GetBuildingWithApartmentsResponse,
-    AxiosError<BuildingErrorResponse>,
-    BuildingWithApartments
-  >
-): ReturnType<
-  typeof useQuery<
-    GetBuildingWithApartmentsResponse,
-    AxiosError<BuildingErrorResponse>,
-    BuildingWithApartments
-  >
->;
-
-// Implementation
-export function useBuilding(
-  id: string,
-  organizationIdOrOptions?:
-    | string
-    | UseQueryOptions<any, AxiosError<BuildingErrorResponse>, any>,
-  options?: UseQueryOptions<any, AxiosError<BuildingErrorResponse>, any>
 ) {
-  // If second parameter is a string, it's organizationId (enriched version)
-  const isEnrichedVersion = typeof organizationIdOrOptions === "string";
-  const organizationId = isEnrichedVersion
-    ? organizationIdOrOptions
-    : undefined;
-  const queryOptions = isEnrichedVersion ? options : organizationIdOrOptions;
-
   return useQuery({
-    queryKey: isEnrichedVersion
-      ? ["buildings", id, organizationId]
-      : buildingQueryKeys.detail(id),
+    queryKey: buildingQueryKeys.detail(id),
     queryFn: () => buildingsApi.getById(id),
     select: (data) => data.data,
-    enabled: !!id && (!isEnrichedVersion || !!organizationId),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
-    ...queryOptions,
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes - building details don't change frequently
+    ...options,
+  });
+}
+
+// Get building statistics query hook
+export function useBuildingStats(
+  id: string,
+  options?: UseQueryOptions<
+    GetBuildingStatsResponse,
+    AxiosError<BuildingErrorResponse>,
+    BuildingStatsResponse
+  >
+) {
+  return useQuery({
+    queryKey: buildingQueryKeys.buildingStats(id),
+    queryFn: () => buildingsApi.getStats(id),
+    select: (data) => data.data,
+    enabled: !!id,
+    staleTime: 2 * 60 * 1000, // 2 minutes - stats change more frequently
+    ...options,
   });
 }
 
@@ -121,7 +101,12 @@ export function useCreateBuilding(
       // Invalidate and refetch buildings list
       queryClient.invalidateQueries({ queryKey: buildingQueryKeys.lists() });
 
-      // Optionally add the new building to the cache
+      // Invalidate organization stats (building count changes)
+      queryClient.invalidateQueries({
+        queryKey: organizationQueryKeys.stats(),
+      });
+
+      // Add the new building to the cache
       queryClient.setQueryData(buildingQueryKeys.detail(data.data.id), data);
       onSuccess?.(data, variables, context);
     },
@@ -152,17 +137,17 @@ export function useUpdateBuilding(
       // 1. Invalidate buildings list queries
       queryClient.invalidateQueries({ queryKey: buildingQueryKeys.lists() });
 
-      // 2. Invalidate all building detail queries (both standard and enriched patterns)
+      // 2. Invalidate building detail queries
       queryClient.invalidateQueries({
         queryKey: buildingQueryKeys.details(),
       });
 
-      // 3. Invalidate enriched building queries (with organizationId)
+      // 3. Invalidate building stats (data might have changed)
       queryClient.invalidateQueries({
-        queryKey: ["buildings", variables.id],
+        queryKey: buildingQueryKeys.buildingStats(variables.id),
       });
 
-      // 4. Update the standard building detail cache
+      // 4. Update the building detail cache
       queryClient.setQueryData(buildingQueryKeys.detail(variables.id), data);
 
       // Call user-provided onSuccess callback if provided
@@ -196,8 +181,18 @@ export function useDeleteBuilding(
     onSuccess: (data, variables, context) => {
       // Hook's cache invalidation logic (always runs)
       queryClient.invalidateQueries({ queryKey: buildingQueryKeys.lists() });
+
+      // Invalidate organization stats (building count decreases)
+      queryClient.invalidateQueries({
+        queryKey: organizationQueryKeys.stats(),
+      });
+
+      // Remove building detail and stats from cache
       queryClient.removeQueries({
         queryKey: buildingQueryKeys.detail(variables),
+      });
+      queryClient.removeQueries({
+        queryKey: buildingQueryKeys.buildingStats(variables),
       });
 
       // Call user-provided onSuccess callback if provided

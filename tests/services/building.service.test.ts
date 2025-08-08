@@ -254,9 +254,11 @@ describe("BuildingService", () => {
     });
   });
 
-  describe("getBuildingsByOrganization", () => {
+  describe("getBuildingsByOrg", () => {
     it("should return buildings for the specified organization", async () => {
       const organizationId = faker.string.uuid();
+      const userId = faker.string.uuid();
+      const userRoles = ["MEMBER"];
       const mockBuildings = [
         {
           id: faker.string.uuid(),
@@ -300,10 +302,22 @@ describe("BuildingService", () => {
         },
       ];
 
+      // Mock user organization access check
+      mockPrisma.userOrganization.findFirst.mockResolvedValueOnce({
+        userId,
+        organizationId,
+        id: faker.string.uuid(),
+        joinedAt: new Date(),
+        role: "MEMBER",
+      });
+
       mockPrisma.building.findMany.mockResolvedValueOnce(mockBuildings as any);
 
-      const result =
-        await buildingService.getBuildingsByOrganization(organizationId);
+      const result = await buildingService.getBuildingsByOrg(
+        organizationId,
+        userId,
+        userRoles
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
@@ -332,11 +346,25 @@ describe("BuildingService", () => {
 
     it("should return empty array when no buildings exist", async () => {
       const organizationId = faker.string.uuid();
+      const userId = faker.string.uuid();
+      const userRoles = ["MEMBER"];
+
+      // Mock user organization access check
+      mockPrisma.userOrganization.findFirst.mockResolvedValueOnce({
+        userId,
+        organizationId,
+        id: faker.string.uuid(),
+        joinedAt: new Date(),
+        role: "MEMBER",
+      });
 
       mockPrisma.building.findMany.mockResolvedValueOnce([]);
 
-      const result =
-        await buildingService.getBuildingsByOrganization(organizationId);
+      const result = await buildingService.getBuildingsByOrg(
+        organizationId,
+        userId,
+        userRoles
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
@@ -344,13 +372,28 @@ describe("BuildingService", () => {
 
     it("should handle database errors gracefully", async () => {
       const organizationId = faker.string.uuid();
+      const userId = faker.string.uuid();
+      const userRoles = ["MEMBER"];
 
+      // Mock user organization access check to succeed
+      mockPrisma.userOrganization.findFirst.mockResolvedValueOnce({
+        userId,
+        organizationId,
+        id: faker.string.uuid(),
+        joinedAt: new Date(),
+        role: "MEMBER",
+      });
+
+      // Then make building.findMany fail
       mockPrisma.building.findMany.mockRejectedValueOnce(
         new Error("Database error")
       );
 
-      const result =
-        await buildingService.getBuildingsByOrganization(organizationId);
+      const result = await buildingService.getBuildingsByOrg(
+        organizationId,
+        userId,
+        userRoles
+      );
 
       expect(result.success).toBe(false);
       expect((result as ErrorServiceResult).error).toBe(
@@ -360,9 +403,10 @@ describe("BuildingService", () => {
   });
 
   describe("getBuildingById", () => {
-    it("should return building when found and belongs to organization", async () => {
+    it("should return building when found and user has access", async () => {
       const organizationId = faker.string.uuid();
       const buildingId = faker.string.uuid();
+      const userId = faker.string.uuid();
       const mockBuilding = {
         id: buildingId,
         name: "Test Building",
@@ -386,10 +430,9 @@ describe("BuildingService", () => {
 
       mockPrisma.building.findFirst.mockResolvedValueOnce(mockBuilding as any);
 
-      const result = await buildingService.getBuildingById(
-        buildingId,
-        organizationId
-      );
+      const result = await buildingService.getBuildingById(buildingId, userId, [
+        "SUPER_ADMIN",
+      ]);
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -398,41 +441,46 @@ describe("BuildingService", () => {
     });
 
     it("should return null when building not found", async () => {
-      const organizationId = faker.string.uuid();
       const buildingId = faker.string.uuid();
+      const userId = faker.string.uuid();
 
       mockPrisma.building.findFirst.mockResolvedValueOnce(null);
 
-      const result = await buildingService.getBuildingById(
-        buildingId,
-        organizationId
-      );
+      const result = await buildingService.getBuildingById(buildingId, userId, [
+        "SUPER_ADMIN",
+      ]);
 
       expect(result.success).toBe(true);
       expect(result.data).toBeNull();
     });
 
-    it("should enforce organization isolation", async () => {
-      const organizationId = faker.string.uuid();
-      const differentOrgId = faker.string.uuid();
+    it("should enforce user access control", async () => {
       const buildingId = faker.string.uuid();
+      const userId = faker.string.uuid();
 
-      // Building exists but belongs to different organization
+      // User doesn't have access to building (returns null)
       mockPrisma.building.findFirst.mockResolvedValueOnce(null);
 
-      const result = await buildingService.getBuildingById(
-        buildingId,
-        organizationId
-      );
+      const result = await buildingService.getBuildingById(buildingId, userId, [
+        "MEMBER",
+      ]);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toBeNull();
+      expect(result.success).toBe(false);
+      expect((result as ErrorServiceResult).error).toBe(
+        "Clădirea nu a fost găsită sau nu aveți acces la ea"
+      );
 
       expect(mockPrisma.building.findFirst).toHaveBeenCalledWith({
         where: {
           id: buildingId,
-          organizationId, // Ensures organization isolation
           deletedAt: null,
+          organization: {
+            users: {
+              some: {
+                userId: userId,
+              },
+            },
+          },
         },
         include: expect.any(Object),
       });
@@ -540,6 +588,8 @@ describe("BuildingService", () => {
     it("should isolate buildings between different organizations", async () => {
       const org1Id = faker.string.uuid();
       const org2Id = faker.string.uuid();
+      const userId = faker.string.uuid();
+      const userRoles = ["MEMBER"];
 
       // Mock buildings for org1
       const org1Buildings = [
@@ -563,12 +613,37 @@ describe("BuildingService", () => {
         },
       ];
 
+      // Mock user organization access for both orgs
+      mockPrisma.userOrganization.findFirst
+        .mockResolvedValueOnce({
+          userId,
+          organizationId: org1Id,
+          id: faker.string.uuid(),
+          joinedAt: new Date(),
+          role: "MEMBER",
+        })
+        .mockResolvedValueOnce({
+          userId,
+          organizationId: org2Id,
+          id: faker.string.uuid(),
+          joinedAt: new Date(),
+          role: "MEMBER",
+        });
+
       mockPrisma.building.findMany
         .mockResolvedValueOnce(org1Buildings as any)
         .mockResolvedValueOnce(org2Buildings as any);
 
-      const result1 = await buildingService.getBuildingsByOrganization(org1Id);
-      const result2 = await buildingService.getBuildingsByOrganization(org2Id);
+      const result1 = await buildingService.getBuildingsByOrg(
+        org1Id,
+        userId,
+        userRoles
+      );
+      const result2 = await buildingService.getBuildingsByOrg(
+        org2Id,
+        userId,
+        userRoles
+      );
 
       expect(result1.data![0].name).toBe("Org1 Building");
       expect(result2.data![0].name).toBe("Org2 Building");

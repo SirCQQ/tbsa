@@ -1,3 +1,5 @@
+import { ActionsEnum, ResourcesEnum } from "@prisma/client";
+
 // Mock for jose library to prevent ES module issues in tests
 export const mockJose = {
   jwtVerify: jest.fn().mockResolvedValue({

@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, LucideIcon } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,26 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SubscriptionBillingIntervalEnum } from "@prisma/client";
 
-export type Subscription = {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  period: SubscriptionBillingIntervalEnum;
-  popular: boolean;
-  cta: string;
-  features: string[];
-  icon: LucideIcon;
-  iconColor: string;
-  color: string;
-  borderColor: string;
-};
+import { SubscriptionParsed } from "@/hooks/use-get-subsriptions";
 
 type SubscriptionPlansProps = {
   onPlanSelect?: (planId: string) => void;
-  subscriptions: Subscription[];
+  subscriptions: SubscriptionParsed[];
   isLoading: boolean;
   error: Error | null;
 };
@@ -121,13 +107,35 @@ export function SubscriptionPlans({
               </div>
 
               <ul className="space-y-3">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">
+                    Până la {plan.maxApartments} apartamente
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">
+                    Până la {plan.maxBuildings} clădiri
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">
+                    Până la {plan.maxUsers} utilizatori
+                  </span>
+                </li>
               </ul>
+              {/* Preset the price per apartment per Month with this subscription plan */}
+              <div className="text-center mt-6">
+                <span className="text-sm font-bold">
+                  Cu doar{" "}
+                  {(parseInt(plan.price) / (plan.maxApartments || 50)).toFixed(
+                    2
+                  )}{" "}
+                  RON* / apartament / {plan.period.toLowerCase()}
+                </span>
+              </div>
             </CardContent>
 
             <CardFooter>

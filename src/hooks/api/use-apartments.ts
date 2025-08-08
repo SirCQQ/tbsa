@@ -12,6 +12,7 @@ import {
   type ApartmentErrorResponse,
   type ApartmentResponse,
   type BulkCreationResponse,
+  type BuildingApartmentStatsResponse,
 } from "@/lib/api/apartments";
 import { getErrorMessage } from "@/lib/axios";
 import type {
@@ -24,13 +25,16 @@ import { buildingQueryKeys } from "./use-buildings";
 // Query keys
 export const apartmentQueryKeys = {
   all: ["apartments"] as const,
-  lists: () => [...apartmentQueryKeys.all, "list"] as const,
+  lists: () => ["apartments", "list"] as const,
   list: (filters: Record<string, any>) =>
-    [...apartmentQueryKeys.lists(), { filters }] as const,
+    ["apartments", "list", { filters }] as const,
   byBuilding: (buildingId: string) =>
-    [...apartmentQueryKeys.lists(), { buildingId }] as const,
-  details: () => [...apartmentQueryKeys.all, "detail"] as const,
-  detail: (id: string) => [...apartmentQueryKeys.details(), id] as const,
+    ["apartments", "list", "building", buildingId] as const,
+  details: () => ["apartments", "detail"] as const,
+  detail: (id: string) => ["apartments", "detail", id] as const,
+  stats: () => ["apartments", "stats"] as const,
+  buildingStats: (buildingId: string) =>
+    ["apartments", "stats", "building", buildingId] as const,
 };
 
 // Get apartments by building query hook
@@ -107,6 +111,16 @@ export function useCreateApartment(
         queryKey: apartmentQueryKeys.all,
       });
 
+      // Invalidate building stats
+      queryClient.invalidateQueries({
+        queryKey: buildingQueryKeys.buildingStats(variables.buildingId),
+      });
+
+      // Invalidate apartment stats for the building
+      queryClient.invalidateQueries({
+        queryKey: apartmentQueryKeys.buildingStats(variables.buildingId),
+      });
+
       // Add the new apartment to the cache
       queryClient.setQueryData(apartmentQueryKeys.detail(data.data.id), data);
 
@@ -158,6 +172,16 @@ export function useUpdateApartment(
         queryKey: buildingQueryKeys.all,
       });
 
+      // Invalidate building stats
+      queryClient.invalidateQueries({
+        queryKey: buildingQueryKeys.buildingStats(data.data.buildingId),
+      });
+
+      // Invalidate apartment stats for the building
+      queryClient.invalidateQueries({
+        queryKey: apartmentQueryKeys.buildingStats(data.data.buildingId),
+      });
+
       // Update the specific apartment in cache
       queryClient.setQueryData(apartmentQueryKeys.detail(variables.id), data);
 
@@ -207,6 +231,16 @@ export function useDeleteApartment(
       // Invalidate building lists
       queryClient.invalidateQueries({
         queryKey: buildingQueryKeys.all,
+      });
+
+      // Invalidate building stats
+      queryClient.invalidateQueries({
+        queryKey: buildingQueryKeys.buildingStats(variables.buildingId),
+      });
+
+      // Invalidate apartment stats for the building
+      queryClient.invalidateQueries({
+        queryKey: apartmentQueryKeys.buildingStats(variables.buildingId),
       });
 
       // Remove the deleted apartment from cache
@@ -291,6 +325,16 @@ export function useCreateBulkApartments(
         queryKey: apartmentQueryKeys.all,
       });
 
+      // Invalidate building stats
+      queryClient.invalidateQueries({
+        queryKey: buildingQueryKeys.buildingStats(variables.buildingId),
+      });
+
+      // Invalidate apartment stats for the building
+      queryClient.invalidateQueries({
+        queryKey: apartmentQueryKeys.buildingStats(variables.buildingId),
+      });
+
       // Add all newly created apartments to the cache
       response.data.created.forEach((apartment) => {
         queryClient.setQueryData(apartmentQueryKeys.detail(apartment.id), {
@@ -311,5 +355,23 @@ export function useCreateBulkApartments(
     },
     // Spread other options but exclude onSuccess and onError to avoid overriding
     ...rest,
+  });
+}
+
+// Get building apartment statistics query hook
+export function useBuildingApartmentStats(
+  buildingId: string,
+  options?: UseQueryOptions<
+    BuildingApartmentStatsResponse,
+    AxiosError<ApartmentErrorResponse>,
+    BuildingApartmentStatsResponse["data"]
+  >
+) {
+  return useQuery({
+    queryKey: apartmentQueryKeys.buildingStats(buildingId),
+    queryFn: () => apartmentsApi.getBuildingStats(buildingId),
+    select: (data) => data.data,
+    enabled: !!buildingId,
+    ...options,
   });
 }

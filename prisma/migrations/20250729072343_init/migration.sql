@@ -11,7 +11,7 @@ CREATE TYPE "InviteCodeStatus" AS ENUM ('ACTIVE', 'USED', 'EXPIRED', 'REVOKED');
 CREATE TYPE "ApartmentRole" AS ENUM ('OWNER', 'CO_OWNER', 'TENANT', 'MANAGER', 'FAMILY');
 
 -- CreateEnum
-CREATE TYPE "ResourcesEnum" AS ENUM ('USERS', 'ORGANIZATIONS', 'BUILDINGS', 'APARTMENTS', 'WATER_READINGS', 'WATER_METERS', 'WATER_BILLS', 'READING_NOTIFICATIONS', 'ROLES', 'PERMISSIONS', 'INVITE_CODES', 'ADMIN_GRANT', 'SUBSCRIPTION_PLANS', 'MODULES', 'PLAN_MODULES', 'APARTMENT_RESIDENTS', 'ADMINISTRATOR');
+CREATE TYPE "ResourcesEnum" AS ENUM ('USERS', 'ORGANIZATIONS', 'BUILDINGS', 'APARTMENTS', 'WATER_READINGS', 'WATER_METERS', 'WATER_BILLS', 'READING_NOTIFICATIONS', 'ROLES', 'PERMISSIONS', 'INVITE_CODES');
 
 -- CreateEnum
 CREATE TYPE "ActionsEnum" AS ENUM ('READ', 'CREATE', 'UPDATE', 'DELETE');
@@ -19,15 +19,26 @@ CREATE TYPE "ActionsEnum" AS ENUM ('READ', 'CREATE', 'UPDATE', 'DELETE');
 -- CreateEnum
 CREATE TYPE "PriorityEnum" AS ENUM ('LOW', 'NORMAL', 'HIGH', 'URGENT');
 
+-- CreateEnum
+CREATE TYPE "SubscriptionTypeEnum" AS ENUM ('Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Enterprise', 'Custom');
+
+-- CreateEnum
+CREATE TYPE "SubscriptionBillingIntervalEnum" AS ENUM ('Monthly', 'Yearly');
+
 -- CreateTable
 CREATE TABLE "subscription_plans" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "price" DECIMAL(65,30) NOT NULL,
-    "billing_period" TEXT NOT NULL,
-    "features" JSONB NOT NULL,
+    "description" TEXT,
+    "base_price" DECIMAL(65,30) NOT NULL,
+    "billing_interval" "SubscriptionBillingIntervalEnum" NOT NULL DEFAULT 'Monthly',
     "max_buildings" INTEGER,
     "max_apartments" INTEGER,
+    "max_users" INTEGER,
+    "popular" BOOLEAN NOT NULL DEFAULT false,
+    "cta" TEXT,
+    "subscription_type" "SubscriptionTypeEnum" NOT NULL DEFAULT 'Bronze',
+    "metadata" JSONB,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
@@ -36,30 +47,23 @@ CREATE TABLE "subscription_plans" (
 );
 
 -- CreateTable
-CREATE TABLE "modules" (
+CREATE TABLE "subscriptions" (
     "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "code" TEXT NOT NULL,
-    "description" TEXT,
+    "organization_id" TEXT NOT NULL,
+    "plan_id" TEXT NOT NULL,
+    "start_date" TIMESTAMP(3) NOT NULL,
+    "end_date" TIMESTAMP(3) NOT NULL,
+    "subscription_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "is_paid" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "total_amount" DECIMAL(65,30) NOT NULL,
+    "paid_at" TIMESTAMP(3),
+    "notes" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
 
-    CONSTRAINT "modules_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "plan_modules" (
-    "id" TEXT NOT NULL,
-    "subscription_plan_id" TEXT NOT NULL,
-    "module_id" TEXT NOT NULL,
-    "is_included" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    "deleted_at" TIMESTAMP(3),
-
-    CONSTRAINT "plan_modules_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -68,6 +72,7 @@ CREATE TABLE "organizations" (
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "description" TEXT,
+    "address" TEXT,
     "subscription_plan_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -126,8 +131,6 @@ CREATE TABLE "permissions" (
     "resource" "ResourcesEnum" NOT NULL,
     "action" "ActionsEnum" NOT NULL,
     "description" TEXT,
-    "organization_id" TEXT,
-    "module_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -146,17 +149,6 @@ CREATE TABLE "roles" (
     "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "roles_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "organization_roles" (
-    "id" TEXT NOT NULL,
-    "organization_id" TEXT NOT NULL,
-    "role_id" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "organization_roles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -185,11 +177,14 @@ CREATE TABLE "role_permissions" (
 CREATE TABLE "buildings" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
     "address" TEXT NOT NULL,
     "type" "BuildingType" NOT NULL,
     "floors" INTEGER NOT NULL,
+    "total_apartments" INTEGER NOT NULL DEFAULT 1,
     "organization_id" TEXT NOT NULL,
     "description" TEXT,
+    "reading_day" INTEGER NOT NULL DEFAULT 15,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
@@ -204,6 +199,7 @@ CREATE TABLE "apartments" (
     "floor" INTEGER NOT NULL,
     "building_id" TEXT NOT NULL,
     "is_occupied" BOOLEAN NOT NULL DEFAULT false,
+    "occupant_count" INTEGER NOT NULL DEFAULT 0,
     "surface" DOUBLE PRECISION,
     "description" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -299,6 +295,7 @@ CREATE TABLE "invite_codes" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "apartment_id" TEXT NOT NULL,
     "status" "InviteCodeStatus" NOT NULL DEFAULT 'ACTIVE',
     "expires_at" TIMESTAMP(3) NOT NULL,
     "used_at" TIMESTAMP(3),
@@ -385,10 +382,25 @@ CREATE TABLE "verification_tokens" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "modules_code_key" ON "modules"("code");
+CREATE UNIQUE INDEX "subscription_plans_name_key" ON "subscription_plans"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "plan_modules_subscription_plan_id_module_id_key" ON "plan_modules"("subscription_plan_id", "module_id");
+CREATE INDEX "subscriptions_organization_id_idx" ON "subscriptions"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_plan_id_idx" ON "subscriptions"("plan_id");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_start_date_end_date_idx" ON "subscriptions"("start_date", "end_date");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_is_paid_idx" ON "subscriptions"("is_paid");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_is_active_idx" ON "subscriptions"("is_active");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_subscription_date_idx" ON "subscriptions"("subscription_date");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "organizations_code_key" ON "organizations"("code");
@@ -436,9 +448,6 @@ CREATE INDEX "permissions_resource_idx" ON "permissions"("resource");
 CREATE INDEX "permissions_code_idx" ON "permissions"("code");
 
 -- CreateIndex
-CREATE INDEX "permissions_organization_id_idx" ON "permissions"("organization_id");
-
--- CreateIndex
 CREATE UNIQUE INDEX "permissions_resource_action_key" ON "permissions"("resource", "action");
 
 -- CreateIndex
@@ -446,15 +455,6 @@ CREATE UNIQUE INDEX "roles_code_key" ON "roles"("code");
 
 -- CreateIndex
 CREATE INDEX "roles_code_idx" ON "roles"("code");
-
--- CreateIndex
-CREATE INDEX "organization_roles_organization_id_idx" ON "organization_roles"("organization_id");
-
--- CreateIndex
-CREATE INDEX "organization_roles_role_id_idx" ON "organization_roles"("role_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "organization_roles_organization_id_role_id_key" ON "organization_roles"("organization_id", "role_id");
 
 -- CreateIndex
 CREATE INDEX "user_roles_user_id_idx" ON "user_roles"("user_id");
@@ -478,6 +478,15 @@ CREATE UNIQUE INDEX "role_permissions_role_id_permission_id_key" ON "role_permis
 CREATE INDEX "buildings_organization_id_idx" ON "buildings"("organization_id");
 
 -- CreateIndex
+CREATE INDEX "buildings_reading_day_idx" ON "buildings"("reading_day");
+
+-- CreateIndex
+CREATE INDEX "buildings_code_idx" ON "buildings"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "buildings_organization_id_code_key" ON "buildings"("organization_id", "code");
+
+-- CreateIndex
 CREATE INDEX "apartments_building_id_idx" ON "apartments"("building_id");
 
 -- CreateIndex
@@ -493,7 +502,7 @@ CREATE INDEX "apartment_residents_user_id_idx" ON "apartment_residents"("user_id
 CREATE INDEX "apartment_residents_role_idx" ON "apartment_residents"("role");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "apartment_residents_apartment_id_user_id_role_key" ON "apartment_residents"("apartment_id", "user_id", "role");
+CREATE UNIQUE INDEX "apartment_residents_apartment_id_user_id_key" ON "apartment_residents"("apartment_id", "user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "water_meters_serial_number_key" ON "water_meters"("serial_number");
@@ -556,6 +565,9 @@ CREATE INDEX "invite_codes_email_idx" ON "invite_codes"("email");
 CREATE INDEX "invite_codes_status_idx" ON "invite_codes"("status");
 
 -- CreateIndex
+CREATE INDEX "invite_codes_apartment_id_idx" ON "invite_codes"("apartment_id");
+
+-- CreateIndex
 CREATE INDEX "invite_codes_created_by_id_idx" ON "invite_codes"("created_by_id");
 
 -- CreateIndex
@@ -598,10 +610,10 @@ CREATE UNIQUE INDEX "verification_tokens_token_key" ON "verification_tokens"("to
 CREATE UNIQUE INDEX "verification_tokens_identifier_token_key" ON "verification_tokens"("identifier", "token");
 
 -- AddForeignKey
-ALTER TABLE "plan_modules" ADD CONSTRAINT "plan_modules_module_id_fkey" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "plan_modules" ADD CONSTRAINT "plan_modules_subscription_plan_id_fkey" FOREIGN KEY ("subscription_plan_id") REFERENCES "subscription_plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "subscription_plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "organizations" ADD CONSTRAINT "organizations_subscription_plan_id_fkey" FOREIGN KEY ("subscription_plan_id") REFERENCES "subscription_plans"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -617,18 +629,6 @@ ALTER TABLE "user_organizations" ADD CONSTRAINT "user_organizations_organization
 
 -- AddForeignKey
 ALTER TABLE "user_organizations" ADD CONSTRAINT "user_organizations_permission_id_fkey" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "permissions" ADD CONSTRAINT "permissions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "permissions" ADD CONSTRAINT "permissions_module_id_fkey" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "organization_roles" ADD CONSTRAINT "organization_roles_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "organization_roles" ADD CONSTRAINT "organization_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -674,6 +674,9 @@ ALTER TABLE "reading_notifications" ADD CONSTRAINT "reading_notifications_user_i
 
 -- AddForeignKey
 ALTER TABLE "reading_notifications" ADD CONSTRAINT "reading_notifications_water_reading_id_fkey" FOREIGN KEY ("water_reading_id") REFERENCES "water_readings"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "invite_codes" ADD CONSTRAINT "invite_codes_apartment_id_fkey" FOREIGN KEY ("apartment_id") REFERENCES "apartments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "invite_codes" ADD CONSTRAINT "invite_codes_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

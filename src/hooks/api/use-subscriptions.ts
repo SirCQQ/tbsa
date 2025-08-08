@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
 import { subscriptionsApi } from "@/lib/api/subscriptions";
-import type { SubscriptionPlan } from "@prisma/client";
-import type { ApiResponse } from "@/types/api-response";
 import { queryKeys } from "@/lib/react-query";
+import type { ApiResponse } from "@/types/api-response";
+import { SubscriptionPlan } from "@prisma/client";
+import { useQuery } from "@tanstack/react-query";
 
 /**
  * React Query hook to fetch all subscription plans
@@ -18,4 +18,4 @@ export function useSubscriptions() {
     queryFn: subscriptionsApi.getAll,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
-} 
+}

@@ -44,10 +44,8 @@ export default function ApartmentDetailsPage() {
     isLoading: apartmentLoading,
     error: apartmentError,
   } = useApartment(apartmentId);
-  const { data: building, isLoading: buildingLoading } = useBuilding(
-    buildingId,
-    orgId
-  );
+  const { data: building, isLoading: buildingLoading } =
+    useBuilding(buildingId);
   const {
     data: waterMeters,
     isLoading: waterMetersLoading,

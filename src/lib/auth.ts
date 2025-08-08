@@ -119,30 +119,12 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      // Initial sign in
+    async jwt({ token, user }) {
+      // If this is the first time the jwt callback is run (user login)
       if (user) {
-        token.id = user.id;
-        token.firstName = user.firstName;
-        token.lastName = user.lastName;
-        token.isVerified = user.isVerified || false;
-        token.permissions = user.permissions || [];
-        token.organizations = user.organizations || [];
-        token.roles = user.roles || [];
-        token.currentOrganizationId = user.currentOrganizationId || null;
-      }
-
-      // Handle session updates (organization switching, etc.)
-      if (trigger === "update" && session) {
-        if (session.currentOrganizationId) {
-          token.currentOrganizationId = session.currentOrganizationId;
-        }
-      }
-
-      // Handle Google OAuth users
-      if (token.email && !token.firstName && !token.lastName) {
+        // Get fresh user data with relations from database
         const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
+          where: { id: user.id },
           include: {
             organizations: {
               include: {
@@ -167,12 +149,7 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (dbUser) {
-          token.id = dbUser.id;
-          token.firstName = dbUser.firstName;
-          token.lastName = dbUser.lastName;
-          token.isVerified = dbUser.isVerified;
-
-          // Get permission codes for OAuth user
+          // Collect permission codes
           const rolePermissionCodes: string[] = dbUser.roles.flatMap(
             (userRole) =>
               userRole.role.rolePermissions.map((rp) => rp.permission.code)
@@ -188,6 +165,7 @@ export const authOptions: NextAuthOptions = {
           ];
           const uniquePermissions = [...new Set(allPermissionCodes)];
 
+          // Map organizations
           const organizations: OrganizationReference[] =
             dbUser.organizations.map((org) => ({
               id: org.organization.id,
@@ -195,10 +173,17 @@ export const authOptions: NextAuthOptions = {
               code: org.organization.code,
             }));
 
+          // Map role codes
           const roles: RoleCode[] = dbUser.roles.map(
             (userRole) => userRole.role.code
           );
 
+          // Store all data in the token
+          token.id = dbUser.id;
+          token.email = dbUser.email;
+          token.firstName = dbUser.firstName;
+          token.lastName = dbUser.lastName;
+          token.isVerified = dbUser.isVerified;
           token.permissions = uniquePermissions;
           token.organizations = organizations;
           token.roles = roles;
@@ -208,19 +193,24 @@ export const authOptions: NextAuthOptions = {
 
       return token;
     },
+
     async session({ session, token }) {
       if (token && session.user) {
+        // Copy data from token to session
         session.user.id = token.id as string;
-        session.user.firstName = (token.firstName as string) || "";
-        session.user.lastName = (token.lastName as string) || "";
-        session.user.isVerified = (token.isVerified as boolean) || false;
-        session.user.permissions = (token.permissions as string[]) || [];
+        session.user.email = token.email as string;
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
+        session.user.isVerified = token.isVerified as boolean;
+        session.user.permissions = token.permissions as string[];
         session.user.organizations =
-          (token.organizations as OrganizationReference[]) || [];
-        session.user.roles = (token.roles as RoleCode[]) || [];
-        session.user.currentOrganizationId =
-          (token.currentOrganizationId as string) || null;
+          token.organizations as OrganizationReference[];
+        session.user.roles = token.roles as RoleCode[];
+        session.user.currentOrganizationId = token.currentOrganizationId as
+          | string
+          | null;
       }
+
       return session;
     },
     async signIn({ user, account, profile }) {
@@ -275,5 +265,5 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
+  debug: false,
 };

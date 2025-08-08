@@ -144,8 +144,8 @@ export function ExampleWithRedirect() {
   return (
     <PermissionGuard
       orPermissions={[
-        `${ResourcesEnum.ADMINISTRATOR}:${ActionsEnum.READ}`,
-        `${ResourcesEnum.SUPER_ADMIN}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.BUILDINGS}:${ActionsEnum.READ}`,
+        `${ResourcesEnum.PERMISSIONS}:${ActionsEnum.READ}`,
       ]}
       withRedirect={true}
       redirectUrl="/auth/login?error=insufficient_permissions"

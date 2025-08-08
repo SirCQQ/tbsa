@@ -39,7 +39,7 @@ export const ICON_COLORS = {
   // Actions related icons
   edit: "text-blue-500",
   settings: "text-gray-500",
-  add: "text-white",
+  add: "text-primary-foreground",
   create: "text-green-500",
   generate: "text-yellow-500",
   delete: "text-red-500",

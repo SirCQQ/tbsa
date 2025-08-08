@@ -126,7 +126,7 @@ export function UserRegisterForm() {
 
             <Separator />
 
-            <SecuritySection control={form.control} />
+            <SecuritySection />
 
             <Separator />
 

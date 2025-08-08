@@ -49,6 +49,8 @@ const CreateOrgPage = () => {
     error: subscriptionsError,
   } = useGetSubscriptions();
 
+  console.log({ subscriptions });
+
   const form = useForm<FormData>({
     resolver: zodResolver(organizationCreationSchema),
     defaultValues: {

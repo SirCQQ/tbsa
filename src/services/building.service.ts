@@ -30,6 +30,14 @@ export type BuildingWithApartmentsAndOrganization = Prisma.BuildingGetPayload<{
   };
 }>;
 
+export type BuildingStats = {
+  totalApartments: number;
+  occupiedApartments: number;
+  vacantApartments: number;
+  apartmentsByFloor: Record<string, any[]>;
+  occupancyRate: number;
+};
+
 class BuildingService {
   private includeOrganization = {
     organization: {
@@ -156,12 +164,34 @@ class BuildingService {
   }
 
   /**
-   * Get buildings for an organization
+   * Get buildings for an organization with access control
    */
-  async getBuildingsByOrganization(
-    organizationId: string
+  async getBuildingsByOrg(
+    organizationId: string,
+    userId: string,
+    userRoles: string[]
   ): Promise<ServiceResult<BuildingWithApartmentsAndOrganization[]>> {
     try {
+      // Check if user is super admin (has full access)
+      const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
+
+      if (!isSuperAdmin) {
+        // Verify user has access to this organization
+        const userOrg = await prisma.userOrganization.findFirst({
+          where: {
+            userId,
+            organizationId,
+          },
+        });
+
+        if (!userOrg) {
+          return {
+            success: false,
+            error: "Nu aveți acces la această organizație",
+          };
+        }
+      }
+
       const buildings = await prisma.building.findMany({
         where: {
           organizationId,
@@ -180,7 +210,6 @@ class BuildingService {
         data: buildings,
       };
     } catch (error) {
-      // Log error details without complex object formatting to avoid Next.js source map bug
       console.error(
         "Error fetching buildings:",
         error instanceof Error ? error.message : String(error)
@@ -193,23 +222,56 @@ class BuildingService {
   }
 
   /**
-   * Get building by ID and verify organization access
+   * Get building by ID with access control
    */
   async getBuildingById(
     buildingId: string,
-    organizationId: string
+    userId: string,
+    userRoles: string[]
   ): Promise<ServiceResult<BuildingWithApartmentsAndOrganization | null>> {
     try {
-      const building = await prisma.building.findFirst({
-        where: {
-          id: buildingId,
-          organizationId,
-          deletedAt: null,
-        },
-        include: {
-          organization: this.includeOrganization.organization,
-        },
-      });
+      // Check if user is super admin (has full access)
+      const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
+
+      let building;
+
+      if (isSuperAdmin) {
+        // Super admin can access any building
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+          },
+          include: {
+            organization: this.includeOrganization.organization,
+          },
+        });
+      } else {
+        // Regular users can only access buildings in their organizations
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+            organization: {
+              users: {
+                some: {
+                  userId: userId,
+                },
+              },
+            },
+          },
+          include: {
+            organization: this.includeOrganization.organization,
+          },
+        });
+      }
+
+      if (!building && !isSuperAdmin) {
+        return {
+          success: false,
+          error: "Clădirea nu a fost găsită sau nu aveți acces la ea",
+        };
+      }
 
       return {
         success: true,
@@ -400,6 +462,118 @@ class BuildingService {
           error instanceof Error
             ? error.message
             : "A intervenit o eroare la ștergerea clădirii",
+      };
+    }
+  }
+
+  /**
+   * Get building statistics by ID with access control
+   */
+  async getBuildingStatsById(
+    buildingId: string,
+    userId: string,
+    userRoles: string[]
+  ): Promise<ServiceResult<BuildingStats>> {
+    try {
+      // Check if user is super admin (has full access)
+      const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
+
+      let building;
+
+      if (isSuperAdmin) {
+        // Super admin can access any building stats
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+          },
+        });
+      } else {
+        // Regular users can only access buildings in their organizations
+        building = await prisma.building.findFirst({
+          where: {
+            id: buildingId,
+            deletedAt: null,
+            organization: {
+              users: {
+                some: {
+                  userId: userId,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      if (!building) {
+        return {
+          success: false,
+          error: "Clădirea nu a fost găsită sau nu aveți acces la ea",
+        };
+      }
+
+      // Get apartment statistics
+      const apartments = await prisma.apartment.findMany({
+        where: {
+          buildingId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          number: true,
+          floor: true,
+          isOccupied: true,
+          occupantCount: true,
+          surface: true,
+        },
+      });
+
+      // Calculate statistics
+      const totalApartments = apartments.length;
+      const occupiedApartments = apartments.filter(
+        (apt) => apt.isOccupied
+      ).length;
+      const vacantApartments = totalApartments - occupiedApartments;
+      const occupancyRate =
+        totalApartments > 0 ? (occupiedApartments / totalApartments) * 100 : 0;
+
+      // Group apartments by floor
+      const apartmentsByFloor = apartments.reduce(
+        (acc, apartment) => {
+          const floorKey = apartment.floor.toString();
+          if (!acc[floorKey]) {
+            acc[floorKey] = [];
+          }
+          acc[floorKey].push({
+            id: apartment.id,
+            number: apartment.number,
+            floor: apartment.floor,
+            isOccupied: apartment.isOccupied,
+            occupantCount: apartment.occupantCount,
+            surface: apartment.surface,
+          });
+          return acc;
+        },
+        {} as Record<string, any[]>
+      );
+
+      const stats: BuildingStats = {
+        totalApartments,
+        occupiedApartments,
+        vacantApartments,
+        apartmentsByFloor,
+        occupancyRate: Math.round(occupancyRate * 100) / 100, // Round to 2 decimal places
+      };
+
+      return {
+        success: true,
+        data: stats,
+      };
+    } catch (error) {
+      console.error("Error fetching building stats:", error);
+      return {
+        success: false,
+        error: "Eroare la încărcarea statisticilor clădirii",
       };
     }
   }

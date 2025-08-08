@@ -89,6 +89,61 @@ export type MockPrismaOrganization = {
   aggregate: jest.MockedFunction<any>;
 };
 
+export type MockPrismaSubscriptionPlan = {
+  findMany: jest.MockedFunction<any>;
+  findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
+  create: jest.MockedFunction<any>;
+  update: jest.MockedFunction<any>;
+  delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
+};
+
+export type MockPrismaUserOrganization = {
+  findMany: jest.MockedFunction<any>;
+  findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
+  create: jest.MockedFunction<any>;
+  update: jest.MockedFunction<any>;
+  delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
+};
+
+export type MockPrismaUserRole = {
+  findMany: jest.MockedFunction<any>;
+  findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
+  create: jest.MockedFunction<any>;
+  update: jest.MockedFunction<any>;
+  delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
+};
+
+export type MockPrismaOrganizationRole = {
+  findMany: jest.MockedFunction<any>;
+  findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
+  create: jest.MockedFunction<any>;
+  update: jest.MockedFunction<any>;
+  delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
+};
+
+export type MockPrismaRole = {
+  findMany: jest.MockedFunction<any>;
+  findUnique: jest.MockedFunction<any>;
+  findFirst: jest.MockedFunction<any>;
+  create: jest.MockedFunction<any>;
+  update: jest.MockedFunction<any>;
+  delete: jest.MockedFunction<any>;
+  count: jest.MockedFunction<any>;
+  aggregate: jest.MockedFunction<any>;
+};
+
 export type MockPrismaWaterMeter = {
   findMany: jest.MockedFunction<any>;
   findUnique: jest.MockedFunction<any>;
@@ -111,6 +166,11 @@ export type MockPrisma = {
   session: MockPrismaSession;
   waterMeter: MockPrismaWaterMeter;
   organization: MockPrismaOrganization;
+  subscriptionPlan: MockPrismaSubscriptionPlan;
+  userOrganization: MockPrismaUserOrganization;
+  userRole: MockPrismaUserRole;
+  organizationRole: MockPrismaOrganizationRole;
+  role: MockPrismaRole;
   $transaction: jest.MockedFunction<any>;
   $connect: jest.MockedFunction<any>;
   $disconnect: jest.MockedFunction<any>;
@@ -201,6 +261,56 @@ export const createMockPrisma = (): MockPrisma => ({
     aggregate: jest.fn(),
   },
   organization: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  subscriptionPlan: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  userOrganization: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  userRole: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  organizationRole: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  role: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     findFirst: jest.fn(),
